@@ -1,0 +1,87 @@
+{
+  "lessonSlug": "05-privacy-compliance/03-consent-management",
+  "moduleId": "05-privacy-compliance",
+  "_meta": {
+    "idPrefix": "dg-m05-03",
+    "description": "Use IDs: dg-m05-03-q1 through dg-m05-03-q4, dg-m05-03-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m05-03-q1",
+      "type": "multiple-choice",
+      "question": "FinSecure хранит согласие клиента как boolean-поле marketing_opt_in в таблице customers. Клиент обращается с просьбой доказать, что банк получил его согласие на маркетинг. Почему банк не может выполнить эту просьбу?",
+      "options": [
+        { "id": "a", "text": "Boolean-поле хранит только текущее состояние, но не дату получения, версию текста согласия и способ его получения — невозможно доказать compliance" },
+        { "id": "b", "text": "Boolean-поле не поддерживается базой данных Oracle" },
+        { "id": "c", "text": "Клиент не имеет права запрашивать доказательства согласия" },
+        { "id": "d", "text": "Маркетинговые рассылки не требуют согласия по 152-ФЗ" }
+      ],
+      "correctAnswer": "a",
+      "explanation": "Boolean-флаг marketing_opt_in = true показывает только текущее состояние, но не предоставляет audit trail: когда согласие получено, какая версия текста показана, каким способом (web/mobile/office), с какого IP-адреса. По GDPR Art. 7(1) контроллер обязан доказать факт получения согласия. По 152-ФЗ также требуется подтверждение. Без этих данных банк не может доказать compliance и рискует штрафом.",
+      "hint": "Подумайте: что нужно, чтобы доказать в суде или регулятору, что согласие было получено? Достаточно ли значения true/false?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m05-03-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure обновил текст согласия на маркетинг (добавлена передача данных партнёрам). 200,000 клиентов дали согласие на старую версию. Какое действие необходимо?",
+      "options": [
+        { "id": "a", "text": "Старое согласие действительно — клиенты уже согласились на маркетинг" },
+        { "id": "b", "text": "Необходимо получить новое согласие от всех 200,000 клиентов на обновлённую версию, так как scope обработки расширился" },
+        { "id": "c", "text": "Достаточно уведомить клиентов об изменении по email" },
+        { "id": "d", "text": "Можно использовать opt-out: считать согласие полученным, если клиент не отказался" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Согласие должно быть конкретным и информированным. Добавление 'передача данных партнёрам' существенно расширяет scope обработки — это новая цель, на которую старое согласие не распространяется. По GDPR согласие должно быть дано на каждую конкретную цель. По 152-ФЗ согласие также должно содержать перечень действий и лиц, получающих данные. Opt-out (D) запрещён по GDPR для маркетинга — только opt-in.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m05-03-q3",
+      "type": "multiple-choice",
+      "question": "Какая модель согласия требуется по GDPR для маркетинговых рассылок?",
+      "options": [
+        { "id": "a", "text": "Opt-out — рассылки разрешены, пока клиент не откажется" },
+        { "id": "b", "text": "Opt-in — клиент должен явно согласиться, чек-бокс по умолчанию не отмечен" },
+        { "id": "c", "text": "Implicit consent — согласие подразумевается при регистрации" },
+        { "id": "d", "text": "GDPR не регулирует маркетинговые рассылки" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "GDPR требует opt-in (активного согласия) для маркетинговых рассылок. Pre-checked boxes запрещены (решение CJEU по делу Planet49, 2019). Согласие должно быть свободным, конкретным, информированным и однозначным (Art. 4(11)). Opt-out модель (A) допускается CCPA для продажи данных, но не GDPR для маркетинга. Implicit consent (C) не признаётся GDPR.",
+      "bloomLevel": "conceptual"
+    },
+    {
+      "id": "dg-m05-03-q4",
+      "type": "true-false",
+      "question": "По 152-ФЗ организация должна прекратить обработку персональных данных в течение 30 дней после отзыва согласия субъектом.",
+      "correctAnswer": false,
+      "explanation": "По 152-ФЗ (статья 21) оператор обязан прекратить обработку и уничтожить персональные данные в течение 30 дней, если обработка осуществляется без иного законного основания. Однако формулировка '30 дней после отзыва' упрощена: закон говорит о прекращении обработки 'в срок, не превышающий 30 дней с даты поступления отзыва', но отзыв согласия не всегда означает немедленное прекращение — если есть другое законное основание (например, исполнение договора), обработка может продолжиться. Ключевое уточнение: 30 дней — это максимальный срок на прекращение, а не гарантированный.",
+      "hint": "Подумайте: всегда ли отзыв согласия означает прекращение обработки? Что если данные нужны для исполнения действующего договора?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m05-03-code-1",
+      "type": "code-challenge",
+      "question": "Напишите функцию validate_consent, которая проверяет соответствие обработок данных записям согласий. Для каждой обработки определите статус: authorized (есть действующее согласие), expired (согласие истекло), denied (явный отказ), no_consent (запись согласия отсутствует). Вычислите compliance_rate (доля authorized обработок).",
+      "language": "python",
+      "starterCode": "import json\nimport sys\nfrom datetime import datetime\n\ndef validate_consent(data):\n    reference_date = datetime.strptime(data[\"reference_date\"], \"%Y-%m-%d\")\n    activities = data[\"processing_activities\"]\n    consents = {c[\"purpose\"]: c for c in data[\"user_consents\"]}\n    \n    # TODO: For each activity, check if consent exists, is granted, and not expired\n    # TODO: Build results list with status and reason/valid_until\n    # TODO: Compute summary with counts and compliance_rate\n    # TODO: Print JSON result\n    pass\n\ndata = json.loads(sys.stdin.read())\nvalidate_consent(data)",
+      "solutionCode": "import json\nimport sys\nfrom datetime import datetime\n\ndef validate_consent(data):\n    reference_date = datetime.strptime(data[\"reference_date\"], \"%Y-%m-%d\")\n    activities = data[\"processing_activities\"]\n    consents = {c[\"purpose\"]: c for c in data[\"user_consents\"]}\n    \n    results = []\n    counts = {\"authorized\": 0, \"expired\": 0, \"denied\": 0, \"no_consent\": 0}\n    \n    for activity in activities:\n        purpose = activity[\"purpose\"]\n        consent = consents.get(purpose)\n        \n        if consent is None:\n            results.append({\n                \"activity_id\": activity[\"id\"],\n                \"purpose\": purpose,\n                \"status\": \"no_consent\",\n                \"reason\": \"no consent record found\"\n            })\n            counts[\"no_consent\"] += 1\n        elif not consent[\"granted\"]:\n            results.append({\n                \"activity_id\": activity[\"id\"],\n                \"purpose\": purpose,\n                \"status\": \"denied\",\n                \"reason\": \"consent explicitly denied\"\n            })\n            counts[\"denied\"] += 1\n        elif consent[\"expires\"] and datetime.strptime(consent[\"expires\"], \"%Y-%m-%d\") < reference_date:\n            results.append({\n                \"activity_id\": activity[\"id\"],\n                \"purpose\": purpose,\n                \"status\": \"expired\",\n                \"consent_expired\": consent[\"expires\"]\n            })\n            counts[\"expired\"] += 1\n        else:\n            results.append({\n                \"activity_id\": activity[\"id\"],\n                \"purpose\": purpose,\n                \"status\": \"authorized\",\n                \"consent_valid_until\": consent[\"expires\"] if consent[\"expires\"] else \"indefinite\"\n            })\n            counts[\"authorized\"] += 1\n    \n    total = len(activities)\n    compliance_rate = round(counts[\"authorized\"] / total, 2) if total > 0 else 0\n    \n    result = {\n        \"results\": results,\n        \"summary\": {\n            \"authorized\": counts[\"authorized\"],\n            \"expired\": counts[\"expired\"],\n            \"denied\": counts[\"denied\"],\n            \"no_consent\": counts[\"no_consent\"],\n            \"compliance_rate\": compliance_rate\n        }\n    }\n    \n    print(json.dumps(result, indent=2))\n\ndata = json.loads(sys.stdin.read())\nvalidate_consent(data)",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Mixed statuses: authorized, expired, denied, no_consent",
+          "input": "{\"reference_date\":\"2025-12-15\",\"processing_activities\":[{\"id\":\"PA-01\",\"purpose\":\"order_fulfillment\",\"data_categories\":[\"name\",\"address\",\"email\"]},{\"id\":\"PA-02\",\"purpose\":\"marketing_emails\",\"data_categories\":[\"email\",\"name\"]},{\"id\":\"PA-03\",\"purpose\":\"analytics\",\"data_categories\":[\"purchase_history\",\"browsing\"]},{\"id\":\"PA-04\",\"purpose\":\"credit_scoring\",\"data_categories\":[\"income\",\"payment_history\"]}],\"user_consents\":[{\"purpose\":\"order_fulfillment\",\"granted\":true,\"date\":\"2025-01-01\",\"expires\":\"2026-01-01\"},{\"purpose\":\"marketing_emails\",\"granted\":true,\"date\":\"2024-06-01\",\"expires\":\"2025-06-01\"},{\"purpose\":\"analytics\",\"granted\":false,\"date\":\"2025-01-01\",\"expires\":null},{\"purpose\":\"third_party_sharing\",\"granted\":true,\"date\":\"2025-01-01\",\"expires\":\"2026-01-01\"}]}",
+          "expectedOutput": "{\n  \"results\": [\n    {\"activity_id\": \"PA-01\", \"purpose\": \"order_fulfillment\", \"status\": \"authorized\", \"consent_valid_until\": \"2026-01-01\"},\n    {\"activity_id\": \"PA-02\", \"purpose\": \"marketing_emails\", \"status\": \"expired\", \"consent_expired\": \"2025-06-01\"},\n    {\"activity_id\": \"PA-03\", \"purpose\": \"analytics\", \"status\": \"denied\", \"reason\": \"consent explicitly denied\"},\n    {\"activity_id\": \"PA-04\", \"purpose\": \"credit_scoring\", \"status\": \"no_consent\", \"reason\": \"no consent record found\"}\n  ],\n  \"summary\": {\n    \"authorized\": 1,\n    \"expired\": 1,\n    \"denied\": 1,\n    \"no_consent\": 1,\n    \"compliance_rate\": 0.25\n  }\n}"
+        },
+        {
+          "id": "tc2",
+          "description": "All activities authorized",
+          "input": "{\"reference_date\":\"2025-06-01\",\"processing_activities\":[{\"id\":\"PA-01\",\"purpose\":\"service\",\"data_categories\":[\"name\"]},{\"id\":\"PA-02\",\"purpose\":\"support\",\"data_categories\":[\"email\"]}],\"user_consents\":[{\"purpose\":\"service\",\"granted\":true,\"date\":\"2025-01-01\",\"expires\":\"2026-01-01\"},{\"purpose\":\"support\",\"granted\":true,\"date\":\"2025-01-01\",\"expires\":\"2026-01-01\"}]}",
+          "expectedOutput": "{\n  \"results\": [\n    {\"activity_id\": \"PA-01\", \"purpose\": \"service\", \"status\": \"authorized\", \"consent_valid_until\": \"2026-01-01\"},\n    {\"activity_id\": \"PA-02\", \"purpose\": \"support\", \"status\": \"authorized\", \"consent_valid_until\": \"2026-01-01\"}\n  ],\n  \"summary\": {\n    \"authorized\": 2,\n    \"expired\": 0,\n    \"denied\": 0,\n    \"no_consent\": 0,\n    \"compliance_rate\": 1.0\n  }\n}"
+        }
+      ],
+      "explanation": "Consent Validator проверяет каждую обработку данных против записей согласий. Для каждой пары (обработка, согласие) проверяется: (1) существует ли запись согласия на данную цель, (2) было ли согласие предоставлено (granted), (3) не истёк ли срок действия. Reference date фиксирована для детерминизма — не зависит от системных часов.",
+      "hint": "Начните с маппинга consents по purpose. Для каждой activity проверяйте три условия в порядке: нет записи -> no_consent, granted=false -> denied, expires < reference_date -> expired. Если все проверки пройдены — authorized.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

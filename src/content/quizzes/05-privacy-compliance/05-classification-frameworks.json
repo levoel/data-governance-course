@@ -1,0 +1,88 @@
+{
+  "lessonSlug": "05-privacy-compliance/05-classification-frameworks",
+  "moduleId": "05-privacy-compliance",
+  "_meta": {
+    "idPrefix": "dg-m05-05",
+    "description": "Use IDs: dg-m05-05-q1 through dg-m05-05-q4, dg-m05-05-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m05-05-q1",
+      "type": "multiple-choice",
+      "question": "FinSecure классифицирует таблицу audit_logs (поля: user_id, action, timestamp, ip_address) как Internal. Data Steward считает классификацию недостаточной. Какой уровень корректен и почему?",
+      "options": [
+        { "id": "a", "text": "Internal — audit_logs содержат только технические данные о действиях системы" },
+        { "id": "b", "text": "Confidential — audit_logs содержат user_id (связь с PII) и ip_address (PII по GDPR), а также являются доказательной базой для compliance" },
+        { "id": "c", "text": "Restricted — audit_logs содержат информацию о безопасности и должны быть в PCI-зоне" },
+        { "id": "d", "text": "Public — audit_logs не содержат конфиденциальной информации" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Audit_logs содержат user_id (косвенная связь с PII через маппинг к таблице users) и ip_address (PII по GDPR — позволяет идентифицировать пользователя). Кроме того, audit_logs — доказательная база для расследования инцидентов и демонстрации compliance перед регуляторами. Их целостность и конфиденциальность критичны. Internal недостаточен (не обеспечивает шифрование и RBAC), Restricted избыточен (нет платёжных данных или ключей шифрования).",
+      "hint": "Проверьте каждое поле: user_id связан с PII? ip_address является PII по GDPR? Какова роль audit_logs при аудите compliance?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m05-05-q2",
+      "type": "multiple-choice",
+      "question": "Какое из утверждений верно описывает связь между классификацией данных и маскированием?",
+      "options": [
+        { "id": "a", "text": "Классификация определяет ЧТО маскировать, а маскирование определяет КАК — это два звена одного процесса" },
+        { "id": "b", "text": "Маскирование заменяет классификацию — если данные замаскированы, классификация не нужна" },
+        { "id": "c", "text": "Классификация применяется только к неструктурированным данным, маскирование — к структурированным" },
+        { "id": "d", "text": "Классификация и маскирование — независимые процессы без связи" }
+      ],
+      "correctAnswer": "a",
+      "explanation": "Классификация и маскирование — два звена одного процесса защиты данных. Классификация определяет уровень конфиденциальности (Confidential, Restricted), а правила обработки для каждого уровня определяют, когда и как применять маскирование. Например: PII-tagged столбцы (Confidential) автоматически маскируются при экспорте в dev-среду. Без классификации маскирование применяется ad-hoc, без системного подхода.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m05-05-q3",
+      "type": "multiple-choice",
+      "question": "FinSecure имеет 800+ таблиц в Oracle без классификации. Data Steward предлагает начать с автоматической классификации через PII-паттерны. Какой следующий шаг после автоматической классификации?",
+      "options": [
+        { "id": "a", "text": "Развернуть маскирование для всех Confidential-таблиц" },
+        { "id": "b", "text": "Ручная верификация автоматических меток и классификация таблиц без PII-паттернов" },
+        { "id": "c", "text": "Удалить все нераспознанные таблицы" },
+        { "id": "d", "text": "Классификация завершена — автоматические метки достаточны" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Автоматическая классификация через PII-паттерны — первый шаг, но недостаточный. Она обнаруживает только столбцы с явными PII-именами (email, phone, name). Остаются: (1) столбцы с нестандартными именами (col_7, user_attr_3), (2) таблицы с бизнес-конфиденциальными данными без PII (финансовые модели, стратегии), (3) false positives (столбец 'phone_model' классифицирован как PII). Ручная верификация + дополнительная классификация обеспечивают 100% coverage.",
+      "hint": "Подумайте: может ли автоматика найти PII в столбце 'col_7'? А как быть с таблицей financial_forecasts, которая не содержит PII, но содержит коммерческую тайну?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m05-05-q4",
+      "type": "true-false",
+      "question": "Данные, классифицированные как Public, не требуют никакого контроля доступа или мониторинга.",
+      "correctAnswer": false,
+      "explanation": "Даже Public-данные требуют минимального контроля: (1) защита целостности — предотвращение несанкционированного изменения публичных данных (подмена каталога продуктов), (2) мониторинг доступа — для обнаружения подозрительной активности (массовый скрейпинг), (3) версионирование — отслеживание изменений. Классификация 'Public' означает, что утечка не причиняет вреда, но не означает полное отсутствие контроля.",
+      "hint": "Подумайте: что произойдёт, если злоумышленник изменит каталог продуктов FinSecure (Public данные), подставив неверные цены?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m05-05-code-1",
+      "type": "code-challenge",
+      "question": "Создайте JSON-документ политики классификации данных с четырьмя уровнями (public, internal, confidential, restricted). Каждый уровень должен содержать: описание, примеры данных и правила обработки (storage, transmission, access, retention_days, disposal).",
+      "language": "json",
+      "starterCode": "{\n  \"policy\": {\n    \"name\": \"Data Classification Policy\",\n    \"version\": \"1.0\",\n    \"levels\": [\n      {\n        \"level\": \"public\",\n        \"description\": \"\",\n        \"examples\": [],\n        \"handling\": {\n          \"storage\": \"\",\n          \"transmission\": \"\",\n          \"access\": \"\",\n          \"retention_days\": 0,\n          \"disposal\": \"\"\n        }\n      }\n    ]\n  }\n}",
+      "solutionCode": "{\n  \"policy\": {\n    \"name\": \"Data Classification Policy\",\n    \"version\": \"1.0\",\n    \"levels\": [\n      {\n        \"level\": \"public\",\n        \"description\": \"Data intended for public access\",\n        \"examples\": [\"Product catalog\", \"Published reports\", \"Public API documentation\"],\n        \"handling\": {\n          \"storage\": \"No special requirements\",\n          \"transmission\": \"No encryption required\",\n          \"access\": \"No restrictions\",\n          \"retention_days\": 0,\n          \"disposal\": \"Standard deletion\"\n        }\n      },\n      {\n        \"level\": \"internal\",\n        \"description\": \"Data for internal use only\",\n        \"examples\": [\"Employee directory\", \"Internal wikis\", \"Meeting notes\"],\n        \"handling\": {\n          \"storage\": \"Company-managed systems only\",\n          \"transmission\": \"TLS required for external transfer\",\n          \"access\": \"All employees with valid account\",\n          \"retention_days\": 1095,\n          \"disposal\": \"Standard deletion with confirmation\"\n        }\n      },\n      {\n        \"level\": \"confidential\",\n        \"description\": \"Sensitive business or personal data\",\n        \"examples\": [\"Customer PII\", \"Financial records\", \"Contracts\"],\n        \"handling\": {\n          \"storage\": \"Encrypted at rest (AES-256)\",\n          \"transmission\": \"TLS 1.2+ required; no email attachments\",\n          \"access\": \"Role-based; manager approval required\",\n          \"retention_days\": 2555,\n          \"disposal\": \"Secure deletion with audit trail\"\n        }\n      },\n      {\n        \"level\": \"restricted\",\n        \"description\": \"Highest sensitivity data with regulatory requirements\",\n        \"examples\": [\"Payment card data (PCI)\", \"Medical records\", \"Authentication credentials\"],\n        \"handling\": {\n          \"storage\": \"Encrypted at rest; dedicated secure zone\",\n          \"transmission\": \"End-to-end encryption; approved channels only\",\n          \"access\": \"Named individuals only; MFA required; logged\",\n          \"retention_days\": 365,\n          \"disposal\": \"Cryptographic erasure with compliance certificate\"\n        }\n      }\n    ]\n  }\n}",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Validates 4 classification levels with all required handling fields",
+          "input": "",
+          "expectedOutput": "VALID: 4 levels, each with handling rules for storage, transmission, access, retention_days, disposal"
+        },
+        {
+          "id": "tc2",
+          "description": "Validates that retention_days increases with sensitivity (public < internal < confidential)",
+          "input": "",
+          "expectedOutput": "VALID: retention_days progression matches sensitivity levels"
+        }
+      ],
+      "explanation": "Data Classification Policy формализует уровни конфиденциальности и правила обработки для каждого уровня. Ключевые принципы: (1) каждый уровень имеет чёткие примеры для однозначного определения, (2) правила обработки ужесточаются с ростом уровня, (3) retention_days отражает баланс между compliance и минимизацией данных — restricted данные хранятся минимально необходимый срок.",
+      "hint": "Заполните все 4 уровня. Для каждого уровня retention_days должен отражать логику: public (0 — без ограничений), internal (1095 — 3 года), confidential (2555 — 7 лет), restricted (365 — минимально необходимый срок). Disposal ужесточается: от standard deletion до cryptographic erasure.",
+      "bloomLevel": "applied"
+    }
+  ]
+}

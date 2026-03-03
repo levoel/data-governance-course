@@ -1,0 +1,93 @@
+{
+  "lessonSlug": "05-privacy-compliance/04-data-masking",
+  "moduleId": "05-privacy-compliance",
+  "_meta": {
+    "idPrefix": "dg-m05-04",
+    "description": "Use IDs: dg-m05-04-q1 through dg-m05-04-q4, dg-m05-04-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m05-04-q1",
+      "type": "multiple-choice",
+      "question": "BioGenesis заменяет patient_id на research_id, сохраняя маппинг в защищённой таблице. По GDPR эти данные считаются:",
+      "options": [
+        { "id": "a", "text": "Обезличенными — связь с пациентом удалена из исследовательского датасета" },
+        { "id": "b", "text": "Псевдонимизированными — маппинг существует, связь обратима, данные остаются персональными по GDPR" },
+        { "id": "c", "text": "Маскированными — research_id является маской для patient_id" },
+        { "id": "d", "text": "Публичными — research_id не содержит личной информации" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Это псевдонимизация по определению GDPR (Art. 4(5)): идентификаторы заменены на псевдонимы, но маппинг сохранён. При наличии ключа маппинга (patient_id -> research_id) связь обратима. GDPR считает псевдонимизированные данные по-прежнему персональными и требует их защиты. Для обезличивания (anonymization) маппинг должен быть необратимо уничтожен — но тогда BioGenesis не сможет связать результаты исследования обратно с пациентом.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m05-04-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure использует динамическое маскирование: DBA видит полные данные, аналитик видит маскированные. Какой главный недостаток этого подхода?",
+      "options": [
+        { "id": "a", "text": "Динамическое маскирование снижает качество данных для аналитики" },
+        { "id": "b", "text": "Нагрузка на производительность: маскирование применяется при каждом запросе, замедляя ответы" },
+        { "id": "c", "text": "Динамическое маскирование не поддерживается Oracle 19c" },
+        { "id": "d", "text": "Аналитик может обойти маскирование через прямой SQL-доступ к таблице" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Динамическое маскирование применяется на лету при каждом запросе: система перехватывает результат, определяет роль пользователя и заменяет значения. Это создаёт overhead на производительность, особенно для аналитических запросов с миллионами строк. Для 800+ таблиц Oracle в FinSecure это может стать узким местом. Вариант D частично верен (зависит от реализации), но главный недостаток — именно производительность. Статическое маскирование (копия базы) избегает этой проблемы.",
+      "hint": "Подумайте: что происходит при SELECT * FROM customers (500,000 строк), если каждое значение email и phone маскируется на лету?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m05-04-q3",
+      "type": "multiple-choice",
+      "question": "Какой метод маскирования сохраняет формат данных (длину, тип символов) и при этом является обратимым с ключом?",
+      "options": [
+        { "id": "a", "text": "Частичное скрытие (Partial Masking) — показывает часть значения" },
+        { "id": "b", "text": "Перемешивание (Shuffling) — перемешивает значения между записями" },
+        { "id": "c", "text": "Format-Preserving Encryption (FPE) — шифрует с сохранением формата" },
+        { "id": "d", "text": "Подстановка (Substitution) — заменяет на значения из справочника" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Format-Preserving Encryption (FPE) — единственный метод, который одновременно сохраняет формат данных (10-значный ИНН остаётся 10-значным числом) и является обратимым с криптографическим ключом. Partial masking (A) необратим — потерянные символы не восстановить. Shuffling (B) обратим теоретически (если сохранить permutation), но не сохраняет format. Substitution (D) необратим (маппинг к справочнику не гарантирует уникальность).",
+      "bloomLevel": "conceptual"
+    },
+    {
+      "id": "dg-m05-04-q4",
+      "type": "true-false",
+      "question": "Полная анонимизация геномных данных невозможна, поскольку геном каждого человека уникален и может служить идентификатором даже без сопроводительных данных.",
+      "correctAnswer": true,
+      "explanation": "Геномные данные уникальны для каждого человека (за исключением однояйцевых близнецов). Даже при удалении всех сопроводительных данных (имя, дата рождения, клиника) сама последовательность ДНК позволяет идентифицировать человека при наличии референсной базы. Исследования показали возможность реидентификации участников геномных исследований через открытые генеалогические базы данных. Для геномных данных применяют differential privacy и k-anonymity на уровне группы, но полная анонимизация действительно невозможна.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m05-04-code-1",
+      "type": "code-challenge",
+      "question": "Напишите функцию mask_dataset, которая применяет маскирование к PII-полям. Правила маскирования: name — первая буква + звёздочки (И*******), email — первый символ + *** + домен (i***@mail.ru), phone — последние 4 цифры (***4567), inn — первые 2 + последние 2 цифры (77****93). Функция возвращает маскированные записи и audit-лог.",
+      "language": "python",
+      "starterCode": "import json\nimport sys\n\ndef mask_dataset(data):\n    records = data[\"records\"]\n    rules = data[\"masking_rules\"]\n    \n    # TODO: Apply masking based on rules\n    # first_initial: first character + asterisks (total 8 chars)\n    # partial_domain: first char of local + *** + @ + domain\n    # last_four: *** + last 4 characters\n    # bookend: first 2 + asterisks + last 2 characters\n    # TODO: Build masked_records and audit log\n    # TODO: Print JSON result\n    pass\n\ndata = json.loads(sys.stdin.read())\nmask_dataset(data)",
+      "solutionCode": "import json\nimport sys\n\ndef mask_dataset(data):\n    records = data[\"records\"]\n    rules = data[\"masking_rules\"]\n    \n    def apply_mask(value, rule):\n        v = str(value)\n        if rule == \"first_initial\":\n            return v[0] + \"*\" * 7\n        elif rule == \"partial_domain\":\n            local, domain = v.split(\"@\")\n            return local[0] + \"***@\" + domain\n        elif rule == \"last_four\":\n            return \"***\" + v[-4:]\n        elif rule == \"bookend\":\n            return v[:2] + \"*\" * 4 + v[-2:]\n        return v\n    \n    masked_records = []\n    masking_counts = {}\n    fields_masked = 0\n    \n    for record in records:\n        masked = {}\n        for field, value in record.items():\n            if field in rules:\n                rule = rules[field]\n                masked[field] = apply_mask(value, rule)\n                masking_counts[rule] = masking_counts.get(rule, 0) + 1\n                fields_masked += 1\n            else:\n                masked[field] = value\n        masked_records.append(masked)\n    \n    result = {\n        \"masked_records\": masked_records,\n        \"audit\": {\n            \"records_processed\": len(records),\n            \"fields_masked\": fields_masked,\n            \"masking_applied\": masking_counts\n        }\n    }\n    \n    print(json.dumps(result, indent=2, ensure_ascii=False))\n\ndata = json.loads(sys.stdin.read())\nmask_dataset(data)",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Standard masking: 3 records with name, email, phone, inn",
+          "input": "{\"records\":[{\"name\":\"Иванов Иван Иванович\",\"email\":\"ivan.ivanov@mail.ru\",\"phone\":\"+79001234567\",\"inn\":\"7707083893\"},{\"name\":\"Петрова Мария Сергеевна\",\"email\":\"maria.petrova@gmail.com\",\"phone\":\"+79007654321\",\"inn\":\"7719402047\"},{\"name\":\"Сидоров Алексей Петрович\",\"email\":\"alex@yandex.ru\",\"phone\":\"+79001111111\",\"inn\":\"7842349892\"}],\"masking_rules\":{\"name\":\"first_initial\",\"email\":\"partial_domain\",\"phone\":\"last_four\",\"inn\":\"bookend\"}}",
+          "expectedOutput": "{\n  \"masked_records\": [\n    {\"name\": \"И*******\", \"email\": \"i***@mail.ru\", \"phone\": \"***4567\", \"inn\": \"77****93\"},\n    {\"name\": \"П*******\", \"email\": \"m***@gmail.com\", \"phone\": \"***4321\", \"inn\": \"77****47\"},\n    {\"name\": \"С*******\", \"email\": \"a***@yandex.ru\", \"phone\": \"***1111\", \"inn\": \"78****92\"}\n  ],\n  \"audit\": {\n    \"records_processed\": 3,\n    \"fields_masked\": 12,\n    \"masking_applied\": {\n      \"first_initial\": 3,\n      \"partial_domain\": 3,\n      \"last_four\": 3,\n      \"bookend\": 3\n    }\n  }\n}"
+        },
+        {
+          "id": "tc2",
+          "description": "Single record with email and phone only",
+          "input": "{\"records\":[{\"email\":\"test@example.com\",\"phone\":\"+79009876543\"}],\"masking_rules\":{\"email\":\"partial_domain\",\"phone\":\"last_four\"}}",
+          "expectedOutput": "{\n  \"masked_records\": [\n    {\"email\": \"t***@example.com\", \"phone\": \"***6543\"}\n  ],\n  \"audit\": {\n    \"records_processed\": 1,\n    \"fields_masked\": 2,\n    \"masking_applied\": {\n      \"partial_domain\": 1,\n      \"last_four\": 1\n    }\n  }\n}"
+        },
+        {
+          "id": "tc3",
+          "description": "Records with unmasked fields preserved",
+          "input": "{\"records\":[{\"name\":\"Козлов Дмитрий\",\"department\":\"Sales\",\"email\":\"dk@corp.ru\"}],\"masking_rules\":{\"name\":\"first_initial\",\"email\":\"partial_domain\"}}",
+          "expectedOutput": "{\n  \"masked_records\": [\n    {\"name\": \"К*******\", \"department\": \"Sales\", \"email\": \"d***@corp.ru\"}\n  ],\n  \"audit\": {\n    \"records_processed\": 1,\n    \"fields_masked\": 2,\n    \"masking_applied\": {\n      \"first_initial\": 1,\n      \"partial_domain\": 1\n    }\n  }\n}",
+          "hidden": true
+        }
+      ],
+      "explanation": "Data Masking Function применяет четыре типа маскирования: first_initial (первая буква + звёздочки), partial_domain (первый символ local part + *** + домен), last_four (*** + последние 4 символа), bookend (первые 2 + звёздочки + последние 2). Audit log отслеживает количество обработанных записей и применённых масок для демонстрации compliance.",
+      "hint": "Для каждого поля записи проверяйте, есть ли для него правило маскирования в masking_rules. Если есть — применяйте соответствующую функцию. Если нет — оставляйте значение без изменений. Не забудьте про audit: считайте общее количество маскированных полей.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

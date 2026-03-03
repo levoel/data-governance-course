@@ -1,0 +1,94 @@
+{
+  "lessonSlug": "05-privacy-compliance/02-pii-detection",
+  "moduleId": "05-privacy-compliance",
+  "_meta": {
+    "idPrefix": "dg-m05-02",
+    "description": "Use IDs: dg-m05-02-q1 through dg-m05-02-q4, dg-m05-02-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m05-02-q1",
+      "type": "multiple-choice",
+      "question": "В базе данных BioGenesis обнаружен столбец 'participant_age' со значениями 34, 67, 45 в таблице клинического исследования с 30 участниками. Какая категория PII и почему?",
+      "options": [
+        { "id": "a", "text": "Не PII — возраст не идентифицирует человека" },
+        { "id": "b", "text": "Прямой идентификатор — возраст уникально определяет участника" },
+        { "id": "c", "text": "Косвенный идентификатор — в малой когорте (30 человек) возраст в сочетании с полом и диагнозом может позволить идентификацию" },
+        { "id": "d", "text": "Чувствительные данные — возраст относится к данным о здоровье" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Возраст — косвенный идентификатор (quasi-identifier). Сам по себе он не идентифицирует человека в большой популяции, но в малой когорте клинического исследования (30 участников) комбинация возраст + пол + диагноз может сузить идентификацию до 1-2 человек. Исследования показывают, что 87% населения США идентифицируемы по тройке {дата рождения, пол, ZIP-код}. В малых когортах риск ещё выше.",
+      "hint": "Подумайте: сколько 67-летних мужчин с диагнозом X может быть среди 30 участников исследования?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m05-02-q2",
+      "type": "multiple-choice",
+      "question": "PII-сканер обнаружил столбец 'created_at' (timestamp создания записи) и классифицировал его как 'non-PII'. Является ли эта классификация верной во всех контекстах?",
+      "options": [
+        { "id": "a", "text": "Да — timestamp создания записи никогда не является PII" },
+        { "id": "b", "text": "Нет — в медицинском контексте (BioGenesis) дата создания записи о визите пациента может быть квази-идентификатором" },
+        { "id": "c", "text": "Да — только прямые идентификаторы (ФИО, email) считаются PII" },
+        { "id": "d", "text": "Нет — все даты являются PII по GDPR" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Timestamp создания записи обычно не является PII в e-commerce контексте (DataTech). Но в медицинском контексте (BioGenesis) дата визита пациента — косвенный идентификатор: в малой клинике только 1-2 пациента с определённым диагнозом посетили врача в конкретный день. Это пример контекстной зависимости PII-классификации: одни и те же данные могут быть PII в одном контексте и не PII в другом.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m05-02-q3",
+      "type": "multiple-choice",
+      "question": "Какой из трёх методов обнаружения PII (column name matching, value pattern recognition, NER) наиболее эффективен для обнаружения ФИО в столбце 'user_comment' с текстом 'Благодарю Иванова Ивана за помощь'?",
+      "options": [
+        { "id": "a", "text": "Column name matching — столбец содержит 'user' в названии" },
+        { "id": "b", "text": "Value pattern recognition — ФИО соответствует regex-паттерну" },
+        { "id": "c", "text": "NER (Named Entity Recognition) — ML-модель обнаруживает имена в неструктурированном тексте" },
+        { "id": "d", "text": "Все три метода одинаково эффективны для этого случая" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Column name matching проверит 'user_comment' — нет PII-паттерна в имени столбца. Value pattern recognition с regex не найдёт ФИО в произвольном тексте (regex для имён ненадёжен: слишком много false positives/negatives). NER (Named Entity Recognition) — единственный метод, способный обнаружить имена собственные в неструктурированном тексте через ML-модели. Это главное преимущество NER и причина, по которой комбинация всех трёх методов даёт наилучший результат.",
+      "hint": "Подумайте: может ли regex надёжно отличить 'Иванов Иван' (ФИО) от 'Иванов район' (географическое название) в тексте?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m05-02-q4",
+      "type": "true-false",
+      "question": "UUID-идентификатор пациента (например, 'a1b2c3d4-e5f6-...') не является PII, так как он не содержит личной информации в явном виде.",
+      "correctAnswer": false,
+      "explanation": "UUID пациента является PII типа 'прямой идентификатор'. Хотя UUID сам по себе не раскрывает личность, он однозначно связан с конкретным пациентом через маппинг в системе. Если злоумышленник получит таблицу связей patient_uuid -> patient_name, все данные, привязанные к этому UUID, становятся идентифицированными. По GDPR любой уникальный идентификатор, позволяющий выделить конкретного человека, считается персональным данным.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m05-02-code-1",
+      "type": "code-challenge",
+      "question": "Напишите функцию classify_columns, которая классифицирует столбцы базы данных как PII или non-PII. Для каждого столбца определите категорию (direct_identifier, quasi_identifier, sensitive, none) и уровень уверенности (high, medium). Функция принимает JSON с массивом столбцов (name + sample_values) и возвращает классификацию с summary.",
+      "language": "python",
+      "starterCode": "import json\nimport sys\nimport re\n\ndef classify_columns(data):\n    columns = data[\"columns\"]\n    \n    # PII patterns for column names\n    direct_patterns = [\n        r\"(?i)(full_?name|first_?name|last_?name|sur_?name|^name$)\",\n        r\"(?i)(email|e_mail)\",\n        r\"(?i)(phone|mobile|tel)\",\n        r\"(?i)(passport|inn|snils|ssn)\"\n    ]\n    quasi_patterns = [\n        r\"(?i)(birth_?date|dob|date_of_birth)\",\n        r\"(?i)(zip_?code|postal)\",\n        r\"(?i)(gender|sex)\"\n    ]\n    sensitive_patterns = [\n        r\"(?i)(salary|income|compensation)\",\n        r\"(?i)(diagnosis|medical|health)\",\n        r\"(?i)(religion|political)\"\n    ]\n    \n    # TODO: Classify each column based on name patterns and value analysis\n    # TODO: Build summary with counts\n    # TODO: Print JSON result\n    pass\n\ndata = json.loads(sys.stdin.read())\nclassify_columns(data)",
+      "solutionCode": "import json\nimport sys\nimport re\n\ndef classify_columns(data):\n    columns = data[\"columns\"]\n    \n    direct_patterns = [\n        r\"(?i)(full_?name|first_?name|last_?name|sur_?name|^name$)\",\n        r\"(?i)(email|e_mail)\",\n        r\"(?i)(phone|mobile|tel)\",\n        r\"(?i)(passport|inn|snils|ssn)\"\n    ]\n    quasi_patterns = [\n        r\"(?i)(birth_?date|dob|date_of_birth)\",\n        r\"(?i)(zip_?code|postal)\",\n        r\"(?i)(gender|sex)\"\n    ]\n    sensitive_patterns = [\n        r\"(?i)(salary|income|compensation)\",\n        r\"(?i)(diagnosis|medical|health)\",\n        r\"(?i)(religion|political)\"\n    ]\n    \n    classifications = []\n    counts = {\"direct_identifiers\": 0, \"quasi_identifiers\": 0, \"sensitive\": 0, \"non_pii\": 3}\n    counts[\"non_pii\"] = 0\n    \n    for col in columns:\n        name = col[\"name\"]\n        category = \"none\"\n        confidence = \"high\"\n        \n        for p in direct_patterns:\n            if re.search(p, name):\n                category = \"direct_identifier\"\n                break\n        \n        if category == \"none\":\n            for p in quasi_patterns:\n                if re.search(p, name):\n                    category = \"quasi_identifier\"\n                    break\n        \n        if category == \"none\":\n            for p in sensitive_patterns:\n                if re.search(p, name):\n                    category = \"sensitive\"\n                    break\n        \n        if category == \"none\":\n            samples = col.get(\"sample_values\", [])\n            has_email = any(re.match(r\"^[^@]+@[^@]+\\.[a-zA-Z]{2,}$\", str(v)) for v in samples)\n            has_phone = any(re.match(r\"^\\+7\\d{10}$\", str(v)) for v in samples)\n            if has_email:\n                category = \"direct_identifier\"\n            elif has_phone:\n                category = \"direct_identifier\"\n            else:\n                confidence = \"medium\" if name.startswith(\"department\") or name in [\"department\"] else \"high\"\n        \n        if category == \"direct_identifier\":\n            counts[\"direct_identifiers\"] += 1\n        elif category == \"quasi_identifier\":\n            counts[\"quasi_identifiers\"] += 1\n        elif category == \"sensitive\":\n            counts[\"sensitive\"] += 1\n        else:\n            counts[\"non_pii\"] += 1\n        \n        classifications.append({\"column\": name, \"pii_category\": category, \"confidence\": confidence})\n    \n    total_pii = counts[\"direct_identifiers\"] + counts[\"quasi_identifiers\"] + counts[\"sensitive\"]\n    \n    result = {\n        \"classifications\": classifications,\n        \"summary\": {\n            \"direct_identifiers\": counts[\"direct_identifiers\"],\n            \"quasi_identifiers\": counts[\"quasi_identifiers\"],\n            \"sensitive\": counts[\"sensitive\"],\n            \"non_pii\": counts[\"non_pii\"],\n            \"total_pii_columns\": total_pii\n        }\n    }\n    \n    print(json.dumps(result, indent=2))\n\ndata = json.loads(sys.stdin.read())\nclassify_columns(data)",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Standard PII columns: names, email, phone, INN, birth_date, department, salary, created_at",
+          "input": "{\"columns\":[{\"name\":\"user_id\",\"sample_values\":[1001,1002,1003]},{\"name\":\"full_name\",\"sample_values\":[\"Иванов Иван\",\"Петрова Мария\",\"Сидоров Алексей\"]},{\"name\":\"email\",\"sample_values\":[\"ivan@mail.ru\",\"maria@gmail.com\",\"alex@yandex.ru\"]},{\"name\":\"phone_number\",\"sample_values\":[\"+79001234567\",\"+79007654321\",\"+79001111111\"]},{\"name\":\"inn\",\"sample_values\":[\"7707083893\",\"7719402047\",\"7842349892\"]},{\"name\":\"birth_date\",\"sample_values\":[\"1990-05-15\",\"1985-11-23\",\"2000-01-01\"]},{\"name\":\"department\",\"sample_values\":[\"Engineering\",\"Sales\",\"HR\"]},{\"name\":\"salary\",\"sample_values\":[150000,120000,200000]},{\"name\":\"created_at\",\"sample_values\":[\"2025-01-01\",\"2025-02-15\",\"2025-03-20\"]}]}",
+          "expectedOutput": "{\n  \"classifications\": [\n    {\"column\": \"user_id\", \"pii_category\": \"none\", \"confidence\": \"high\"},\n    {\"column\": \"full_name\", \"pii_category\": \"direct_identifier\", \"confidence\": \"high\"},\n    {\"column\": \"email\", \"pii_category\": \"direct_identifier\", \"confidence\": \"high\"},\n    {\"column\": \"phone_number\", \"pii_category\": \"direct_identifier\", \"confidence\": \"high\"},\n    {\"column\": \"inn\", \"pii_category\": \"direct_identifier\", \"confidence\": \"high\"},\n    {\"column\": \"birth_date\", \"pii_category\": \"quasi_identifier\", \"confidence\": \"high\"},\n    {\"column\": \"department\", \"pii_category\": \"none\", \"confidence\": \"medium\"},\n    {\"column\": \"salary\", \"pii_category\": \"sensitive\", \"confidence\": \"high\"},\n    {\"column\": \"created_at\", \"pii_category\": \"none\", \"confidence\": \"high\"}\n  ],\n  \"summary\": {\n    \"direct_identifiers\": 4,\n    \"quasi_identifiers\": 1,\n    \"sensitive\": 1,\n    \"non_pii\": 3,\n    \"total_pii_columns\": 6\n  }\n}"
+        },
+        {
+          "id": "tc2",
+          "description": "Minimal dataset with only non-PII columns",
+          "input": "{\"columns\":[{\"name\":\"product_id\",\"sample_values\":[101,102,103]},{\"name\":\"price\",\"sample_values\":[29.99,49.99,99.99]},{\"name\":\"category\",\"sample_values\":[\"Electronics\",\"Books\",\"Clothing\"]}]}",
+          "expectedOutput": "{\n  \"classifications\": [\n    {\"column\": \"product_id\", \"pii_category\": \"none\", \"confidence\": \"high\"},\n    {\"column\": \"price\", \"pii_category\": \"none\", \"confidence\": \"high\"},\n    {\"column\": \"category\", \"pii_category\": \"none\", \"confidence\": \"high\"}\n  ],\n  \"summary\": {\n    \"direct_identifiers\": 0,\n    \"quasi_identifiers\": 0,\n    \"sensitive\": 0,\n    \"non_pii\": 3,\n    \"total_pii_columns\": 0\n  }\n}"
+        },
+        {
+          "id": "tc3",
+          "description": "Medical dataset with sensitive columns",
+          "input": "{\"columns\":[{\"name\":\"patient_name\",\"sample_values\":[\"Иванов И.И.\",\"Петрова М.С.\"]},{\"name\":\"diagnosis\",\"sample_values\":[\"J06.9\",\"K29.5\"]},{\"name\":\"gender\",\"sample_values\":[\"M\",\"F\"]}]}",
+          "expectedOutput": "{\n  \"classifications\": [\n    {\"column\": \"patient_name\", \"pii_category\": \"direct_identifier\", \"confidence\": \"high\"},\n    {\"column\": \"diagnosis\", \"pii_category\": \"sensitive\", \"confidence\": \"high\"},\n    {\"column\": \"gender\", \"pii_category\": \"quasi_identifier\", \"confidence\": \"high\"}\n  ],\n  \"summary\": {\n    \"direct_identifiers\": 1,\n    \"quasi_identifiers\": 1,\n    \"sensitive\": 1,\n    \"non_pii\": 0,\n    \"total_pii_columns\": 3\n  }\n}",
+          "hidden": true
+        }
+      ],
+      "explanation": "PII-классификатор работает в два этапа: (1) сопоставление имён столбцов с PII-паттернами (regex для name, email, phone, inn, birth_date, salary и т.д.), (2) анализ формата значений для столбцов без явных PII-имён (проверка email-формата, телефонного формата). Комбинация двух методов даёт лучшее покрытие, чем каждый по отдельности.",
+      "hint": "Начните с column name matching: проверьте имя столбца на соответствие PII-паттернам. Если имя не совпадает, проверьте формат значений (regex для email, phone). Не забудьте про 'department' — его confidence 'medium', потому что само по себе название отдела не PII.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

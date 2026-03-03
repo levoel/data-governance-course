@@ -1,0 +1,88 @@
+{
+  "lessonSlug": "05-privacy-compliance/06-impact-assessment",
+  "moduleId": "05-privacy-compliance",
+  "_meta": {
+    "idPrefix": "dg-m05-06",
+    "description": "Use IDs: dg-m05-06-q1 through dg-m05-06-q4, dg-m05-06-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m05-06-q1",
+      "type": "multiple-choice",
+      "question": "BioGenesis хочет обучить ML-модель на геномных данных 3,000 пациентов. Нужна ли DPIA? Какие триггеры применимы?",
+      "options": [
+        { "id": "a", "text": "DPIA не нужна — геномные данные обрабатываются в исследовательских целях" },
+        { "id": "b", "text": "DPIA обязательна по двум триггерам: обработка специальных категорий в большом объёме (геномные = биометрические) + систематическая оценка и профилирование (ML-предсказания о здоровье)" },
+        { "id": "c", "text": "DPIA нужна только если данные передаются третьим лицам" },
+        { "id": "d", "text": "DPIA заменяется одобрением IRB/Этического комитета" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Два триггера DPIA по GDPR Art. 35: (1) обработка специальных категорий данных в большом объёме — геномные данные являются биометрическими/генетическими по Art. 9, 3,000 пациентов — значительный объём; (2) систематическая оценка — ML-модель создаёт предсказания о здоровье, что является профилированием. IRB (D) не заменяет DPIA: IRB оценивает этические аспекты исследования, DPIA — риски для защиты данных. Оба процесса необходимы.",
+      "hint": "Проверьте три триггера DPIA: систематическая оценка/профилирование, специальные категории в большом объёме, систематический мониторинг. Какие из них применимы к геномным данным + ML?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m05-06-q2",
+      "type": "multiple-choice",
+      "question": "В DPIA для BioGenesis риск R1 'Реидентификация пациентов' получил оценку: вероятность=3, ущерб=5, масштаб=4. Какая мера митигации наиболее эффективно снизит этот риск?",
+      "options": [
+        { "id": "a", "text": "Удаление имён пациентов из датасета" },
+        { "id": "b", "text": "k-anonymity >= 5 для квази-идентификаторов + differential privacy для геномных последовательностей" },
+        { "id": "c", "text": "Шифрование базы данных алгоритмом AES-256" },
+        { "id": "d", "text": "Ограничение доступа к датасету двумя исследователями" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Удаление имён (A) — необходимо, но недостаточно: геномные данные уникальны и сами являются идентификатором. Шифрование (C) защищает от внешних атак, но не от внутренней реидентификации. Ограничение доступа (D) снижает вероятность, но не ущерб. k-anonymity >= 5 обеспечивает, что каждая комбинация квази-идентификаторов соответствует минимум 5 записям, а differential privacy добавляет шум к геномным данным, делая реидентификацию статистически невозможной при сохранении полезности данных для ML.",
+      "hint": "Подумайте: от чего защищает шифрование (внешние атаки) и от чего k-anonymity + differential privacy (внутренняя реидентификация)?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m05-06-q3",
+      "type": "multiple-choice",
+      "question": "Пациент BioGenesis отзывает согласие на обработку. Его данные использовались для обучения ML-модели. Какое из утверждений верно?",
+      "options": [
+        { "id": "a", "text": "Достаточно удалить данные пациента из хранилища — модель не считается персональными данными" },
+        { "id": "b", "text": "Необходимо удалить данные из хранилища И оценить необходимость переобучения модели (machine unlearning), так как модель может 'помнить' данные пациента" },
+        { "id": "c", "text": "Отзыв согласия невозможен после использования данных в ML" },
+        { "id": "d", "text": "ML-модель автоматически 'забывает' данные после переобучения на новых данных" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Right to erasure (GDPR Art. 17) требует удаления персональных данных по запросу субъекта. Это включает: (1) удаление данных из хранилища, (2) оценку влияния на ML-модель — если модель обучалась на необезличенных данных, она может 'помнить' паттерны конкретного пациента (membership inference attack). Machine unlearning — активная область исследований, но полное удаление влияния данных из обученной модели — нетривиальная задача. Вариант C неверен — право на отзыв всегда сохраняется.",
+      "hint": "Подумайте о membership inference attack: можно ли определить, были ли данные конкретного пациента в обучающей выборке? Если да — модель содержит персональные данные.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m05-06-q4",
+      "type": "true-false",
+      "question": "DPIA — это разовая процедура: после проведения и утверждения DPO повторная оценка не требуется.",
+      "correctAnswer": false,
+      "explanation": "DPIA — не разовый документ, а живой процесс. GDPR Art. 35(11) требует пересмотра DPIA 'at least when there is a change in the risk' — при изменении характера обработки, объёма данных, контекста или технологий. Примеры: BioGenesis увеличивает когорту с 3,000 до 30,000 пациентов, добавляет новый тип данных, передаёт модель партнёру. Каждое изменение требует пересмотра DPIA и потенциально новых митигаций.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m05-06-code-1",
+      "type": "code-challenge",
+      "question": "Создайте JSON-документ DPIA для сценария: DataTech Solutions внедряет рекомендательную систему на основе истории покупок 500,000 клиентов. Документ должен содержать: описание обработки, оценку необходимости, минимум 4 риска с likelihood/severity/risk_level, митигации для каждого риска и запись консультации DPO.",
+      "language": "json",
+      "starterCode": "{\n  \"dpia\": {\n    \"id\": \"DPIA-2025-001\",\n    \"project\": \"\",\n    \"organization\": \"\",\n    \"assessor\": \"\",\n    \"date\": \"\",\n    \"status\": \"draft\",\n    \"processing_description\": {\n      \"purpose\": \"\",\n      \"data_subjects\": \"\",\n      \"data_categories\": [],\n      \"legal_basis\": \"\",\n      \"retention_period_days\": 0,\n      \"third_party_sharing\": false\n    },\n    \"necessity_assessment\": {},\n    \"risks\": [],\n    \"mitigations\": [],\n    \"dpo_consultation\": {}\n  }\n}",
+      "solutionCode": "{\n  \"dpia\": {\n    \"id\": \"DPIA-2025-001\",\n    \"project\": \"Customer Recommendation System\",\n    \"organization\": \"DataTech Solutions\",\n    \"assessor\": \"Data Protection Officer\",\n    \"date\": \"2025-12-01\",\n    \"status\": \"draft\",\n    \"processing_description\": {\n      \"purpose\": \"Generate personalized product recommendations based on purchase history\",\n      \"data_subjects\": \"Registered customers (~500,000)\",\n      \"data_categories\": [\"purchase_history\", \"browsing_behavior\", \"product_preferences\"],\n      \"legal_basis\": \"legitimate_interest\",\n      \"retention_period_days\": 730,\n      \"third_party_sharing\": false\n    },\n    \"necessity_assessment\": {\n      \"is_necessary\": true,\n      \"proportionality\": \"Processing limited to purchase data only; no sensitive categories\",\n      \"alternatives_considered\": [\"Manual curation\", \"Non-personalized popular items\"],\n      \"why_chosen\": \"Automated recommendations improve customer experience while using minimum necessary data\"\n    },\n    \"risks\": [\n      {\n        \"id\": \"R1\",\n        \"description\": \"Re-identification from purchase patterns\",\n        \"likelihood\": \"medium\",\n        \"severity\": \"high\",\n        \"risk_level\": \"high\"\n      },\n      {\n        \"id\": \"R2\",\n        \"description\": \"Unauthorized access to recommendation model training data\",\n        \"likelihood\": \"low\",\n        \"severity\": \"high\",\n        \"risk_level\": \"medium\"\n      },\n      {\n        \"id\": \"R3\",\n        \"description\": \"Profiling leading to discriminatory pricing\",\n        \"likelihood\": \"medium\",\n        \"severity\": \"high\",\n        \"risk_level\": \"high\"\n      },\n      {\n        \"id\": \"R4\",\n        \"description\": \"Data retention beyond necessary period\",\n        \"likelihood\": \"medium\",\n        \"severity\": \"medium\",\n        \"risk_level\": \"medium\"\n      }\n    ],\n    \"mitigations\": [\n      {\"risk_id\": \"R1\", \"measure\": \"Aggregate purchase data before model training; minimum k-anonymity of 5\", \"residual_risk\": \"low\"},\n      {\"risk_id\": \"R2\", \"measure\": \"RBAC on training data; encryption at rest; audit logging\", \"residual_risk\": \"low\"},\n      {\"risk_id\": \"R3\", \"measure\": \"Fairness testing on recommendations; no price differentiation based on profiles\", \"residual_risk\": \"low\"},\n      {\"risk_id\": \"R4\", \"measure\": \"Automated data deletion pipeline with 730-day TTL\", \"residual_risk\": \"low\"}\n    ],\n    \"dpo_consultation\": {\n      \"consulted\": true,\n      \"date\": \"2025-12-05\",\n      \"recommendation\": \"Proceed with implementation after mitigations are in place\",\n      \"conditions\": [\"Implement k-anonymity before launch\", \"Quarterly fairness audit\"]\n    }\n  }\n}",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Validates DPIA structure: processing_description, necessity_assessment, >= 4 risks, mitigations per risk, DPO consultation",
+          "input": "",
+          "expectedOutput": "VALID: Complete DPIA with all required sections, 4+ risks with mitigations, DPO consultation record"
+        },
+        {
+          "id": "tc2",
+          "description": "Validates risk-mitigation pairing: each risk has a corresponding mitigation",
+          "input": "",
+          "expectedOutput": "VALID: All risk IDs have matching mitigation entries"
+        }
+      ],
+      "explanation": "DPIA Template Builder создаёт формализованный документ оценки воздействия на защиту данных. Структура DPIA включает: (1) описание обработки — что, зачем, на каком основании; (2) оценку необходимости — можно ли достичь цели менее инвазивным способом; (3) идентификацию рисков — минимум 4 риска с оценкой вероятности и ущерба; (4) митигации — конкретные меры для каждого риска; (5) консультацию DPO — заключение и условия.",
+      "hint": "Заполните все секции DPIA. Для risks обязательно минимум 4 записи, каждая с id, description, likelihood, severity, risk_level. Для каждого risk_id создайте запись в mitigations. DPO consultation должна содержать consulted=true, date, recommendation и conditions.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}
