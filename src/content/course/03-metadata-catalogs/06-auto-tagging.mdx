@@ -133,7 +133,7 @@ descriptions = {
 
 - Колонка с 95% unique значений формата `xxx@xxx.xxx` -> email -> PII
 - Колонка с 11 цифрами, начинающимися на 7 -> phone (RU) -> PII
-- Колонка с значениями из {M, F, Other} -> gender -> PII
+- Колонка с значениями из `{M, F, Other}` -> gender -> PII
 
 ### Подход 3: Propagation через lineage
 
@@ -149,11 +149,11 @@ descriptions = {
   roles={["pii-detected", "financial-data", "health-data", "audit-required", "publicly-available"]}
   resources={["Маскирование при экспорте", "Шифрование at rest", "Access review ежеквартально", "Retention policy 7 лет", "Audit logging"]}
   permissions={[
-    ["required", "required", "required", "recommended", "required"],
-    ["n/a", "required", "n/a", "required", "required"],
-    ["required", "required", "required", "required", "required"],
-    ["n/a", "n/a", "required", "required", "required"],
-    ["n/a", "n/a", "n/a", "n/a", "n/a"]
+    ["allow", "allow", "allow", "conditional", "allow"],
+    ["deny", "allow", "deny", "allow", "allow"],
+    ["allow", "allow", "allow", "allow", "allow"],
+    ["deny", "deny", "allow", "allow", "allow"],
+    ["deny", "deny", "deny", "deny", "deny"]
   ]}
 />
 
