@@ -1,0 +1,158 @@
+---
+title: "DMBOK и фреймворки Data Governance"
+description: "Обзор DAMA-DMBOK2, 11 областей знаний, сравнение фреймворков и моделей зрелости"
+order: 2
+difficulty: "beginner"
+estimatedTime: 20
+audience: "both"
+topics: ["DAMA-DMBOK", "Governance Frameworks", "Maturity Models"]
+---
+
+import { MaturityModel } from '../../../components/diagrams/governance';
+
+# DMBOK и фреймворки Data Governance
+
+## Введение
+
+Построение программы Data Governance с нуля -- сложная задача. Как определить, какие области покрыть? Какие роли создать? Как измерить прогресс? К счастью, индустрия накопила опыт в виде фреймворков. Ключевой из них -- **DAMA-DMBOK2 (Data Management Body of Knowledge)**, определяющий 11 областей знаний Data Management.
+
+## DAMA-DMBOK2: свод знаний
+
+**DMBOK (Data Management Body of Knowledge)** -- это свод знаний по управлению данными, разработанный DAMA International. DMBOK2 (второе издание) является де-факто стандартом для построения программ Data Management и Data Governance. Русское издание: ISBN 978-5-9693-0404-8.
+
+### 11 областей знаний DMBOK2
+
+DMBOK2 определяет 11 взаимосвязанных областей знаний. Data Governance занимает центральное положение, координируя все остальные:
+
+<FlowRow>
+  <FlowNode variant="governance" label="Data Governance" sublabel="Центральная область" />
+</FlowRow>
+
+<Grid columns={3}>
+  <FlowNode variant="default" label="Data Architecture" sublabel="Архитектура данных" />
+  <FlowNode variant="default" label="Data Modeling & Design" sublabel="Моделирование" />
+  <FlowNode variant="default" label="Data Storage & Operations" sublabel="Хранение и операции" />
+  <FlowNode variant="default" label="Data Security" sublabel="Безопасность" />
+  <FlowNode variant="default" label="Data Integration" sublabel="Интеграция" />
+  <FlowNode variant="default" label="Document & Content Mgmt" sublabel="Документы и контент" />
+  <FlowNode variant="default" label="Reference & Master Data" sublabel="Справочные и мастер-данные" />
+  <FlowNode variant="default" label="Data Warehousing & BI" sublabel="Хранилища и BI" />
+  <FlowNode variant="default" label="Metadata Management" sublabel="Метаданные" />
+  <FlowNode variant="default" label="Data Quality" sublabel="Качество данных" />
+</Grid>
+
+Каждая область имеет свои цели, процессы, роли и метрики. В этом курсе мы последовательно покрываем ключевые области:
+
+| Область DMBOK2 | Модуль курса | Ключевой фокус |
+|----------------|-------------|----------------|
+| Data Governance | M01 | Фреймворки, роли, политики |
+| Data Architecture | M02 | Моделирование, стандарты |
+| Metadata Management | M03 | Каталоги, lineage |
+| Data Quality | M04 | Метрики, мониторинг |
+| Data Security | M06 | RBAC/ABAC, шифрование |
+
+### Ключевые принципы DMBOK2
+
+1. **Данные -- актив организации.** Данные имеют ценность и должны управляться так же, как финансовые или физические активы.
+2. **Governance координирует, а не контролирует.** Data Governance не должна становиться бюрократическим бутылочным горлышком. Цель -- координация и стандартизация.
+3. **Люди важнее инструментов.** Никакой каталог данных не поможет без Data Steward (распорядитель данных), который его поддерживает.
+
+<KnowledgeCheck
+  question="Почему Data Governance занимает центральное положение среди 11 областей DMBOK2, а не является одной из равноправных областей?"
+  answer="Data Governance координирует все остальные области: определяет политики для Data Quality, стандарты для Data Architecture, правила для Data Security. Без governance каждая область работает изолированно, что приводит к противоречиям и пробелам. Governance обеспечивает единство подхода, согласованность решений и разрешение конфликтов между областями."
+/>
+
+## Фреймворки Data Governance
+
+Помимо DMBOK2, существуют другие фреймворки для построения программ governance:
+
+### Сравнение фреймворков
+
+| Фреймворк | Разработчик | Фокус | Когда использовать |
+|-----------|-------------|-------|-------------------|
+| **DAMA-DMBOK2** | DAMA International | Полный свод знаний по Data Management | Как базовый справочник для любой программы |
+| **DCAM** | EDM Council | Оценка зрелости и capability mapping | Для финансовых организаций и compliance-ориентированных программ |
+| **DGI Framework** | Data Governance Institute | 10 универсальных компонентов governance | Для быстрого старта governance-программы |
+| **COBIT** | ISACA | IT Governance (данные как часть) | Когда governance данных -- часть общей IT governance |
+
+**Рекомендация для практики:** Используйте DMBOK2 как справочник и выберите один из прикладных фреймворков (DCAM или DGI) для структурирования программы. В этом курсе мы опираемся на DMBOK2 как на терминологическую и концептуальную основу.
+
+### Компоненты программы по DGI Framework
+
+DGI Framework выделяет 10 компонентов, которые должна покрыть любая программа Data Governance:
+
+<Grid columns={2}>
+  <FlowNode variant="decision" label="1. Миссия и видение" sublabel="Зачем программа существует" />
+  <FlowNode variant="decision" label="2. Цели и метрики" sublabel="Как измерить успех" />
+  <FlowNode variant="governance" label="3. Роли и ответственности" sublabel="Кто за что отвечает" />
+  <FlowNode variant="governance" label="4. Организационная структура" sublabel="Data Council, Stewards" />
+  <FlowNode variant="default" label="5. Политики и стандарты" sublabel="Правила и ограничения" />
+  <FlowNode variant="default" label="6. Процессы" sublabel="Как работают правила" />
+  <FlowNode variant="warning" label="7. Обучение и коммуникация" sublabel="Data Literacy" />
+  <FlowNode variant="warning" label="8. Управление изменениями" sublabel="Adoption" />
+  <FlowNode variant="success" label="9. Технологии" sublabel="Инструменты и платформы" />
+  <FlowNode variant="success" label="10. Мониторинг и контроль" sublabel="Метрики и отчётность" />
+</Grid>
+
+## Модели зрелости Data Governance
+
+Модель зрелости (Maturity Model) позволяет оценить текущее состояние программы governance и определить целевой уровень.
+
+### 5 уровней зрелости
+
+<MaturityModel
+  client:load
+  currentLevel={1}
+  title="Модель зрелости Data Governance (5 уровней)"
+  levels={[
+    { name: "Level 1: Initial", description: "Ad-hoc, реактивное управление, нет формальных ролей" },
+    { name: "Level 2: Managed", description: "Повторяемые процессы, документированные для критичных областей" },
+    { name: "Level 3: Defined", description: "Стандартизованные процессы, проактивное управление" },
+    { name: "Level 4: Quantitatively Managed", description: "Измеряемые процессы, KPI и метрики" },
+    { name: "Level 5: Optimizing", description: "Непрерывное улучшение, data-driven культура" }
+  ]}
+/>
+
+### Характеристики каждого уровня
+
+| Уровень | Организация | Процессы | Метрики | Пример |
+|---------|------------|----------|---------|--------|
+| **L1 Initial** | Нет governance-ролей | Ad-hoc, реактивные | Отсутствуют | DataTech Solutions |
+| **L2 Managed** | Отдельные stewards | Документированы для критичных областей | Базовые (DQ scores) | BioGenesis Lab |
+| **L3 Defined** | Governance office | Стандартизованы, проактивные | Систематические | FinSecure Bank |
+| **L4 Measured** | CDO + Data Office | Измеряемые, оптимизируемые | KPI с целевыми значениями | Зрелые корпорации |
+| **L5 Optimizing** | Data-driven культура | Непрерывное улучшение | Предиктивные метрики | Лидеры индустрии |
+
+> **Для сравнения: три компании курса**
+>
+> - **DataTech Solutions** (Level 1): нет governance-ролей, нет политик, проблемы обнаруживаются бизнес-пользователями
+> - **BioGenesis Lab** (Level 2): есть процессы для клинических данных (регуляторное требование), но исследовательские данные не управляются
+> - **FinSecure Bank** (Level 3): есть Data Governance Office, 2 Data Steward, ежемесячные заседания Data Council, но enforcement неоднороден
+
+Большинство организаций находятся на Level 1-2. Цель курса -- дать знания для перехода на Level 3 и выше.
+
+<KnowledgeCheck
+  question="Почему BioGenesis Lab (Level 2) имеет governance-процессы только для клинических данных, но не для исследовательских?"
+  answer="Потому что governance на Level 2 появляется под давлением регуляторов, а не как стратегическая инициатива. Клинические данные регулируются 323-ФЗ и стандартами GCP, что вынуждает организацию документировать процессы для этих данных. Исследовательские данные не подпадают под такие жёсткие требования, поэтому governance для них не создан. Это типичный паттерн Level 2: точечные процессы вместо системной программы."
+/>
+
+## Как выбрать целевой уровень зрелости
+
+Не каждой организации нужен Level 5. Целевой уровень зависит от:
+
+- **Регуляторного давления** -- банки и здравоохранение обычно целятся на Level 3-4
+- **Размера организации** -- стартапу из 20 человек достаточно Level 2
+- **Data-зрелости индустрии** -- e-commerce может работать на Level 2-3
+- **Бизнес-стратегии** -- если данные -- ключевой актив (AI-компании), нужен Level 4-5
+
+**Правило:** целевой уровень = текущий + 1. Перескакивание через уровни редко работает.
+
+## Итоги
+
+- **DMBOK2** определяет 11 областей знаний Data Management с Data Governance в центре
+- Фреймворки (DMBOK2, DCAM, DGI, COBIT) структурируют программу governance
+- **Модель зрелости** имеет 5 уровней: от ad-hoc (L1) до оптимизации (L5)
+- Большинство организаций находятся на Level 1-2, целевой уровень обычно = текущий + 1
+- DataTech (L1), BioGenesis (L2), FinSecure (L3) иллюстрируют разные уровни зрелости
+
+В следующем уроке мы рассмотрим **организационную структуру governance**: ключевые роли (CDO, Data Steward, DPO) и RACI-матрицу для распределения ответственности.

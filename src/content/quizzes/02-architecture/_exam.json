@@ -5,5 +5,32 @@
     "idPrefix": "dg-exam-m02",
     "description": "Use IDs: dg-exam-m02-q1, dg-exam-m02-q2, ... (8-12 analytical questions)"
   },
-  "questions": []
+  "questions": [
+    {
+      "id": "dg-exam-02-architecture-placeholder",
+      "type": "multiple-choice",
+      "question": "Placeholder -- будет заменён в следующих фазах",
+      "options": [
+        {
+          "id": "a",
+          "text": "Вариант A"
+        },
+        {
+          "id": "b",
+          "text": "Вариант B"
+        },
+        {
+          "id": "c",
+          "text": "Вариант C"
+        },
+        {
+          "id": "d",
+          "text": "Вариант D"
+        }
+      ],
+      "correctAnswer": "a",
+      "explanation": "Placeholder question -- будет заменён полноценным содержанием.",
+      "bloomLevel": "conceptual"
+    }
+  ]
 }

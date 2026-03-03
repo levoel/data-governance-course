@@ -5,5 +5,20 @@
     "idPrefix": "dg-exam-m01",
     "description": "Use IDs: dg-exam-m01-q1, dg-exam-m01-q2, ... (8-12 analytical questions)"
   },
-  "questions": []
+  "questions": [
+    {
+      "id": "dg-exam-m01-placeholder",
+      "type": "multiple-choice",
+      "question": "Placeholder",
+      "options": [
+        { "id": "a", "text": "A" },
+        { "id": "b", "text": "B" },
+        { "id": "c", "text": "C" },
+        { "id": "d", "text": "D" }
+      ],
+      "correctAnswer": "a",
+      "explanation": "Placeholder.",
+      "bloomLevel": "conceptual"
+    }
+  ]
 }
