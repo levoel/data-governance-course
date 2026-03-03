@@ -1,0 +1,24 @@
+{
+  "id": "data-governance",
+  "title": "Data Governance",
+  "description": "Полный курс по управлению данными — от метаданных и каталогов до приватности, качества и контроля доступа",
+  "author": "Lev Neganov",
+  "difficulty": "intermediate",
+  "language": "ru",
+  "version": "1.0.0",
+  "modules": [
+    { "id": "00-introduction", "title": "Введение в курс" },
+    { "id": "01-foundations", "title": "Основы Data Governance" },
+    { "id": "02-architecture", "title": "Архитектура и Моделирование Данных" },
+    { "id": "03-metadata-catalogs", "title": "Метаданные и Каталоги Данных" },
+    { "id": "04-data-quality", "title": "Качество Данных и Observability" },
+    { "id": "05-privacy-compliance", "title": "Приватность и Compliance" },
+    { "id": "06-security-access", "title": "Безопасность и Контроль Доступа" },
+    { "id": "07-implementation", "title": "Внедрение Программы Governance" },
+    { "id": "08-ai-governance", "title": "AI Governance" },
+    { "id": "09-tools-ecosystem", "title": "Экосистема Инструментов" },
+    { "id": "10-capstone", "title": "Capstone Project" }
+  ],
+  "tags": ["data-governance", "data-quality", "privacy", "compliance", "metadata", "data-catalog", "access-control", "ai-governance"],
+  "estimatedHours": 35
+}
