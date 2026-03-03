@@ -1,3 +1,787 @@
 {
-  "categories": []
+  "categories": [
+    {
+      "id": "governance-fundamentals",
+      "name": "Основы Data Governance",
+      "terms": [
+        {
+          "term": "Business Glossary (бизнес-глоссарий)",
+          "termEn": "Business Glossary",
+          "definition": "Структурированный каталог бизнес-терминов организации с согласованными определениями, владельцами и связями. Является ключевым артефактом Data Governance, обеспечивающим единое понимание терминологии между бизнесом и IT.",
+          "relatedLessons": []
+        },
+        {
+          "term": "DMBOK (Data Management Body of Knowledge)",
+          "termEn": "DMBOK",
+          "definition": "Свод знаний по управлению данными, разработанный DAMA International. DMBOK2 определяет 11 областей знаний Data Management и является де-факто стандартом для построения программ Data Governance. Русское издание ISBN 978-5-9693-0404-8.",
+          "example": "11 областей DMBOK2:\n1. Data Governance\n2. Data Architecture\n3. Data Modeling & Design\n4. Data Storage & Operations\n5. Data Security\n6. Data Integration & Interoperability\n7. Document & Content Management\n8. Reference & Master Data\n9. Data Warehousing & BI\n10. Metadata Management\n11. Data Quality",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Asset (актив данных)",
+          "termEn": "Data Asset",
+          "definition": "Набор данных, имеющий ценность для организации и управляемый как актив. Data Asset имеет владельца, описание в каталоге, определённый жизненный цикл и метрики качества. Примеры: таблица клиентов, реестр транзакций, справочник продуктов.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Culture (культура данных)",
+          "termEn": "Data Culture",
+          "definition": "Совокупность ценностей, практик и поведения в организации, определяющих отношение к данным как к стратегическому активу. Зрелая Data Culture предполагает, что сотрудники принимают решения на основе данных, заботятся о качестве данных и соблюдают политики управления.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Domain (домен данных)",
+          "termEn": "Data Domain",
+          "definition": "Логическая область бизнес-данных, объединённая общей предметной областью. Типичные домены: Клиенты, Продукты, Финансы, HR. В Data Mesh каждый домен управляется автономной командой, которая владеет и поставляет свои data products.",
+          "example": "Типичные Data Domains:\n- Customer Domain: клиенты, контакты, сегменты\n- Product Domain: продукты, SKU, категории\n- Finance Domain: транзакции, счета, бюджеты\n- HR Domain: сотрудники, должности, оргструктура",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Ethics (этика данных)",
+          "termEn": "Data Ethics",
+          "definition": "Область, изучающая моральные аспекты сбора, хранения и использования данных. Включает вопросы предвзятости алгоритмов, прозрачности принятия решений, справедливого использования персональных данных и социальной ответственности при работе с данными.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Framework (фреймворк управления данными)",
+          "termEn": "Data Framework",
+          "definition": "Структурированный набор принципов, политик, процессов и инструментов для организации программы управления данными. Фреймворк определяет роли, ответственности, метрики и механизмы контроля. Примеры: DAMA-DMBOK, DCAM, кастомные корпоративные фреймворки.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Governance (руководство данными)",
+          "termEn": "Data Governance",
+          "definition": "Система принятия решений, определения прав и ответственности в отношении данных как актива организации. Data Governance устанавливает политики, стандарты, роли и процессы, обеспечивающие качество, безопасность, доступность и соответствие данных требованиям бизнеса и регуляторов.",
+          "example": "Компоненты программы Data Governance:\n1. Организационная структура (Data Council, Stewards)\n2. Политики и стандарты (naming conventions, retention)\n3. Процессы (data request, issue resolution)\n4. Метрики (DQ scores, compliance rates)\n5. Технологии (data catalog, quality tools)",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Literacy (грамотность в области данных)",
+          "termEn": "Data Literacy",
+          "definition": "Способность сотрудников читать, понимать, создавать и коммуницировать с помощью данных. Программы Data Literacy включают обучение работе с аналитическими инструментами, интерпретации метрик и критическому осмыслению данных.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Management (управление данными)",
+          "termEn": "Data Management",
+          "definition": "Комплекс процессов по планированию, разработке, исполнению и контролю операций с данными на протяжении всего их жизненного цикла. Data Management шире Data Governance: включает архитектуру, хранение, интеграцию, качество, безопасность и другие области DMBOK2.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Operating Model (операционная модель данных)",
+          "termEn": "Data Operating Model",
+          "definition": "Описание того, как организация структурирует людей, процессы и технологии для управления данными. Определяет степень централизации (централизованная, федеративная, гибридная), распределение ролей и взаимодействие между командами.",
+          "example": "Три модели:\n1. Централизованная: единая команда DG, единые стандарты\n2. Федеративная: доменные команды, координация через совет\n3. Гибридная: центральные политики + доменная автономия",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Policy (политика данных)",
+          "termEn": "Data Policy",
+          "definition": "Формальный документ, определяющий правила и ограничения в отношении данных организации. Политики покрывают классификацию данных, контроль доступа, retention, качество, конфиденциальность. Каждая политика имеет владельца, область применения и механизм контроля исполнения.",
+          "example": "Пример политики retention:\n{\n  \"policy\": \"data-retention-policy\",\n  \"version\": \"2.1\",\n  \"rules\": [\n    {\n      \"data_class\": \"PII\",\n      \"retention_period\": \"3 years\",\n      \"action_after\": \"anonymize\"\n    },\n    {\n      \"data_class\": \"logs\",\n      \"retention_period\": \"90 days\",\n      \"action_after\": \"delete\"\n    }\n  ]\n}",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Principles (принципы данных)",
+          "termEn": "Data Principles",
+          "definition": "Набор фундаментальных утверждений, определяющих отношение организации к данным. Принципы формируют основу для политик и стандартов. Типичные принципы: данные -- актив организации, данные должны быть доступны, данные должны быть защищены.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Standards (стандарты данных)",
+          "termEn": "Data Standards",
+          "definition": "Согласованные правила именования, форматирования, хранения и обмена данными. Стандарты обеспечивают единообразие и интероперабельность данных между системами. Включают naming conventions, форматы дат, кодовые справочники, стандарты API.",
+          "example": "Примеры стандартов:\n- Naming: snake_case для таблиц и колонок\n- Даты: ISO 8601 (2024-01-15T10:30:00Z)\n- Валюта: ISO 4217 (RUB, USD, EUR)\n- Страны: ISO 3166-1 alpha-2 (RU, US, DE)\n- API: OpenAPI 3.0 для описания контрактов",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Strategy (стратегия данных)",
+          "termEn": "Data Strategy",
+          "definition": "Долгосрочный план организации по использованию данных как стратегического актива для достижения бизнес-целей. Стратегия определяет приоритеты, инвестиции, целевую архитектуру и roadmap программы Data Management.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Value (ценность данных)",
+          "termEn": "Data Value",
+          "definition": "Экономическая и стратегическая ценность данных для организации. Оценка Data Value включает прямые выгоды (оптимизация решений, монетизация), снижение рисков (compliance, качество) и возможности (новые продукты, аналитика).",
+          "relatedLessons": []
+        }
+      ]
+    },
+    {
+      "id": "roles-organization",
+      "name": "Роли и Организационная Структура",
+      "terms": [
+        {
+          "term": "Accountability (подотчётность)",
+          "termEn": "Accountability",
+          "definition": "Принцип, определяющий конечную ответственность за данные. В отличие от responsibility (исполнение), accountability означает, что конкретное лицо отвечает за результат и последствия решений в отношении данных. В RACI-матрице Accountable -- всегда один человек.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Business Analyst (бизнес-аналитик)",
+          "termEn": "Business Analyst",
+          "definition": "Специалист, преобразующий бизнес-требования в технические спецификации для данных. В контексте Data Governance участвует в определении бизнес-правил качества данных, формулировании требований к отчётности и валидации бизнес-глоссария.",
+          "relatedLessons": []
+        },
+        {
+          "term": "CDO (Chief Data Officer)",
+          "termEn": "Chief Data Officer",
+          "definition": "Руководитель высшего звена, ответственный за стратегию данных и программу Data Governance в организации. CDO определяет Data Strategy, руководит Data Office, отчитывается перед CEO/COO. В зрелых организациях CDO входит в C-suite.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Centralized Governance (централизованное руководство)",
+          "termEn": "Centralized Governance",
+          "definition": "Организационная модель, в которой все решения по управлению данными принимаются центральной командой (Data Governance Office). Обеспечивает единообразие стандартов, но может замедлять принятие решений и плохо масштабироваться в крупных организациях.",
+          "relatedLessons": []
+        },
+        {
+          "term": "DPO (Data Protection Officer)",
+          "termEn": "Data Protection Officer",
+          "definition": "Ответственный за защиту персональных данных. Обязательная роль по GDPR (статья 37) и 152-ФЗ для организаций, обрабатывающих персональные данные в значительном объёме. DPO контролирует compliance, консультирует по DPIA и взаимодействует с регуляторами.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Architect (архитектор данных)",
+          "termEn": "Data Architect",
+          "definition": "Специалист, проектирующий целевую архитектуру данных организации: модели данных, схемы интеграции, стандарты хранения, потоки данных. Обеспечивает техническое соответствие Data Strategy и поддерживает Enterprise Data Model.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Council (совет по данным)",
+          "termEn": "Data Council",
+          "definition": "Управляющий орган программы Data Governance, состоящий из представителей бизнеса и IT. Принимает стратегические решения по политикам данных, приоритетам инициатив, разрешению конфликтов. Обычно заседает ежемесячно или ежеквартально.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Custodian (хранитель данных)",
+          "termEn": "Data Custodian",
+          "definition": "Техническая роль, ответственная за физическое хранение, обслуживание и техническую защиту данных. В отличие от Data Owner (определяет политики) и Data Steward (контролирует качество), Custodian реализует технические меры: бэкапы, шифрование, контроль доступа на уровне инфраструктуры.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Engineer (инженер данных)",
+          "termEn": "Data Engineer",
+          "definition": "Специалист, реализующий пайплайны данных, ETL/ELT процессы и инфраструктуру для хранения и обработки данных. В программе Data Governance Data Engineer имплементирует технические стандарты, data quality checks и механизмы lineage.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Governance Board (комитет по данным)",
+          "termEn": "Data Governance Board",
+          "definition": "Формальный орган принятия решений по вопросам управления данными. Включает Data Owners, CDO, представителей бизнес-подразделений и IT. Утверждает политики, стандарты, разрешает эскалации и контролирует KPI программы Data Governance.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Governance Office (офис управления данными)",
+          "termEn": "Data Governance Office",
+          "definition": "Постоянное подразделение, координирующее операционную деятельность программы Data Governance. Обеспечивает исполнение политик, обучение сотрудников, мониторинг метрик качества, поддержку Data Stewards и подготовку отчётов для Data Council.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Steward (распорядитель данных)",
+          "termEn": "Data Steward",
+          "definition": "Роль, ответственная за операционное управление качеством данных в конкретном домене. Data Steward определяет бизнес-правила качества, курирует метаданные, разрешает проблемы с данными, поддерживает бизнес-глоссарий. Является связующим звеном между бизнесом и IT.",
+          "example": "Обязанности Data Steward:\n- Определение и документирование бизнес-правил качества\n- Курирование метаданных в каталоге данных\n- Разрешение инцидентов качества данных\n- Участие в Data Quality Review\n- Поддержка бизнес-глоссария домена\n- Валидация изменений схемы данных",
+          "relatedLessons": []
+        },
+        {
+          "term": "Federated Governance (федеративное руководство)",
+          "termEn": "Federated Governance",
+          "definition": "Организационная модель, в которой решения по данным принимаются на уровне доменов, а центральная команда координирует общие стандарты и политики. Баланс между автономией доменных команд и единообразием на уровне организации. Подход Data Mesh основан на федеративной модели.",
+          "relatedLessons": []
+        },
+        {
+          "term": "RACI (матрица ответственности)",
+          "termEn": "RACI Matrix",
+          "definition": "Инструмент распределения ответственности: Responsible (исполняет), Accountable (отвечает за результат), Consulted (консультирует), Informed (информируется). В Data Governance RACI определяет роли для каждого процесса: кто создаёт политику, кто утверждает, кого привлекают.",
+          "example": "RACI для процесса Data Quality Review:\n| Действие           | Owner | Steward | Engineer | Council |\n|---------------------|-------|---------|----------|---------|\n| Определение правил  |   A   |    R    |    C     |    I    |\n| Имплементация       |   I   |    C    |    R     |         |\n| Мониторинг          |   I   |    R    |    C     |    I    |\n| Эскалация           |   A   |    R    |    C     |    I    |",
+          "relatedLessons": []
+        },
+        {
+          "term": "Владелец данных (Data Owner)",
+          "termEn": "Data Owner",
+          "definition": "Бизнес-роль, несущая конечную ответственность (accountability) за данные конкретного домена. Data Owner утверждает политики доступа, определяет допустимые уровни качества, авторизует изменения схемы. Обычно это руководитель бизнес-подразделения.",
+          "relatedLessons": []
+        }
+      ]
+    },
+    {
+      "id": "metadata-catalog",
+      "name": "Метаданные и Каталог Данных",
+      "terms": [
+        {
+          "term": "Data Asset Inventory (реестр активов данных)",
+          "termEn": "Data Asset Inventory",
+          "definition": "Полный перечень всех data assets организации с атрибутами: расположение, владелец, классификация, уровень качества, зависимости. Inventory является основой для Impact Analysis и планирования Data Governance инициатив.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Discovery (обнаружение данных)",
+          "termEn": "Data Discovery",
+          "definition": "Процесс и инструменты для поиска, идентификации и понимания доступных данных в организации. Автоматизированная Data Discovery включает сканирование источников, профилирование данных, классификацию PII и построение связей между datasets.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Lineage (происхождение данных)",
+          "termEn": "Data Lineage",
+          "definition": "Визуализация и отслеживание пути данных от источника до потребителя через все трансформации. Data Lineage отвечает на вопросы: откуда пришли данные, как они трансформировались, кто их использует. Критически важен для Impact Analysis и debugging.",
+          "example": "Пример lineage цепочки:\nPostgreSQL (orders) \n  -> dbt model (stg_orders) \n    -> dbt model (fct_orders) \n      -> BI Dashboard (Revenue Report)\n\nПри изменении схемы orders lineage показывает\nвсе downstream зависимости, которые затронет изменение.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Impact Analysis (анализ влияния)",
+          "termEn": "Impact Analysis",
+          "definition": "Процесс оценки последствий изменений в данных, схемах или процессах на downstream системы и потребителей. Использует Data Lineage для определения всех затронутых объектов. Обязателен перед миграциями, изменениями схемы и выводом источников из эксплуатации.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Каталог данных",
+          "termEn": "Data Catalog",
+          "definition": "Централизованный реестр метаданных организации с поиском, классификацией и социальными функциями. Каталог данных объединяет технические метаданные (схемы, lineage), бизнес-метаданные (описания, владельцы, теги) и операционные метаданные (свежесть, качество). Примеры: OpenMetadata, DataHub, Alation.",
+          "example": "Структура записи в каталоге:\n{\n  \"name\": \"customers\",\n  \"type\": \"table\",\n  \"database\": \"analytics_prod\",\n  \"owner\": \"customer-domain-team\",\n  \"tags\": [\"PII\", \"tier-1\"],\n  \"description\": \"Мастер-таблица клиентов\",\n  \"columns\": 24,\n  \"freshness\": \"updated daily at 03:00 UTC\",\n  \"quality_score\": 94.5\n}",
+          "relatedLessons": []
+        },
+        {
+          "term": "Metadata Standards (стандарты метаданных)",
+          "termEn": "Metadata Standards",
+          "definition": "Согласованные правила описания метаданных: обязательные атрибуты, форматы, словари терминов. Стандарты обеспечивают единообразие метаданных между системами и командами. Включают schema для описания таблиц, API-контрактов, дашбордов.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Metadata Management (управление метаданными)",
+          "termEn": "Metadata Management",
+          "definition": "Область DMBOK2, охватывающая сбор, хранение, интеграцию и использование метаданных. Включает автоматический сбор технических метаданных из источников, ручное курирование бизнес-метаданных, обеспечение актуальности и согласованности.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Метаданные",
+          "termEn": "Metadata",
+          "definition": "Данные о данных. Описывают структуру, происхождение, качество, правила использования и контекст данных. Метаданные делятся на технические (схемы, типы), бизнес-метаданные (описания, владельцы, glossary) и операционные (время обновления, объём, статистика выполнения).",
+          "example": "Три типа метаданных таблицы customers:\n\nТехнические:\n  - schema: public\n  - columns: id (bigint), email (varchar), created_at (timestamp)\n  - indexes: idx_customers_email (unique)\n\nБизнес:\n  - owner: Customer Domain Team\n  - description: Мастер-таблица клиентов\n  - classification: PII\n\nОперационные:\n  - row_count: 2,450,000\n  - last_updated: 2024-01-15T03:00:00Z\n  - avg_query_time: 120ms",
+          "relatedLessons": []
+        },
+        {
+          "term": "Операционные метаданные",
+          "termEn": "Operational Metadata",
+          "definition": "Метаданные, описывающие текущее состояние и историю операций с данными: время последнего обновления, объём записей, длительность ETL-процессов, статистика запросов, история изменений схемы.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Schema Registry (реестр схем)",
+          "termEn": "Schema Registry",
+          "definition": "Централизованное хранилище версионированных схем данных (Avro, Protobuf, JSON Schema). Обеспечивает совместимость между производителями и потребителями данных, валидацию сообщений, эволюцию схем без breaking changes.",
+          "example": "# Confluent Schema Registry API\n\n# Регистрация схемы\ncurl -X POST http://schema-registry:8081/subjects/orders-value/versions \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"schema\": \"{\\\"type\\\": \\\"record\\\", ...}\"}'\n\n# Проверка совместимости\ncurl http://schema-registry:8081/compatibility/subjects/orders-value/versions/latest",
+          "relatedLessons": []
+        },
+        {
+          "term": "Словарь данных (Data Dictionary)",
+          "termEn": "Data Dictionary",
+          "definition": "Детальное описание структуры данных: таблицы, колонки, типы, ограничения, допустимые значения, связи. В отличие от каталога данных, словарь фокусируется на технической структуре. Может быть частью каталога или отдельным артефактом.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Tag/Classification (тег/классификация)",
+          "termEn": "Tag/Classification",
+          "definition": "Механизм категоризации data assets с помощью меток. Теги бывают пользовательские (проектные, доменные) и системные (PII, Confidential, Tier-1). Классификация обеспечивает автоматическое применение политик: PII-tagged данные автоматически маскируются при экспорте.",
+          "example": "Иерархия классификации:\n- Public (открытые данные)\n- Internal (внутренние)\n- Confidential (конфиденциальные)\n  - PII (персональные данные)\n  - Financial (финансовые)\n  - Health (медицинские)\n- Restricted (ограниченный доступ)\n  - Credentials (учётные данные)\n  - Encryption Keys (ключи шифрования)",
+          "relatedLessons": []
+        },
+        {
+          "term": "Технические метаданные",
+          "termEn": "Technical Metadata",
+          "definition": "Метаданные, описывающие физическую структуру данных: схемы таблиц, типы колонок, индексы, foreign keys, партиции, форматы файлов. Автоматически собираются инструментами каталога данных через crawlers и API интеграции.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Бизнес-метаданные",
+          "termEn": "Business Metadata",
+          "definition": "Метаданные, придающие бизнес-контекст данным: описания на человеческом языке, владельцы, домены, теги, связи с бизнес-процессами. Курируются вручную Data Stewards и бизнес-пользователями в каталоге данных.",
+          "relatedLessons": []
+        }
+      ]
+    },
+    {
+      "id": "data-quality",
+      "name": "Качество Данных",
+      "terms": [
+        {
+          "term": "Accuracy (точность)",
+          "termEn": "Accuracy",
+          "definition": "Измерение качества данных, определяющее степень соответствия данных реальному состоянию объекта. Точный email -- это email, действительно принадлежащий клиенту. Точность проверяется сравнением с эталонным источником (reference data validation).",
+          "example": "-- Проверка точности: email format\nSELECT COUNT(*) AS invalid_emails\nFROM customers\nWHERE email NOT LIKE '%_@_%.__%';\n\n-- Проверка точности: cross-reference с внешним источником\nSELECT c.inn, c.company_name\nFROM customers c\nLEFT JOIN egrul_reference r ON c.inn = r.inn\nWHERE r.inn IS NULL; -- INN не найден в ЕГРЮЛ",
+          "relatedLessons": []
+        },
+        {
+          "term": "Anomaly Detection (обнаружение аномалий)",
+          "termEn": "Anomaly Detection",
+          "definition": "Автоматическое выявление отклонений в данных от ожидаемых паттернов: резкие изменения объёмов, появление unexpected значений, нарушение статистических распределений. Используется в Data Observability для раннего обнаружения проблем качества.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Completeness (полнота)",
+          "termEn": "Completeness",
+          "definition": "Измерение качества данных, определяющее долю заполненных (non-null) значений в обязательных полях. Полнота 95% означает, что 5% записей имеют пропуски в обязательных полях. Измеряется на уровне колонок, таблиц и datasets.",
+          "example": "-- Измерение полноты по колонкам\nSELECT\n  COUNT(*) AS total,\n  COUNT(email) AS email_filled,\n  COUNT(phone) AS phone_filled,\n  ROUND(100.0 * COUNT(email) / COUNT(*), 1) AS email_completeness_pct,\n  ROUND(100.0 * COUNT(phone) / COUNT(*), 1) AS phone_completeness_pct\nFROM customers;",
+          "relatedLessons": []
+        },
+        {
+          "term": "Consistency (согласованность)",
+          "termEn": "Consistency",
+          "definition": "Измерение качества данных, определяющее отсутствие противоречий между связанными данными в разных системах или таблицах. Пример нарушения: клиент помечен как active в CRM, но deleted в биллинге.",
+          "example": "-- Проверка согласованности между системами\nSELECT\n  crm.customer_id,\n  crm.status AS crm_status,\n  billing.status AS billing_status\nFROM crm_customers crm\nJOIN billing_customers billing ON crm.customer_id = billing.customer_id\nWHERE crm.status != billing.status;",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Cleansing (очистка данных)",
+          "termEn": "Data Cleansing",
+          "definition": "Процесс обнаружения и исправления ошибок, дубликатов, неполных и некорректных данных. Включает стандартизацию форматов, дедупликацию, заполнение пропусков, исправление опечаток. Может быть автоматическим (правила) или ручным (Data Steward review).",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Observability (наблюдаемость данных)",
+          "termEn": "Data Observability",
+          "definition": "Способность понимать состояние данных и data pipelines в реальном времени. По аналогии с observability в DevOps, включает пять столпов: freshness, volume, schema changes, distribution, lineage. Инструменты: Monte Carlo, Elementary, Soda.",
+          "example": "5 столпов Data Observability:\n1. Freshness: данные обновились вовремя?\n2. Volume: количество записей в ожидаемом диапазоне?\n3. Schema: структура не изменилась неожиданно?\n4. Distribution: значения в допустимом распределении?\n5. Lineage: зависимости не нарушены?",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Profiling (профилирование данных)",
+          "termEn": "Data Profiling",
+          "definition": "Анализ данных для выявления их структуры, содержания и качества: типы данных, распределения значений, паттерны, аномалии, уникальность, null rates. Профилирование -- первый шаг при подключении нового источника данных.",
+          "example": "-- Базовое профилирование таблицы\nSELECT\n  COUNT(*) AS row_count,\n  COUNT(DISTINCT customer_id) AS unique_customers,\n  MIN(created_at) AS earliest,\n  MAX(created_at) AS latest,\n  AVG(order_total) AS avg_total,\n  PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY order_total) AS median_total,\n  COUNT(*) FILTER (WHERE order_total IS NULL) AS null_totals\nFROM orders;",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Quality (качество данных)",
+          "termEn": "Data Quality",
+          "definition": "Область DMBOK2, охватывающая планирование, мониторинг и улучшение качества данных. Качество измеряется по 6+ dimensions: accuracy, completeness, consistency, timeliness, validity, uniqueness. Высокое качество данных -- необходимое условие для data-driven решений.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Quality Dashboard (дашборд качества данных)",
+          "termEn": "Data Quality Dashboard",
+          "definition": "Визуальное представление метрик качества данных: агрегированные scores по доменам, тренды, алерты, топ проблемных таблиц. Служит инструментом мониторинга для Data Stewards и отчётности для Data Council.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Quality Dimensions (измерения качества данных)",
+          "termEn": "Data Quality Dimensions",
+          "definition": "Стандартные категории для оценки качества данных. Базовые 6 dimensions по DMBOK2: Accuracy, Completeness, Consistency, Timeliness, Validity, Uniqueness. Расширенные dimensions: Integrity, Relevance, Accessibility, Interpretability.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Quality Metrics (метрики качества данных)",
+          "termEn": "Data Quality Metrics",
+          "definition": "Количественные показатели, измеряющие качество данных по каждому dimension. Метрики выражаются в процентах или абсолютных числах и агрегируются в Data Quality Score. Типичная метрика: completeness_rate = (non_null / total) * 100.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Quality Rules (правила качества данных)",
+          "termEn": "Data Quality Rules",
+          "definition": "Формализованные проверки, определяющие допустимые значения, форматы и связи данных. Правила реализуются как автоматические тесты в dbt, Great Expectations или custom скриптах. Каждое правило привязано к dimension и имеет severity (critical, warning, info).",
+          "example": "# Great Expectations rule (YAML)\nexpectations:\n  - expectation_type: expect_column_values_to_not_be_null\n    kwargs:\n      column: customer_id\n    meta:\n      dimension: completeness\n      severity: critical\n\n  - expectation_type: expect_column_values_to_be_between\n    kwargs:\n      column: order_total\n      min_value: 0\n      max_value: 1000000\n    meta:\n      dimension: validity\n      severity: warning",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Quality SLA (SLA качества данных)",
+          "termEn": "Data Quality SLA",
+          "definition": "Соглашение об уровне обслуживания, определяющее минимально допустимые показатели качества данных. Пример: completeness >= 99%, freshness <= 1 hour, accuracy >= 95%. Нарушение SLA триггерит алерты и эскалацию к Data Owner.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Great Expectations (фреймворк)",
+          "termEn": "Great Expectations",
+          "definition": "Open-source фреймворк для валидации, профилирования и документирования данных. Позволяет описывать ожидания (expectations) к данным в декларативном формате и автоматически проверять их на каждом запуске pipeline.",
+          "example": "# Great Expectations Checkpoint\nimport great_expectations as gx\n\ncontext = gx.get_context()\n\n# Определение expectation suite\nsuite = context.add_expectation_suite(\"orders_suite\")\nsuite.add_expectation(\n    gx.expectations.ExpectColumnValuesToNotBeNull(column=\"order_id\")\n)\nsuite.add_expectation(\n    gx.expectations.ExpectColumnValuesToBeBetween(\n        column=\"total\", min_value=0\n    )\n)\n\n# Запуск валидации\nresult = context.run_checkpoint(\"orders_checkpoint\")\nprint(f\"Success: {result.success}\")",
+          "relatedLessons": []
+        },
+        {
+          "term": "Root Cause Analysis (анализ первопричин)",
+          "termEn": "Root Cause Analysis",
+          "definition": "Систематический процесс определения первоначальной причины проблемы с качеством данных. Использует Data Lineage, логи ETL, историю изменений схемы для отслеживания момента и причины деградации. Метод: 5 Whys, Fishbone diagram.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Timeliness (своевременность)",
+          "termEn": "Timeliness",
+          "definition": "Измерение качества данных, определяющее доступность данных в требуемые сроки. Данные считаются timely, если они обновлены к моменту принятия решения. Метрика: время между событием и его отражением в аналитической системе (data latency).",
+          "relatedLessons": []
+        },
+        {
+          "term": "Uniqueness (уникальность)",
+          "termEn": "Uniqueness",
+          "definition": "Измерение качества данных, определяющее отсутствие дубликатов. Каждая запись должна представлять уникальную сущность. Нарушение уникальности приводит к искажению агрегатов и дублированию коммуникаций с клиентами.",
+          "example": "-- Поиск дубликатов по email\nSELECT email, COUNT(*) AS cnt\nFROM customers\nGROUP BY email\nHAVING COUNT(*) > 1\nORDER BY cnt DESC;",
+          "relatedLessons": []
+        },
+        {
+          "term": "Validity (валидность)",
+          "termEn": "Validity",
+          "definition": "Измерение качества данных, определяющее соответствие значений заданным правилам формата, диапазона и допустимых значений. Валидный email содержит @ и домен, валидный возраст находится в диапазоне 0-150.",
+          "example": "-- dbt test для validity\n-- tests/assert_valid_status.sql\nSELECT *\nFROM {{ ref('stg_orders') }}\nWHERE status NOT IN ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled');",
+          "relatedLessons": []
+        }
+      ]
+    },
+    {
+      "id": "privacy-compliance",
+      "name": "Приватность и Compliance",
+      "terms": [
+        {
+          "term": "152-ФЗ",
+          "termEn": "Federal Law 152-FZ",
+          "definition": "Федеральный закон Российской Федерации \"О персональных данных\". Определяет правила сбора, хранения, обработки и передачи персональных данных граждан РФ. Требует согласия субъекта, уведомления Роскомнадзора, локализации данных на территории РФ.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Audit Trail (аудиторский след)",
+          "termEn": "Audit Trail",
+          "definition": "Хронологическая запись всех действий с данными: кто, когда, что изменил, с какого IP, по какому основанию. Audit Trail обязателен для compliance (GDPR Article 30, 152-ФЗ) и расследования инцидентов безопасности.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Consent Management (управление согласиями)",
+          "termEn": "Consent Management",
+          "definition": "Система учёта, хранения и проверки согласий субъектов данных на обработку их персональных данных. Consent Management отслеживает: что согласовано, когда, на какие цели, с каким сроком действия. Обязателен по GDPR (Article 7) и 152-ФЗ.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Cross-border Transfer (трансграничная передача)",
+          "termEn": "Cross-border Data Transfer",
+          "definition": "Передача персональных данных в другие юрисдикции. GDPR разрешает передачу в страны с адекватным уровнем защиты или при наличии Standard Contractual Clauses. 152-ФЗ требует локализации данных граждан РФ на территории РФ.",
+          "relatedLessons": []
+        },
+        {
+          "term": "DPIA (оценка воздействия на защиту данных)",
+          "termEn": "Data Protection Impact Assessment",
+          "definition": "Формальная оценка рисков обработки персональных данных, обязательная по GDPR Article 35 при высоком риске для субъектов данных. DPIA оценивает необходимость обработки, пропорциональность, риски для прав субъектов и меры митигации.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Breach (утечка данных)",
+          "termEn": "Data Breach",
+          "definition": "Инцидент безопасности, в результате которого персональные данные стали доступны неавторизованным лицам. GDPR требует уведомления регулятора в течение 72 часов (Article 33) и субъектов данных при высоком риске (Article 34). 152-ФЗ также требует уведомления Роскомнадзора.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Classification (классификация данных)",
+          "termEn": "Data Classification",
+          "definition": "Процесс категоризации данных по уровню конфиденциальности и критичности. Типичные уровни: Public, Internal, Confidential, Restricted. Классификация определяет требования к хранению, доступу, шифрованию и retention для каждого уровня.",
+          "example": "Матрица классификации:\n| Уровень       | Шифрование | Доступ       | Retention  | Пример             |\n|---------------|------------|--------------|------------|--------------------||\n| Public        | Нет        | Все          | Unlimited  | Пресс-релизы       |\n| Internal      | At rest    | Сотрудники   | 5 лет      | Внутренние отчёты  |\n| Confidential  | At rest+transit | По ролям  | 3 года     | PII клиентов       |\n| Restricted    | At rest+transit+app | Named users | 1 год  | Ключи шифрования   |",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Minimization (минимизация данных)",
+          "termEn": "Data Minimization",
+          "definition": "Принцип GDPR (Article 5), требующий обрабатывать только те персональные данные, которые необходимы для конкретной цели. Запрещает сбор данных \"про запас\". Реализуется через review процессов сбора данных и удаление избыточных полей.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Processing Agreement (соглашение об обработке данных)",
+          "termEn": "Data Processing Agreement",
+          "definition": "Юридически обязывающий договор между контроллером и процессором данных, определяющий условия обработки персональных данных. Обязателен по GDPR Article 28. Включает цель обработки, категории данных, меры безопасности, обязательства сторон.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Retention (хранение данных)",
+          "termEn": "Data Retention",
+          "definition": "Политики и процессы, определяющие сроки хранения данных и действия по их истечении (архивация, анонимизация, удаление). Retention определяется регуляторными требованиями, бизнес-необходимостью и классификацией данных.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Subject (субъект данных)",
+          "termEn": "Data Subject",
+          "definition": "Физическое лицо, чьи персональные данные обрабатываются. Субъект данных обладает правами по GDPR (доступ, исправление, удаление, переносимость, ограничение обработки) и 152-ФЗ (отзыв согласия, получение информации об обработке).",
+          "relatedLessons": []
+        },
+        {
+          "term": "GDPR (General Data Protection Regulation)",
+          "termEn": "GDPR",
+          "definition": "Регламент Европейского Союза о защите персональных данных, действующий с мая 2018 года. Устанавливает правила обработки ПД граждан ЕС, права субъектов данных, обязанности контроллеров и процессоров, штрафы до 4% глобального оборота или 20 млн евро.",
+          "relatedLessons": []
+        },
+        {
+          "term": "PII (персонально идентифицирующая информация)",
+          "termEn": "Personally Identifiable Information",
+          "definition": "Данные, позволяющие прямо или косвенно идентифицировать физическое лицо. Прямые PII: ФИО, паспорт, ИНН, email. Косвенные PII: IP-адрес, геолокация, поведенческие данные. PII требуют повышенной защиты и контроля доступа.",
+          "example": "Категории PII:\n\nПрямые идентификаторы:\n- ФИО, дата рождения\n- Паспортные данные, ИНН, СНИЛС\n- Email, номер телефона\n- Номер банковской карты\n\nКосвенные идентификаторы:\n- IP-адрес, cookies\n- Геолокация\n- Идентификатор устройства\n- Поведенческий профиль",
+          "relatedLessons": []
+        },
+        {
+          "term": "Персональные данные",
+          "termEn": "Personal Data",
+          "definition": "Любая информация, относящаяся к определённому или определяемому физическому лицу (статья 3 152-ФЗ). Шире понятия PII: включает биометрические данные, данные о здоровье, политические взгляды, религиозные убеждения (специальные категории по GDPR Article 9).",
+          "relatedLessons": []
+        },
+        {
+          "term": "Privacy Impact Assessment (оценка воздействия на приватность)",
+          "termEn": "Privacy Impact Assessment",
+          "definition": "Систематическая оценка рисков для приватности при внедрении новой системы, процесса или технологии. Шире DPIA: включает не только compliance, но и этические, репутационные и операционные риски. Рекомендуется проводить до начала разработки.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Privacy by Design (конфиденциальность по дизайну)",
+          "termEn": "Privacy by Design",
+          "definition": "Принцип, требующий учитывать защиту приватности на этапе проектирования систем, а не добавлять её постфактум. 7 принципов Ann Cavoukian: проактивность, приватность по умолчанию, встроенность, win-win, полная защита жизненного цикла, прозрачность, уважение к пользователю.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Regulatory Compliance (соответствие требованиям регуляторов)",
+          "termEn": "Regulatory Compliance",
+          "definition": "Обеспечение соответствия обработки данных законодательным и нормативным требованиям: GDPR, 152-ФЗ, PCI DSS, SOX, HIPAA и отраслевым стандартам. Compliance требует документирования процессов, регулярных аудитов, обучения сотрудников.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Right to Erasure (право на удаление)",
+          "termEn": "Right to Erasure / Right to be Forgotten",
+          "definition": "Право субъекта данных требовать удаления своих персональных данных (GDPR Article 17). Организация обязана удалить данные, если они более не нужны для первоначальной цели, отозвано согласие, или данные обрабатывались незаконно. Исключения: юридические обязательства, архивирование в общественных интересах.",
+          "relatedLessons": []
+        }
+      ]
+    },
+    {
+      "id": "security-access",
+      "name": "Безопасность и Контроль Доступа",
+      "terms": [
+        {
+          "term": "ABAC (Attribute-Based Access Control)",
+          "termEn": "Attribute-Based Access Control",
+          "definition": "Модель контроля доступа, основанная на атрибутах субъекта (должность, отдел, уровень допуска), объекта (классификация, владелец) и среды (время, IP-адрес). Более гибкая, чем RBAC: позволяет создавать fine-grained политики без комбинаторного взрыва ролей.",
+          "example": "# OPA Rego policy (ABAC)\npackage data.access\n\nallow {\n  input.user.department == input.resource.domain\n  input.user.clearance >= input.resource.classification_level\n  input.environment.time_hour >= 9\n  input.environment.time_hour <= 18\n}",
+          "relatedLessons": []
+        },
+        {
+          "term": "Access Control (контроль доступа)",
+          "termEn": "Access Control",
+          "definition": "Совокупность механизмов, ограничивающих доступ к данным на основе политик безопасности. Включает аутентификацию (кто ты), авторизацию (что тебе разрешено) и аудит (что ты сделал). Реализуется через RBAC, ABAC, ACL или их комбинации.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Audit Log (журнал аудита)",
+          "termEn": "Audit Log",
+          "definition": "Неизменяемый журнал всех действий с данными и системами: вход, запросы, изменения, экспорт. Audit Log должен содержать: who (пользователь), what (действие), when (время), where (источник), why (основание). Хранится отдельно от основных данных с ограниченным доступом.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Encryption (шифрование данных)",
+          "termEn": "Data Encryption",
+          "definition": "Преобразование данных в нечитаемый формат с использованием криптографических алгоритмов. At rest (на диске): AES-256. In transit (при передаче): TLS 1.3. At application level: field-level encryption для отдельных колонок с PII.",
+          "example": "-- PostgreSQL: Transparent Data Encryption (TDE)\n-- Шифрование at rest\nALTER SYSTEM SET ssl = on;\nALTER SYSTEM SET ssl_cert_file = '/etc/ssl/server.crt';\n\n-- Field-level encryption с pgcrypto\nINSERT INTO customers (email_encrypted)\nVALUES (pgp_sym_encrypt('user@example.com', 'encryption_key'));",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Loss Prevention (предотвращение утечек данных)",
+          "termEn": "Data Loss Prevention (DLP)",
+          "definition": "Стратегия и инструменты для обнаружения и предотвращения несанкционированного копирования, передачи или утечки конфиденциальных данных. DLP мониторит email, облачные хранилища, USB-устройства, API и применяет политики блокировки или маскирования.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Identity Management (управление идентификацией)",
+          "termEn": "Identity Management",
+          "definition": "Система управления цифровыми идентификациями пользователей: создание, аутентификация, авторизация, деактивация учётных записей. Включает Single Sign-On (SSO), Multi-Factor Authentication (MFA), federation. Инструменты: Keycloak, Okta, Azure AD.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Key Management (управление ключами)",
+          "termEn": "Key Management",
+          "definition": "Процессы и инструменты для генерации, хранения, ротации и отзыва криптографических ключей. Ключи хранятся в Hardware Security Module (HSM) или Key Management Service (KMS). Ротация ключей -- обязательная практика для compliance.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Маскирование данных",
+          "termEn": "Data Masking",
+          "definition": "Техника замены реальных конфиденциальных данных на реалистичные, но фиктивные значения. Отличается от анонимизации (обезличивания) тем, что маскированные данные сохраняют формат и статистические свойства. Применяется для тестовых, аналитических и demo-сред.",
+          "example": "-- Динамическое маскирование в PostgreSQL\nCREATE VIEW masked_customers AS\nSELECT\n  id,\n  CONCAT(LEFT(first_name, 1), '***') AS first_name,\n  CONCAT(LEFT(last_name, 1), '***') AS last_name,\n  REGEXP_REPLACE(email, '(.)(.*)(@.*)', '\\1***\\3') AS email,\n  CONCAT('***-***-', RIGHT(phone, 4)) AS phone\nFROM customers;\n\n-- Результат: И*** П*** i***@mail.ru ***-***-1234",
+          "relatedLessons": []
+        },
+        {
+          "term": "Policy-as-Code (политика как код)",
+          "termEn": "Policy-as-Code",
+          "definition": "Подход, при котором политики безопасности и доступа описываются программным кодом, версионируются в Git и применяются автоматически. Позволяет тестировать политики в CI/CD, делать review через pull requests и обеспечивать audit trail изменений.",
+          "example": "# OPA Rego: Row-Level Security policy\npackage data.rls\n\n# Пользователь видит только данные своего региона\nfilter_rows[row] {\n  row := data.customers[_]\n  row.region == input.user.region\n}\n\n# Администраторы видят все данные\nfilter_rows[row] {\n  row := data.customers[_]\n  input.user.role == \"admin\"\n}",
+          "relatedLessons": []
+        },
+        {
+          "term": "Privileged Access (привилегированный доступ)",
+          "termEn": "Privileged Access",
+          "definition": "Повышенный уровень доступа к данным и системам, предоставляемый администраторам, DBA и service accounts. Privileged Access Management (PAM) включает just-in-time доступ, сессионную запись, ротацию паролей и approval workflows.",
+          "relatedLessons": []
+        },
+        {
+          "term": "RBAC (Role-Based Access Control)",
+          "termEn": "Role-Based Access Control",
+          "definition": "Модель контроля доступа, при которой разрешения назначаются ролям, а роли -- пользователям. Наиболее распространённая модель в корпоративных системах. Роли определяются по функциям (analyst, engineer, admin) или доменам (finance_viewer, hr_editor).",
+          "example": "-- PostgreSQL RBAC\nCREATE ROLE data_analyst;\nCREATE ROLE data_engineer;\n\n-- Аналитик: только чтение\nGRANT SELECT ON ALL TABLES IN SCHEMA analytics TO data_analyst;\n\n-- Инженер: чтение + запись\nGRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA staging TO data_engineer;\n\n-- Назначение ролей пользователям\nGRANT data_analyst TO alice;\nGRANT data_engineer TO bob;",
+          "relatedLessons": []
+        },
+        {
+          "term": "Row-Level Security (безопасность на уровне строк)",
+          "termEn": "Row-Level Security (RLS)",
+          "definition": "Механизм ограничения доступа к данным на уровне отдельных строк таблицы. Пользователь видит только те записи, которые соответствуют его политике (по региону, отделу, роли). Встроен в PostgreSQL, Snowflake, BigQuery.",
+          "example": "-- PostgreSQL Row-Level Security\nALTER TABLE customers ENABLE ROW LEVEL SECURITY;\n\nCREATE POLICY region_isolation ON customers\n  FOR SELECT\n  USING (region = current_setting('app.user_region'));\n\n-- Пользователь из региона 'RU' видит только клиентов из RU\nSET app.user_region = 'RU';\nSELECT * FROM customers; -- только записи с region='RU'",
+          "relatedLessons": []
+        },
+        {
+          "term": "Security Policy (политика безопасности)",
+          "termEn": "Security Policy",
+          "definition": "Формальный документ, определяющий правила защиты данных: классификация, контроль доступа, шифрование, мониторинг, реагирование на инциденты. Security Policy является частью программы Data Governance и обновляется при изменении регуляторных требований.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Tokenization (токенизация)",
+          "termEn": "Tokenization",
+          "definition": "Замена конфиденциальных данных на уникальный токен (ссылку), не имеющий самостоятельной ценности. В отличие от шифрования, токен не может быть обратно преобразован без доступа к токен-хранилищу. Применяется для номеров карт (PCI DSS) и PII.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Zero Trust (нулевое доверие)",
+          "termEn": "Zero Trust",
+          "definition": "Архитектурный подход к безопасности, при котором ни один пользователь или система не получает доверие по умолчанию, даже внутри корпоративной сети. Каждый запрос аутентифицируется, авторизуется и шифруется. Принцип: never trust, always verify.",
+          "relatedLessons": []
+        }
+      ]
+    },
+    {
+      "id": "frameworks",
+      "name": "Фреймворки и Зрелость",
+      "terms": [
+        {
+          "term": "Benchmarking (бенчмаркинг)",
+          "termEn": "Benchmarking",
+          "definition": "Сравнение уровня зрелости Data Governance организации с отраслевыми эталонами или конкурентами. Benchmarking помогает определить разрывы, приоритизировать улучшения и обосновать инвестиции перед руководством.",
+          "relatedLessons": []
+        },
+        {
+          "term": "CMM Levels (уровни зрелости CMM)",
+          "termEn": "Capability Maturity Model Levels",
+          "definition": "Пятиуровневая шкала зрелости процессов: 1-Initial (хаотичный), 2-Managed (базовые процессы), 3-Defined (стандартизированные), 4-Quantitatively Managed (измеряемые), 5-Optimizing (непрерывное улучшение). Применяется для оценки зрелости Data Governance.",
+          "example": "Уровни зрелости Data Governance:\n\nLevel 1 - Initial:\n  Нет формальных процессов, данные в silos\n\nLevel 2 - Managed:\n  Базовые политики, назначены Data Owners\n\nLevel 3 - Defined:\n  Стандарты, каталог данных, метрики качества\n\nLevel 4 - Quantitatively Managed:\n  SLA качества, автоматический мониторинг, KPI\n\nLevel 5 - Optimizing:\n  ML-driven quality, proactive governance, data marketplace",
+          "relatedLessons": []
+        },
+        {
+          "term": "Capability Assessment (оценка возможностей)",
+          "termEn": "Capability Assessment",
+          "definition": "Формальная оценка текущего состояния Data Management capabilities организации по областям DMBOK2. Результат -- heatmap зрелости по 11 областям с рекомендациями по приоритетным улучшениям.",
+          "relatedLessons": []
+        },
+        {
+          "term": "DAMA-DMBOK (фреймворк DAMA)",
+          "termEn": "DAMA-DMBOK Framework",
+          "definition": "Фреймворк управления данными от DAMA International, описывающий 11 областей знаний и их взаимосвязи. DMBOK2 (второе издание, 2017) -- де-факто стандарт для построения программ Data Management. Русское издание переведено при участии DAMA Russia.",
+          "relatedLessons": []
+        },
+        {
+          "term": "DCAM (Data Management Capability Assessment Model)",
+          "termEn": "DCAM",
+          "definition": "Модель оценки зрелости Data Management от EDM Council, ориентированная на финансовый сектор. DCAM оценивает 8 компонентов: стратегия, программа, бизнес-кейс, архитектура, технология, качество, стандарты, governance. Включает 37 capabilities и 140+ sub-capabilities.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Data Management Maturity (зрелость управления данными)",
+          "termEn": "Data Management Maturity",
+          "definition": "Количественная оценка текущего уровня развития процессов управления данными. Измеряется по шкале CMM (1-5) для каждой области DMBOK2. Результат -- baseline для планирования улучшений и отслеживания прогресса программы Data Governance.",
+          "relatedLessons": []
+        },
+        {
+          "term": "EDM Council",
+          "termEn": "EDM Council",
+          "definition": "Enterprise Data Management Council -- глобальная ассоциация, продвигающая стандарты управления данными в финансовой индустрии. Разработчик DCAM, Cloud Data Management Capabilities (CDMC) и бенчмарков зрелости Data Management.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Governance Maturity (зрелость руководства данными)",
+          "termEn": "Governance Maturity",
+          "definition": "Оценка зрелости именно компонента Data Governance (не всего Data Management): наличие ролей, политик, метрик, процессов эскалации, культуры данных. Governance Maturity -- один из компонентов общей Data Management Maturity.",
+          "relatedLessons": []
+        },
+        {
+          "term": "ISO 8000 (стандарт качества данных)",
+          "termEn": "ISO 8000",
+          "definition": "Международный стандарт качества данных, определяющий требования к мастер-данным и обмену данными. ISO 8000 формализует процессы обеспечения качества, требования к provenance и синтаксической/семантической точности данных.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Maturity Model (модель зрелости)",
+          "termEn": "Maturity Model",
+          "definition": "Фреймворк для оценки текущего состояния и планирования развития Data Management capabilities. Модели зрелости определяют уровни (обычно 1-5), критерии для каждого уровня и путь перехода. Примеры: CMM, DCAM, Stanford Data Governance Maturity Model.",
+          "relatedLessons": []
+        }
+      ]
+    },
+    {
+      "id": "tools",
+      "name": "Инструменты и Экосистема",
+      "terms": [
+        {
+          "term": "Alation",
+          "termEn": "Alation",
+          "definition": "Коммерческая платформа для каталога данных и Data Governance. Сильные стороны: NLP-поиск, collaborative features, integration с BI-инструментами, automated data quality. Популярна в enterprise-сегменте.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Amundsen",
+          "termEn": "Amundsen",
+          "definition": "Open-source data discovery engine, разработанный в Lyft. Фокус на поиске и навигации по данным. Использует Neo4j для хранения графа метаданных и Elasticsearch для поиска. Проект передан в LF AI & Data Foundation.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Apache Atlas",
+          "termEn": "Apache Atlas",
+          "definition": "Open-source фреймворк для управления метаданными и Data Governance в экосистеме Hadoop. Обеспечивает классификацию данных, lineage, поиск по метаданным. Часть Apache Software Foundation, популярен в on-premise Hadoop-инсталляциях.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Atlan",
+          "termEn": "Atlan",
+          "definition": "Modern data workspace, объединяющий каталог данных, lineage, collaboration и governance. Отличается UX-ориентированным подходом, embedded collaboration (как Google Docs для данных) и интеграцией с modern data stack (dbt, Snowflake, Looker).",
+          "relatedLessons": []
+        },
+        {
+          "term": "Collibra",
+          "termEn": "Collibra",
+          "definition": "Enterprise-платформа для Data Intelligence: каталог данных, бизнес-глоссарий, Data Governance workflows, privacy management, data quality. Лидер в Gartner Magic Quadrant для Active Metadata Management. Популярна в крупных корпорациях и финансовом секторе.",
+          "relatedLessons": []
+        },
+        {
+          "term": "DataHub",
+          "termEn": "DataHub",
+          "definition": "Open-source платформа метаданных от LinkedIn (Acryl Data). Обеспечивает каталогизацию, lineage, governance, observability. Архитектура на основе event-driven metadata graph. Поддерживает 50+ интеграций с источниками данных.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Marquez",
+          "termEn": "Marquez",
+          "definition": "Open-source сервис для сбора, хранения и визуализации Data Lineage, разработанный в WeWork. Реализует OpenLineage стандарт. Интегрируется с Apache Airflow, Spark, dbt для автоматического сбора lineage информации.",
+          "relatedLessons": []
+        },
+        {
+          "term": "Monte Carlo",
+          "termEn": "Monte Carlo",
+          "definition": "Платформа для Data Observability, обеспечивающая мониторинг качества данных и data pipelines. Автоматически обнаруживает аномалии в freshness, volume, schema changes и распределениях. Концепция: Data Reliability Engineering по аналогии с SRE.",
+          "relatedLessons": []
+        },
+        {
+          "term": "OPA (Open Policy Agent)",
+          "termEn": "Open Policy Agent",
+          "definition": "Open-source движок для policy-as-code, использующий язык Rego для описания политик доступа. OPA принимает решения авторизации на основе входных данных и политик. Применяется для RBAC/ABAC в микросервисах, Kubernetes, API gateways и Data Governance.",
+          "example": "# OPA Rego: политика доступа к данным\npackage data.governance\n\n# Разрешить доступ к PII только для ролей с clearance\nallow {\n  input.action == \"read\"\n  input.resource.classification != \"PII\"\n}\n\nallow {\n  input.action == \"read\"\n  input.resource.classification == \"PII\"\n  input.user.clearance >= 3\n}\n\n# Запись только для Data Engineers\nallow {\n  input.action == \"write\"\n  input.user.role == \"data_engineer\"\n}",
+          "relatedLessons": []
+        },
+        {
+          "term": "OpenMetadata",
+          "termEn": "OpenMetadata",
+          "definition": "Open-source платформа для Data Discovery, Governance, Quality и Collaboration. Объединяет каталог данных, lineage, data quality, glossary, policies и team collaboration. Выбрана для лабораторных работ курса благодаря низким требованиям к ресурсам (4-6 GB RAM).",
+          "relatedLessons": []
+        },
+        {
+          "term": "dbt (data build tool)",
+          "termEn": "dbt",
+          "definition": "Open-source инструмент для трансформации данных в аналитических хранилищах. dbt реализует принцип analytics-as-code: модели на SQL, тесты качества, документация, lineage. В контексте Data Governance: dbt tests обеспечивают автоматическую валидацию правил качества данных.",
+          "example": "# dbt model с тестами качества\n# models/staging/stg_orders.sql\nSELECT\n  order_id,\n  customer_id,\n  status,\n  total\nFROM {{ source('raw', 'orders') }}\nWHERE order_id IS NOT NULL\n\n# schema.yml\nmodels:\n  - name: stg_orders\n    columns:\n      - name: order_id\n        tests:\n          - unique\n          - not_null\n      - name: status\n        tests:\n          - accepted_values:\n              values: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled']\n      - name: total\n        tests:\n          - dbt_utils.expression_is_true:\n              expression: \">= 0\"",
+          "relatedLessons": []
+        }
+      ]
+    }
+  ]
 }
