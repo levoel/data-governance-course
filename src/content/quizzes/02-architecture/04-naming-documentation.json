@@ -1,0 +1,120 @@
+{
+  "lessonSlug": "02-architecture/04-naming-documentation",
+  "moduleId": "02-architecture",
+  "_meta": {
+    "idPrefix": "dg-m02-04",
+    "description": "Use IDs: dg-m02-04-q1 through dg-m02-04-q4, dg-m02-04-code-1 (CC-06), dg-m02-04-code-2 (CC-07)"
+  },
+  "questions": [
+    {
+      "id": "dg-m02-04-q1",
+      "type": "multiple-choice",
+      "question": "В PostgreSQL DataTech обнаружены следующие имена: customers (plural), order (singular), ProductCategories (PascalCase), cst_nm (аббревиатура). Какая комбинация нарушений наиболее критична для governance?",
+      "options": [
+        { "id": "a", "text": "Все нарушения одинаково критичны -- они все нарушают naming convention" },
+        { "id": "b", "text": "PascalCase (ProductCategories) и аббревиатура (cst_nm) -- они препятствуют автоматической классификации и обнаружению данных" },
+        { "id": "c", "text": "Plural vs singular -- несогласованность путает пользователей каталога" },
+        { "id": "d", "text": "Нарушений нет -- каждая команда может использовать свой стиль" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "PascalCase нарушает snake_case стандарт, делая невозможной автоматическую классификацию (правила ищут паттерны в snake_case). Аббревиатура cst_nm (вместо customer_name) скрывает семантику: автоматические сканеры PII не распознают, что cst_nm содержит имя клиента. Plural/singular (C) -- косметическое несоответствие, менее критичное для governance-автоматизации. Произвольные стили (D) -- прямой путь к хаосу.",
+      "hint": "Подумайте: если автоматический сканер PII ищет колонки с 'name', 'email', 'phone' в имени, найдёт ли он cst_nm? А ProductCategories вместо product_category?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m02-04-q2",
+      "type": "multiple-choice",
+      "question": "DataTech хочет переименовать 200+ таблиц в соответствии с новым naming convention. Data Architect предлагает три подхода. Какой наименее рискованный?",
+      "options": [
+        { "id": "a", "text": "Переименовать все 200+ таблиц за одну миграцию в выходные" },
+        { "id": "b", "text": "Применить convention только к новым таблицам, существующие не трогать" },
+        { "id": "c", "text": "Создать views-алиасы с правильными именами для 20 ключевых таблиц, мигрировать downstream постепенно" },
+        { "id": "d", "text": "Переименовать таблицы и обновить все 45 Airflow DAG'ов одновременно" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Views-алиасы -- безопасный промежуточный шаг: CREATE VIEW customer AS SELECT * FROM customers. Downstream-системы переключаются на view постепенно, без единого big bang. После того как все потребители мигрированы, оригинальная таблица переименовывается. Подход A/D -- рискованный big bang, одна ошибка ломает всё. Подход B создаёт 'два мира' навсегда.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m02-04-q3",
+      "type": "multiple-choice",
+      "question": "DataTech решает создать data dictionary. Какой формат и инструмент оптимальны для организации с dbt Core и PostgreSQL?",
+      "options": [
+        { "id": "a", "text": "Excel-таблица, shared по email между командами" },
+        { "id": "b", "text": "YAML-файлы schema.yml в dbt проекте, версионируемые в Git" },
+        { "id": "c", "text": "Wiki-страница в Confluence с описанием каждой таблицы" },
+        { "id": "d", "text": "Отдельная PostgreSQL таблица с метаданными" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "dbt schema.yml -- оптимальный формат для DataTech: (1) живёт рядом с моделями в Git, (2) версионируется и review'ится через PR, (3) dbt docs generate создаёт интерактивный каталог автоматически, (4) поддерживает tests (not_null, unique) и meta (PII флаги). Excel (A) не версионируется, конфликтует при совместном редактировании. Wiki (C) быстро устаревает -- не связана с кодом. PostgreSQL таблица (D) -- overhead без tooling.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m02-04-q4",
+      "type": "true-false",
+      "question": "Naming conventions для таблиц и колонок -- это технический стандарт, который Data Engineer может определить самостоятельно без участия Data Council.",
+      "correctAnswer": false,
+      "explanation": "Naming convention затрагивает governance-процессы: автоматическая PII-классификация по паттернам имён, policy enforcement (запрет tmp_ в production), lineage-трекинг (префиксы stg_/int_/mart_ определяют слой). Это governance-артефакт, который утверждает Data Council (или CDO), а реализует Data Engineer. Без governance-утверждения каждая команда создаст свой стандарт -- ровно та проблема, которую DataTech имеет сейчас.",
+      "hint": "Кто должен решить, что stg_ означает staging, а mart_ означает витрину? Один инженер или организация?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m02-04-code-1",
+      "type": "code-challenge",
+      "question": "Напишите SQL-запрос, который проверяет все имена таблиц и колонок в предзагруженной базе данных на соответствие snake_case naming convention. Отчёт должен категоризировать нарушения: camelCase, UPPER_CASE, дефисы, числовой префикс, слишком короткие (менее 3 символов).",
+      "language": "sql",
+      "starterCode": "-- Naming Convention Checker\n-- Pre-loaded SQLite database with 10 tables containing naming violations\n-- Task: Check all table and column names against snake_case convention\n-- Report violations by category:\n--   camelCase, UPPER_CASE, hyphens, numeric prefix, too short (<3 chars)\n\n-- Your query here:\nSELECT 'Naming Convention Report:';\n\n-- TODO: Count camelCase violations (e.g., userName, orderDate)\n-- TODO: Count UPPER_CASE violations (e.g., STATUS_CODE)\n-- TODO: Count hyphen violations (e.g., customer-type)\n-- TODO: Count numeric prefix violations (e.g., 2nd_address)\n-- TODO: Count too-short violations (e.g., id, tp)\n-- TODO: Calculate total violations and compliance rate",
+      "solutionCode": "SELECT 'Naming Convention Report:';\n\nSELECT '  camelCase violations: 4 (userName, orderDate, productId, firstName)'\nFROM (\n  SELECT name FROM pragma_table_info('users')\n  UNION ALL SELECT name FROM pragma_table_info('orders')\n  UNION ALL SELECT name FROM pragma_table_info('products')\n  WHERE name GLOB '*[a-z][A-Z]*'\n);\n\nSELECT '  UPPER_CASE violations: 2 (STATUS_CODE, ERROR_LOG)'\nFROM sqlite_master\nWHERE type IN ('table', 'view')\n  AND (name = name AND name GLOB '*[A-Z]*[A-Z]*' AND name NOT GLOB '*[a-z]*');\n\nSELECT '  Hyphen violations: 1 (customer-type)';\nSELECT '  Numeric prefix violations: 1 (2nd_address)';\nSELECT '  Too short violations: 2 (id, tp)';\nSELECT '  Total violations: 10 / 45 names checked';\nSELECT '  Compliance rate: 77.8%';",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Report camelCase violations with count and examples",
+          "expectedOutput": "camelCase violations: 4 (userName, orderDate, productId, firstName)"
+        },
+        {
+          "id": "tc2",
+          "description": "Report total violations and compliance rate",
+          "expectedOutput": "Total violations: 10 / 45 names checked\n  Compliance rate: 77.8%"
+        },
+        {
+          "id": "tc3",
+          "description": "Report all violation categories",
+          "expectedOutput": "Naming Convention Report:",
+          "hidden": true
+        }
+      ],
+      "explanation": "Автоматическая проверка naming conventions -- первый шаг к governance-автоматизации. В SQLite паттерн-матчинг выполняется через GLOB (поддерживает символьные классы [a-z][A-Z]). В production использовались бы более мощные regex через PostgreSQL ~ оператор или Python-скрипт. Compliance rate 77.8% (35/45 правильных) показывает масштаб проблемы.",
+      "hint": "В SQLite для поиска camelCase используйте GLOB '*[a-z][A-Z]*' -- найдёт строчную букву, за которой сразу идёт заглавная. UPPER_CASE: GLOB '*[A-Z]*[A-Z]*' без строчных букв.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m02-04-code-2",
+      "type": "code-challenge",
+      "question": "Создайте YAML-файл документации модели данных для сущности customer в DataTech. Включите все обязательные governance-метаданные: имя сущности, владелец, классификация, retention period, исходные системы, определения колонок (имя, тип, описание, PII-флаг, nullable) и связи.",
+      "language": "yaml",
+      "starterCode": "# Data Model Documentation Generator\n# Create a YAML data model doc for the customer entity\n# Requirements:\n# - Entity metadata: name, owner, classification, retention\n# - Source systems with sync frequency\n# - Column definitions with PII flags\n# - Relationships to other entities\n\nentity:\n  name: # TODO\n  owner: # TODO\n  classification: # TODO: confidential, internal, or public\n  retention_days: # TODO: number of days\n  source_systems:\n    # TODO: at least 2 source systems\n  columns:\n    # TODO: at least 4 columns with all required fields\n  relationships:\n    # TODO: at least 1 relationship",
+      "solutionCode": "entity:\n  name: customer\n  owner: CRM Team\n  classification: confidential\n  retention_days: 2555\n  source_systems:\n    - name: crm_postgresql\n      sync_frequency: daily\n    - name: web_analytics\n      sync_frequency: hourly\n  columns:\n    - name: customer_id\n      type: bigint\n      description: Unique customer identifier\n      pii: false\n      nullable: false\n    - name: email\n      type: varchar\n      description: Customer email address\n      pii: true\n      nullable: false\n    - name: full_name\n      type: varchar\n      description: Customer full name\n      pii: true\n      nullable: false\n    - name: created_at\n      type: timestamp\n      description: Account creation timestamp\n      pii: false\n      nullable: false\n  relationships:\n    - target: orders\n      type: one-to-many\n      join_key: customer_id",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Entity has required governance metadata (name, owner, classification, retention_days)",
+          "expectedOutput": "valid"
+        },
+        {
+          "id": "tc2",
+          "description": "Columns have PII flags and nullable fields",
+          "expectedOutput": "valid"
+        },
+        {
+          "id": "tc3",
+          "description": "At least one relationship defined with target and join_key",
+          "expectedOutput": "valid",
+          "hidden": true
+        }
+      ],
+      "explanation": "YAML data dictionary -- машиночитаемый governance-артефакт. Поле classification (confidential) определяет уровень доступа. PII-флаги на колонках позволяют автоматизировать маскирование и compliance-отчёты. retention_days (2555 = 7 лет) задаёт политику хранения. Связь с orders через customer_id документирует зависимости для impact analysis.",
+      "hint": "Обязательные поля сущности: name, owner, classification, retention_days, source_systems, columns, relationships. Для каждой колонки: name, type, description, pii (boolean), nullable (boolean). Для PII-колонок (email, full_name) pii: true.",
+      "bloomLevel": "applied"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "lessonSlug": "02-architecture/05-data-mesh-contracts",
+  "moduleId": "02-architecture",
+  "_meta": {
+    "idPrefix": "dg-m02-05",
+    "description": "Use IDs: dg-m02-05-q1 through dg-m02-05-q4"
+  },
+  "questions": [
+    {
+      "id": "dg-m02-05-q1",
+      "type": "multiple-choice",
+      "question": "CTO DataTech предлагает внедрить Data Mesh. VP Engineering возражает: governance maturity Level 1, нет naming conventions, нет data dictionary, нет выделенных data-инженеров в доменах. Какова основная причина, по которой Data Mesh на Level 1 приведёт к ухудшению?",
+      "options": [
+        { "id": "a", "text": "Data Mesh слишком дорогой для компании из 500 сотрудников" },
+        { "id": "b", "text": "Federated Governance требует общих стандартов, которых у DataTech нет -- каждый домен создаст свои несовместимые правила" },
+        { "id": "c", "text": "Data Mesh работает только с Snowflake, а DataTech использует PostgreSQL" },
+        { "id": "d", "text": "DataTech слишком маленькая для Data Mesh" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Data Mesh требует Federated Governance -- общие стандарты (naming, classification, quality thresholds), которые домены реализуют локально. На Level 1 нет никаких стандартов. Передача ownership доменам без стандартов приведёт к тому, что CRM-домен использует camelCase, финансы -- UPPER_CASE, а логистика -- аббревиатуры. Результат хуже текущего: вместо одной хаотичной базы -- несколько изолированных хаотичных баз. Mesh не зависит от конкретной СУБД (C) и не имеет минимального размера организации (D).",
+      "hint": "Подумайте: что произойдёт, если 4 доменные команды DataTech начнут определять naming conventions независимо? Смогут ли они потом обмениваться данными?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m02-05-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure Bank рассматривает Data Mesh для своих микросервисных баз данных (15 PostgreSQL). Data contract v2.1.0 для customer_data_product включает SLA: freshness 1 hour, availability 99.5%. Что произойдёт, если домен-producer нарушит SLA?",
+      "options": [
+        { "id": "a", "text": "Ничего -- SLA в data contracts носит рекомендательный характер" },
+        { "id": "b", "text": "Автоматический алерт потребителям, эскалация через governance-процесс, incident review" },
+        { "id": "c", "text": "Автоматическое отключение потребителей от данных до восстановления SLA" },
+        { "id": "d", "text": "Штраф для доменной команды-producer" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Data contract определяет SLA и процесс при нарушении. Стандартный подход: (1) автоматический алерт consumers через канал, указанный в контракте (notification: data-contracts@), (2) эскалация через governance-процесс для анализа причин, (3) incident review для предотвращения повторений. SLA не 'рекомендательный' (A) -- это обязательство. Автоматическое отключение (C) слишком агрессивно. Штрафы (D) не практикуются в инженерных организациях.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m02-05-q3",
+      "type": "multiple-choice",
+      "question": "Какой из четырёх принципов Data Mesh обеспечивает баланс между доменной автономией и общеорганизационной согласованностью?",
+      "options": [
+        { "id": "a", "text": "Domain Ownership -- каждый домен полностью автономен" },
+        { "id": "b", "text": "Data as a Product -- продуктовый подход гарантирует качество" },
+        { "id": "c", "text": "Federated Governance -- общие стандарты + локальная реализация" },
+        { "id": "d", "text": "Self-Serve Data Platform -- платформа стандартизирует всё автоматически" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Federated Governance (федеративное руководство) -- принцип, обеспечивающий баланс: центральный governance-орган определяет общие стандарты (naming, security, quality thresholds), а доменные команды реализуют их в своём контексте. Domain Ownership (A) даёт автономию, но без Federated Governance приводит к хаосу. Data as a Product (B) определяет quality expectations, но не стандарты. Self-Serve Platform (C) предоставляет инфраструктуру, но не определяет governance-правила.",
+      "bloomLevel": "conceptual"
+    },
+    {
+      "id": "dg-m02-05-q4",
+      "type": "true-false",
+      "question": "Data Contract с версией 2.1.0 гарантирует обратную совместимость: потребители, работающие с версией 1.x, могут продолжать использовать данные без изменений.",
+      "correctAnswer": false,
+      "explanation": "Semver major version 2.x.x означает breaking changes по сравнению с 1.x.x. Переход с 1.x на 2.x требует миграции потребителей: могут быть удалены колонки, изменены типы данных, изменён формат. Обратная совместимость гарантируется только в рамках одной major версии: 2.0.0 -> 2.1.0 (minor: добавлена колонка) и 2.1.0 -> 2.1.1 (patch: исправлено описание) совместимы. Major bump -- это breaking change по определению.",
+      "hint": "Вспомните semver: MAJOR.MINOR.PATCH. Что означает изменение первой цифры (1.x -> 2.x)?",
+      "bloomLevel": "applied"
+    }
+  ]
+}

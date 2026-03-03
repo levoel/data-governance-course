@@ -1,0 +1,91 @@
+{
+  "lessonSlug": "02-architecture/03-data-flow-lineage",
+  "moduleId": "02-architecture",
+  "_meta": {
+    "idPrefix": "dg-m02-03",
+    "description": "Use IDs: dg-m02-03-q1 through dg-m02-03-q4, dg-m02-03-code-1 (CC-08)"
+  },
+  "questions": [
+    {
+      "id": "dg-m02-03-q1",
+      "type": "multiple-choice",
+      "question": "Data Engineer DataTech изменила тип колонки orders.discount_amount с integer на decimal. Через 2 дня 5 дашбордов сломались. Какой governance-процесс предотвратил бы эту ситуацию?",
+      "options": [
+        { "id": "a", "text": "Data Quality monitoring -- автоматическая проверка типов данных" },
+        { "id": "b", "text": "Impact Analysis на основе column-level lineage перед изменением схемы" },
+        { "id": "c", "text": "Code review -- коллега заметил бы ошибку" },
+        { "id": "d", "text": "Backup базы данных перед изменением" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Impact Analysis с column-level lineage показал бы все downstream-зависимости колонки discount_amount ДО изменения: Airflow DAG'и, dbt-модели, Metabase дашборды. Инженер увидел бы 5 затронутых дашбордов и спланировал миграцию. DQ monitoring (A) обнаружит проблему ПОСЛЕ поломки. Code review (C) не покроет downstream-зависимости. Backup (D) позволит откатить, но не предотвратить.",
+      "hint": "Подумайте: что произошло бы, если инженер перед изменением типа колонки запустил команду 'показать все downstream-зависимости discount_amount'?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m02-03-q2",
+      "type": "multiple-choice",
+      "question": "Юрист DataTech спрашивает: 'Где хранятся персональные данные клиентов?'. Ответ потребовал 2 недели ручного аудита. Какой уровень lineage необходим для автоматического ответа на этот вопрос?",
+      "options": [
+        { "id": "a", "text": "Table-level lineage -- достаточно знать, какие таблицы содержат PII" },
+        { "id": "b", "text": "Column-level lineage -- нужно знать, какие колонки содержат PII и куда они распространяются через трансформации" },
+        { "id": "c", "text": "Row-level lineage -- нужно отслеживать каждую запись клиента" },
+        { "id": "d", "text": "Lineage не нужен -- достаточно data dictionary" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Column-level lineage показывает: колонка customers.email (PII) -> stg_customers.email -> dim_customer.email -> Metabase дашборд. Table-level (A) знает что таблица customers связана с dim_customer, но не знает, попадает ли конкретно PII-колонка в downstream. Row-level (C) избыточен для этого запроса. Data dictionary (D) описывает структуру, но не показывает распространение данных через трансформации.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m02-03-q3",
+      "type": "multiple-choice",
+      "question": "DataTech использует dbt Core 1.7 с 120 моделями без описаний. Какой первый шаг для внедрения lineage?",
+      "options": [
+        { "id": "a", "text": "Развернуть OpenMetadata и подключить все источники" },
+        { "id": "b", "text": "Запустить dbt docs generate для автоматического lineage dbt-моделей и добавить описания к 20 ключевым моделям" },
+        { "id": "c", "text": "Нанять Data Engineer для ручного маппинга lineage всех 120 моделей" },
+        { "id": "d", "text": "Перейти на Apache Spark, который поддерживает нативный lineage" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "dbt уже строит DAG зависимостей автоматически -- lineage 'из коробки'. dbt docs generate создаёт интерактивную визуализацию. Добавление описаний к 20 ключевым моделям -- quick win: lineage + метаданные для приоритетных активов. OpenMetadata (A) -- следующий шаг, но без описаний в dbt каталог будет 'пустым'. Ручной маппинг (C) -- неэффективен при наличии автоматизации. Миграция на Spark (D) -- несоразмерное решение.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m02-03-q4",
+      "type": "true-false",
+      "question": "Data Lineage и Data Flow -- это одно и то же: оба описывают перемещение данных между системами.",
+      "correctAnswer": false,
+      "explanation": "Data Flow и Data Lineage -- связанные, но разные концепции. Data Flow фокусируется на физическом перемещении данных: какие системы обмениваются данными, по какому протоколу, с какой частотой. Data Lineage фокусируется на трансформациях: как данные изменяются от источника до потребителя, какие колонки участвуют, какие бизнес-правила применяются. Data Flow отвечает на 'куда перемещаются', Data Lineage -- на 'как трансформируются'.",
+      "hint": "Сравните: 'данные копируются из PostgreSQL в ClickHouse через Airflow' (это Flow или Lineage?) vs 'колонка orders.total суммируется в mart_revenue.daily_revenue через dbt-модель' (это Flow или Lineage?).",
+      "bloomLevel": "conceptual"
+    },
+    {
+      "id": "dg-m02-03-code-1",
+      "type": "code-challenge",
+      "question": "Создайте YAML-дескриптор lineage, описывающий путь метрики monthly_revenue от исходных таблиц через стадии трансформации до финального дашборда. Включите: исходные таблицы, трансформации с логикой SQL/dbt, промежуточные датасеты, quality-проверки на каждом этапе и итоговый output с SLA.",
+      "language": "yaml",
+      "starterCode": "# Data Lineage YAML Descriptor\n# Trace the monthly_revenue metric from raw sources to dashboard\n# Requirements:\n# - Source tables with system and classification\n# - Transformation stages with logic references\n# - Quality checks at each stage\n# - Final consumers with refresh schedule\n# - SLA definition\n\nlineage:\n  metric: monthly_revenue\n  owner: # TODO: define owner team\n  sla:\n    # TODO: define freshness and quality thresholds\n\n  stages:\n    - name: raw_ingestion\n      # TODO: define sources, outputs, quality checks\n\n    - name: transformation\n      # TODO: define inputs, logic, outputs, quality checks\n\n    - name: aggregation\n      # TODO: define inputs, logic, outputs, quality checks\n\n  consumers:\n    # TODO: define dashboard and report consumers",
+      "solutionCode": "lineage:\n  metric: monthly_revenue\n  owner: Finance Analytics\n  sla:\n    freshness_hours: 24\n    quality_threshold: 0.99\n\n  stages:\n    - name: raw_ingestion\n      sources:\n        - table: payments_raw\n          system: postgresql_prod\n          classification: confidential\n        - table: refunds_raw\n          system: postgresql_prod\n          classification: confidential\n      outputs:\n        - table: stg_payments\n      quality_checks:\n        - type: row_count\n          threshold: \"> 0\"\n        - type: freshness\n          max_delay_hours: 6\n\n    - name: transformation\n      inputs:\n        - table: stg_payments\n      logic: \"dbt model: int_payments_enriched\"\n      outputs:\n        - table: int_payments_enriched\n      quality_checks:\n        - type: not_null\n          columns: [payment_id, amount, currency]\n        - type: accepted_values\n          column: currency\n          values: [RUB, USD, EUR]\n\n    - name: aggregation\n      inputs:\n        - table: int_payments_enriched\n      logic: \"dbt model: mart_monthly_revenue\"\n      outputs:\n        - table: mart_monthly_revenue\n      quality_checks:\n        - type: unique\n          columns: [month, currency]\n        - type: value_range\n          column: revenue\n          min: 0\n\n  consumers:\n    - name: Revenue Dashboard\n      tool: metabase\n      refresh: daily\n    - name: CFO Monthly Report\n      tool: google_sheets\n      refresh: monthly",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Lineage has required top-level fields (metric, owner, sla, stages, consumers)",
+          "expectedOutput": "valid"
+        },
+        {
+          "id": "tc2",
+          "description": "Each stage has quality_checks with at least one check",
+          "expectedOutput": "valid"
+        },
+        {
+          "id": "tc3",
+          "description": "Sources include classification field for governance",
+          "expectedOutput": "valid",
+          "hidden": true
+        }
+      ],
+      "explanation": "YAML-дескриптор lineage -- машиночитаемый артефакт, который можно версионировать в Git и валидировать автоматически. Каждая стадия включает quality checks, обеспечивающие обнаружение проблем до того, как они достигнут потребителей. Классификация источников (confidential) позволяет автоматически отслеживать распространение PII через пайплайн.",
+      "hint": "Структура lineage: metric -> stages (каждый с inputs/outputs и quality_checks) -> consumers. Не забудьте SLA (freshness_hours, quality_threshold) и classification для исходных таблиц с конфиденциальными данными.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

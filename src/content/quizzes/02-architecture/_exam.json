@@ -3,34 +3,152 @@
   "moduleId": "02-architecture",
   "_meta": {
     "idPrefix": "dg-exam-m02",
-    "description": "Use IDs: dg-exam-m02-q1, dg-exam-m02-q2, ... (8-12 analytical questions)"
+    "description": "Use IDs: dg-exam-m02-q1 through dg-exam-m02-q10 (10 analytical questions)"
   },
   "questions": [
     {
-      "id": "dg-exam-02-architecture-placeholder",
+      "id": "dg-exam-m02-q1",
       "type": "multiple-choice",
-      "question": "Placeholder -- будет заменён в следующих фазах",
+      "question": "DataTech (Level 1) обнаружила 15% дубликатов клиентских записей в PostgreSQL, ClickHouse и Metabase. Data Architect предлагает три решения: (A) внедрить Master Data Management инструмент, (B) определить Golden Record в PostgreSQL + naming convention + dbt-lineage, (C) нанять Data Steward для ручной дедупликации. Какой подход решит корневую причину?",
       "options": [
-        {
-          "id": "a",
-          "text": "Вариант A"
-        },
-        {
-          "id": "b",
-          "text": "Вариант B"
-        },
-        {
-          "id": "c",
-          "text": "Вариант C"
-        },
-        {
-          "id": "d",
-          "text": "Вариант D"
-        }
+        { "id": "a", "text": "A -- MDM инструмент автоматизирует дедупликацию" },
+        { "id": "b", "text": "B -- определение Golden Record (Single Source of Truth) + стандарты + lineage устраняет архитектурную причину дубликатов" },
+        { "id": "c", "text": "C -- Data Steward будет контролировать качество вручную" },
+        { "id": "d", "text": "Все три подхода одинаково эффективны" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Дубликаты -- следствие нарушения Single Source of Truth: три системы содержат клиентские данные без определённого Golden Record. MDM инструмент (A) бесполезен без определённого Golden Record и naming convention -- он не знает, какая запись авторитетная. Ручная дедупликация (C) не масштабируется. Подход B: Golden Record в PostgreSQL (источник), naming convention для discoverability, dbt lineage для transparency. Для подготовки повторите уроки 1 (архитектурные принципы) и 2 (моделирование) этого модуля.",
+      "hint": "Какой принцип архитектуры нарушен? Что нужно определить ПЕРЕД внедрением инструментов?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m02-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure Bank планирует миграцию 800+ таблиц Oracle на микросервисную архитектуру (PostgreSQL). Какая последовательность моделирования минимизирует риски?",
+      "options": [
+        { "id": "a", "text": "Скопировать Oracle-схемы 1:1 в PostgreSQL, затем рефакторить" },
+        { "id": "b", "text": "Создать Conceptual Model бизнес-доменов -> Logical Model для микросервисов -> Physical Model для PostgreSQL, с data contracts между сервисами" },
+        { "id": "c", "text": "Начать с Physical Model PostgreSQL, затем документировать Logical Model" },
+        { "id": "d", "text": "Использовать только Physical Model -- Conceptual и Logical модели избыточны" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Миграция 800+ таблиц Oracle -- высокорисковая операция. Top-down подход (C -> L -> P) минимизирует риски: Conceptual Model согласовывает с бизнесом бизнес-домены (какие сущности существуют), Logical Model определяет атрибуты и связи для каждого микросервиса (без привязки к Oracle или PostgreSQL), Physical Model реализует для PostgreSQL с учётом его особенностей. Data contracts между сервисами предотвращают 'случайные' зависимости. 1:1 копирование (A) переносит проблемы Oracle в PostgreSQL. Для подготовки повторите уроки 2 (C/L/P модели) и 5 (data contracts) этого модуля.",
+      "hint": "При миграции 800+ таблиц начинают с бизнес-сущностей (Conceptual), а не с технических деталей Oracle. Почему?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m02-q3",
+      "type": "multiple-choice",
+      "question": "Data Engineer DataTech изменила формат колонки orders.discount_amount. Через 2 дня 5 дашбордов сломались, 3 Airflow DAG'а упали. Какая комбинация governance-артефактов предотвратила бы ВСЕ последствия?",
+      "options": [
+        { "id": "a", "text": "Column-level lineage + data dictionary" },
+        { "id": "b", "text": "Column-level lineage + data contract + автоматический impact analysis pre-commit" },
+        { "id": "c", "text": "Table-level lineage + naming convention + code review" },
+        { "id": "d", "text": "Data catalog + Slack-уведомление потребителям" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Полное предотвращение требует: (1) Column-level lineage показывает все downstream-зависимости discount_amount, (2) Data contract определяет SLA и breaking change policy (30 days notice), (3) Автоматический impact analysis pre-commit блокирует коммит при обнаружении breaking changes. Table-level lineage (C) не покажет, какие колонки затронуты. Data catalog (D) информирует, но не блокирует. Для подготовки повторите уроки 3 (lineage и impact analysis) и 5 (data contracts) этого модуля.",
+      "hint": "Что нужно, чтобы: (1) знать все downstream? (2) иметь правила breaking changes? (3) автоматически блокировать опасные изменения?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m02-q4",
+      "type": "multiple-choice",
+      "question": "DataTech решила создать data dictionary для 200+ таблиц. У команды есть dbt Core с 120 моделями и PostgreSQL. Какой подход обеспечит максимальное покрытие за минимальное время?",
+      "options": [
+        { "id": "a", "text": "Описать все 200+ таблиц в Excel и загрузить в будущий каталог" },
+        { "id": "b", "text": "Добавить descriptions в dbt schema.yml для 120 dbt-моделей + использовать pg_catalog для 80+ PostgreSQL-only таблиц" },
+        { "id": "c", "text": "Купить Collibra и автоматически сканировать все источники" },
+        { "id": "d", "text": "Нанять стажёра для ручного описания каждой таблицы" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Двухступенчатый подход: (1) dbt schema.yml для 120 моделей -- descriptions, tests, meta (PII flags) живут рядом с кодом, dbt docs generate создаёт каталог автоматически, (2) pg_catalog для оставшихся 80+ таблиц -- COMMENT ON TABLE/COLUMN добавляет описания в PostgreSQL metadata. Оба инструмента уже есть в стеке DataTech. Excel (A) не связан с кодом, устаревает мгновенно. Collibra (C) -- enterprise инструмент, неоправданный для Level 1. Для подготовки повторите урок 4 (документирование) этого модуля.",
+      "hint": "Какие инструменты уже есть у DataTech? dbt Core (120 моделей) и PostgreSQL. Как использовать их встроенные возможности?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m02-q5",
+      "type": "multiple-choice",
+      "question": "FinSecure имеет 47 governance-политик, но naming conventions применяются только к 60% новых таблиц. Data Architect предлагает автоматическую SQL-проверку naming при каждом CREATE TABLE через CI/CD hook. Какой дополнительный шаг сделает enforcement полным?",
+      "options": [
+        { "id": "a", "text": "Добавить проверку naming для ALTER TABLE, CREATE INDEX и CREATE VIEW" },
+        { "id": "b", "text": "Нанять ещё одного Data Steward для ручных проверок" },
+        { "id": "c", "text": "Опубликовать naming convention в Wiki и надеяться на compliance" },
+        { "id": "d", "text": "Переименовать все существующие таблицы за одну миграцию" }
       ],
       "correctAnswer": "a",
-      "explanation": "Placeholder question -- будет заменён полноценным содержанием.",
-      "bloomLevel": "conceptual"
+      "explanation": "CI/CD hook на CREATE TABLE -- хорошее начало, но неполное: ALTER TABLE ADD COLUMN и CREATE INDEX тоже создают именованные объекты, которые могут нарушить convention. Полный enforcement: проверка всех DDL-операций (CREATE TABLE, ALTER TABLE, CREATE INDEX, CREATE VIEW) через pre-commit hook или CI pipeline. Ручные проверки (B) не масштабируются. Wiki (C) -- passive enforcement. Для подготовки повторите уроки 3 (автоматизация) и 4 (naming conventions) этого модуля.",
+      "hint": "Какие DDL-операции создают новые именованные объекты, помимо CREATE TABLE?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m02-q6",
+      "type": "multiple-choice",
+      "question": "DataTech рассматривает Data Mesh. CTO аргументирует: 'Центральная команда из 7 человек -- бутылочное горлышко'. VP Engineering возражает: 'У нас нет стандартов'. Какой roadmap перехода к Mesh реалистичен?",
+      "options": [
+        { "id": "a", "text": "Немедленно перейти на Mesh -- бутылочное горлышко важнее стандартов" },
+        { "id": "b", "text": "Никогда не переходить -- DataTech слишком маленькая" },
+        { "id": "c", "text": "Год 1: centralized governance + стандарты. Год 2: domain ownership для 2 крупнейших доменов + data contracts. Год 3: оценка полного Mesh" },
+        { "id": "d", "text": "Год 1: купить Data Mesh платформу. Год 2: мигрировать все данные" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Поэтапный переход: (1) Год 1: создать фундамент -- naming conventions, data dictionary, базовый lineage. Без этого Federated Governance невозможен. (2) Год 2: пилот domain ownership для 2 крупнейших доменов с data contracts. (3) Год 3: оценка на основе опыта. Немедленный Mesh (A) -- хаос на Level 1. Для подготовки повторите уроки 1, 4 и 5 этого модуля.",
+      "hint": "Какие prerequisites нужны для Federated Governance? Стандарты, которые домены будут реализовать.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m02-q7",
+      "type": "multiple-choice",
+      "question": "Data Engineer обнаруживает PII (customer_email) в dbt-витрине mart_daily_revenue, используемой 50 аналитиками. Column-level lineage подтверждает: PostgreSQL.customers.email -> stg_customers.email -> mart_daily_revenue.customer_email. Какое решение правильное?",
+      "options": [
+        { "id": "a", "text": "Удалить колонку customer_email из mart_daily_revenue" },
+        { "id": "b", "text": "Заменить email на hashed_customer_id для join, обновить lineage, добавить PII-проверку в CI/CD" },
+        { "id": "c", "text": "Добавить 'PII: true' в описание колонки" },
+        { "id": "d", "text": "Ограничить доступ к mart_daily_revenue только для Data Steward" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "PII в аналитической витрине доступной 50 пользователям -- серьёзный risk. Решение: (1) заменить email на hashed_customer_id -- сохранить join без PII, (2) обновить lineage -- подтвердить отсутствие PII в downstream, (3) CI/CD PII-check -- предотвратить повторение. Удаление (A) может сломать downstream. Пометка (C) не устраняет exposure. Ограничение доступа (D) ломает workflow 50 аналитиков. Для подготовки повторите уроки 2 и 3 этого модуля.",
+      "hint": "Как сохранить аналитическую ценность join по клиенту без раскрытия email 50 аналитикам?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m02-q8",
+      "type": "true-false",
+      "question": "Аналитические витрины (dbt marts) всегда должны быть денормализованы для производительности, даже если это приводит к дублированию PII-данных в Consumption Layer.",
+      "correctAnswer": false,
+      "explanation": "Денормализация для производительности -- обоснованная практика, но не за счёт governance. PII в витринах: (1) увеличивает поверхность атаки, (2) усложняет compliance (152-ФЗ запросы на удаление), (3) увеличивает риск утечки. Правильный подход: денормализовать бизнес-атрибуты, но использовать hashed IDs вместо PII. Для подготовки повторите уроки 2 (нормализация) и 3 (lineage для PII) этого модуля.",
+      "hint": "Если mart содержит customer_email и доступна 50 аналитикам -- сколько человек видят PII?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m02-q9",
+      "type": "multiple-choice",
+      "question": "FinSecure создаёт data contract v2.1.0 для customer_data_product. Бизнес-аналитик просит добавить колонку customer_risk_score. Какой тип версионного изменения это представляет и требуется ли уведомление потребителей?",
+      "options": [
+        { "id": "a", "text": "Patch (2.1.1) -- minor fix, уведомление не требуется" },
+        { "id": "b", "text": "Minor (2.2.0) -- additive change, уведомление рекомендуется, но не обязательно" },
+        { "id": "c", "text": "Major (3.0.0) -- breaking change, обязательное уведомление за 30 дней" },
+        { "id": "d", "text": "Версионирование не применяется к data contracts" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Добавление колонки -- non-breaking change: существующие потребители продолжают работать. По semver это Minor: 2.1.0 -> 2.2.0. Уведомление рекомендуется (потребители могут захотеть использовать новую колонку), но не обязательно, т.к. существующие контракты не нарушены. Patch (A) -- для исправлений без схемы. Major (C) -- для breaking: удаление, переименование, изменение типа. Для подготовки повторите урок 5 (data contracts) этого модуля.",
+      "hint": "Сломают ли существующие SELECT-запросы потребителей, если добавится новая колонка, которую они не используют?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-exam-m02-q10",
+      "type": "multiple-choice",
+      "question": "DataTech проводит аудит архитектуры. Обнаружено: Metabase читает из PostgreSQL (Source) и ClickHouse (Staging), dbt-модели без тестов, naming отсутствуют, lineage не настроен. Какова правильная последовательность исправления?",
+      "options": [
+        { "id": "a", "text": "Lineage -> Naming -> dbt tests -> Metabase migration" },
+        { "id": "b", "text": "Naming convention -> dbt schema.yml + tests -> Consumption Layer + Metabase migration -> dbt lineage" },
+        { "id": "c", "text": "Metabase migration -> dbt tests -> Naming -> Lineage" },
+        { "id": "d", "text": "Все четыре нужно решать одновременно" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Последовательность определяется зависимостями: (1) Naming convention -- фундамент, без него всё хаотично. (2) dbt schema.yml + tests -- документация и валидация, создаёт data dictionary. (3) Consumption Layer + Metabase migration -- устраняет архитектурное нарушение, зависит от документированных моделей. (4) dbt lineage -- полезен после документирования. Для подготовки повторите все 5 уроков этого модуля: вопрос синтезирует принципы, моделирование, lineage, naming и архитектурные слои.",
+      "hint": "Какой артефакт является prerequisite для всех остальных? Что нужно определить ДО документирования моделей?",
+      "bloomLevel": "analytical"
     }
   ]
 }

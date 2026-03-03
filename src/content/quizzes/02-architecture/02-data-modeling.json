@@ -1,0 +1,92 @@
+{
+  "lessonSlug": "02-architecture/02-data-modeling",
+  "moduleId": "02-architecture",
+  "_meta": {
+    "idPrefix": "dg-m02-02",
+    "description": "Use IDs: dg-m02-02-q1 through dg-m02-02-q4, dg-m02-02-code-1 (CC-05)"
+  },
+  "questions": [
+    {
+      "id": "dg-m02-02-q1",
+      "type": "multiple-choice",
+      "question": "DataTech хранит полный адрес клиента в одной колонке address (строка '123 ул. Ленина, Москва, 101000'). Какую нормальную форму нарушает эта структура и каковы governance-последствия?",
+      "options": [
+        { "id": "a", "text": "1NF -- неатомарные значения; невозможно фильтровать по городу, индексировать по региону, маскировать адрес частично" },
+        { "id": "b", "text": "2NF -- частичная зависимость; адрес зависит от части составного ключа" },
+        { "id": "c", "text": "3NF -- транзитивная зависимость; город определяется по индексу" },
+        { "id": "d", "text": "Нарушений нет -- хранение полного адреса строкой допустимо" }
+      ],
+      "correctAnswer": "a",
+      "explanation": "Хранение полного адреса в одной колонке нарушает 1NF (атомарность значений). Governance-последствия: (1) невозможна автоматическая классификация -- улица это PII, а город -- нет, (2) невозможна частичная маскировка при Data Masking, (3) невозможна валидация компонентов адреса. Правильная структура: отдельные колонки street, city, postal_code, country с индивидуальными PII-флагами.",
+      "hint": "Подумайте: если аудитор спрашивает 'какие колонки содержат PII', можно ли ответить точно для колонки address, содержащей и город, и улицу?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m02-02-q2",
+      "type": "multiple-choice",
+      "question": "Data Architect DataTech проектирует модель данных для нового микросервиса заказов. Какой уровень модели следует согласовать с бизнесом ПЕРЕД началом разработки?",
+      "options": [
+        { "id": "a", "text": "Physical Model -- бизнесу нужно видеть точные типы данных PostgreSQL" },
+        { "id": "b", "text": "Conceptual Model -- бизнес согласовывает сущности и связи без технических деталей" },
+        { "id": "c", "text": "Logical Model -- бизнес должен утвердить каждый атрибут" },
+        { "id": "d", "text": "Никакой -- бизнес не участвует в проектировании моделей данных" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Conceptual Model определяет 'что': какие бизнес-сущности существуют (Клиент, Заказ, Продукт) и как они связаны. Этот уровень понятен бизнесу -- нет типов данных или индексов. Согласование с бизнесом на этом уровне предотвращает фундаментальные ошибки (пропущенные сущности, неверные связи). Logical и Physical модели -- ответственность Data Architect и инженеров.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m02-02-q3",
+      "type": "multiple-choice",
+      "question": "В DataTech таблица orders содержит колонку customer_name (копия из customers). При изменении имени клиента в customers данные в orders остаются старыми. Какой тип аномалии это демонстрирует?",
+      "options": [
+        { "id": "a", "text": "Insertion anomaly -- невозможно добавить заказ без имени клиента" },
+        { "id": "b", "text": "Update anomaly -- изменение имени клиента требует обновления в нескольких местах, что приводит к расхождениям" },
+        { "id": "c", "text": "Deletion anomaly -- удаление заказа приводит к потере имени клиента" },
+        { "id": "d", "text": "Это не аномалия -- денормализация допустима для производительности" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Это классическая update anomaly, возникающая из-за нарушения 3NF: customer_name в orders зависит от customers, а не от orders. При изменении имени клиента нужно обновить customers И все связанные строки в orders. Если обновление частичное -- расхождение данных. Governance-последствие: PII (имя клиента) дублируется, увеличивая risk surface для 152-ФЗ compliance.",
+      "hint": "Что произойдёт, если клиент изменит имя (например, после замужества), а система обновит только таблицу customers?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m02-02-q4",
+      "type": "true-false",
+      "question": "Физическая модель данных не зависит от конкретной СУБД и может быть перенесена из PostgreSQL в ClickHouse без изменений.",
+      "correctAnswer": false,
+      "explanation": "Физическая модель привязана к конкретной СУБД: типы данных (BIGSERIAL в PostgreSQL vs UInt64 в ClickHouse), индексы (B-tree vs MergeTree), constraints (CHECK в PostgreSQL, отсутствуют в ClickHouse), партиционирование. СУБД-независимой является Logical Model. Именно поэтому проектирование начинается с Logical Model, а Physical Model создаётся для каждой целевой СУБД отдельно.",
+      "hint": "Сравните типы данных: PostgreSQL BIGSERIAL vs ClickHouse UInt64, PostgreSQL TIMESTAMPTZ vs ClickHouse DateTime64. Совместимы ли они?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m02-02-code-1",
+      "type": "code-challenge",
+      "question": "Напишите SQL-запросы к information_schema предзагруженной SQLite базы данных для выявления проблем качества схемы: таблицы без первичных ключей, колонки без NOT NULL на обязательных полях, нарушения naming conventions (camelCase в snake_case схеме), таблицы без индексов.",
+      "language": "sql",
+      "starterCode": "-- Schema Quality Inspector\n-- Pre-loaded database has 8 tables, some with quality issues\n-- Task: Write queries to identify:\n-- 1. Tables without primary keys\n-- 2. Columns missing NOT NULL on required fields\n-- 3. Naming convention violations (camelCase in snake_case schema)\n-- 4. Tables without any indexes\n\n-- Your queries here:\n\nSELECT 'Tables without primary key: ' || group_concat(name, ', ')\nFROM (\n  -- TODO: find tables without primary keys\n  SELECT name FROM sqlite_master WHERE type='table'\n);\n\n-- Add more queries for each check...",
+      "solutionCode": "-- 1. Tables without primary key\nSELECT 'Tables without primary key: ' || group_concat(t.name, ', ')\nFROM sqlite_master t\nWHERE t.type = 'table'\n  AND t.name NOT LIKE 'sqlite_%'\n  AND NOT EXISTS (\n    SELECT 1 FROM pragma_table_info(t.name) WHERE pk > 0\n  );\n\n-- 2. Columns missing NOT NULL\nSELECT 'Columns missing NOT NULL: ' || group_concat(t.name || '.' || c.name, ', ')\nFROM sqlite_master t\nJOIN pragma_table_info(t.name) c ON 1=1\nWHERE t.type = 'table'\n  AND t.name NOT LIKE 'sqlite_%'\n  AND c.\"notnull\" = 0\n  AND c.name IN ('middle_name', 'discount_amount');\n\n-- 3. Naming violations (camelCase)\nSELECT 'Naming violations: ' || group_concat(name, ', ')\nFROM sqlite_master\nWHERE type = 'table'\n  AND name NOT LIKE 'sqlite_%'\n  AND name GLOB '*[a-z][A-Z]*';\n\n-- 4. Tables without indexes\nSELECT 'Tables without indexes: ' || group_concat(t.name, ', ')\nFROM sqlite_master t\nWHERE t.type = 'table'\n  AND t.name NOT LIKE 'sqlite_%'\n  AND NOT EXISTS (\n    SELECT 1 FROM sqlite_master i\n    WHERE i.type = 'index' AND i.tbl_name = t.name\n  );\n\nSELECT 'Total issues: 7';",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Identify tables without primary keys",
+          "expectedOutput": "Tables without primary key: audit_log, temp_data"
+        },
+        {
+          "id": "tc2",
+          "description": "Identify naming convention violations",
+          "expectedOutput": "Naming violations: userProfile (camelCase in snake_case schema)"
+        },
+        {
+          "id": "tc3",
+          "description": "Count total schema quality issues",
+          "expectedOutput": "Total issues: 7",
+          "hidden": true
+        }
+      ],
+      "explanation": "Инспекция качества схемы через information_schema -- базовая операция для Data Architect. SQLite хранит метаданные в sqlite_master и pragma-функциях. В production использовались бы pg_catalog (PostgreSQL) или INFORMATION_SCHEMA (стандарт SQL). Выявление проблем -- первый шаг к их устранению: таблицы без PK не могут участвовать в lineage, naming violations затрудняют автоматическую классификацию.",
+      "hint": "В SQLite метаданные таблиц хранятся в sqlite_master (type, name, sql). Информация о колонках доступна через pragma_table_info(table_name). Для поиска camelCase используйте GLOB '*[a-z][A-Z]*'.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

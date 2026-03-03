@@ -1,0 +1,62 @@
+{
+  "lessonSlug": "02-architecture/01-architecture-principles",
+  "moduleId": "02-architecture",
+  "_meta": {
+    "idPrefix": "dg-m02-01",
+    "description": "Use IDs: dg-m02-01-q1 through dg-m02-01-q4"
+  },
+  "questions": [
+    {
+      "id": "dg-m02-01-q1",
+      "type": "multiple-choice",
+      "question": "DataTech имеет три представления клиентских данных: customers (PostgreSQL), stg_customers (ClickHouse), dim_customers (dbt). Числа во всех трёх расходятся. Какой архитектурный принцип нарушен и какое решение приоритетно?",
+      "options": [
+        { "id": "a", "text": "Нарушен Minimal Redundancy -- нужно удалить stg_customers и dim_customers" },
+        { "id": "b", "text": "Нарушен Single Source of Truth -- нужно определить одно авторитетное представление (Golden Record) и обеспечить consistency downstream" },
+        { "id": "c", "text": "Нарушен Security by Design -- нужно ограничить доступ ко всем трём таблицам" },
+        { "id": "d", "text": "Нарушений нет -- три копии нормальны для разных систем" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Три расходящихся представления -- нарушение Single Source of Truth. Наличие копий в разных слоях (staging, mart) допустимо архитектурно (stg_ для raw, dim_ для analytics), но все они должны быть derived от единого авторитетного источника с документированными трансформациями. Удалять копии (A) -- неправильно, они нужны для разных слоёв. Проблема в том, что нет определённого Golden Record и нет lineage, подтверждающего consistency.",
+      "hint": "Подумайте: наличие stg_ и dim_ таблиц -- это проблема? Или проблема в том, что нет единого источника, от которого они производны?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m02-01-q2",
+      "type": "multiple-choice",
+      "question": "Data Architect DataTech проектирует новую архитектуру. Metabase подключён напрямую к PostgreSQL (Source Layer) и к ClickHouse (Staging Layer). Какое архитектурное решение устранит проблему?",
+      "options": [
+        { "id": "a", "text": "Запретить Metabase подключаться к PostgreSQL и ClickHouse" },
+        { "id": "b", "text": "Создать Consumption Layer (dbt marts) и перенаправить Metabase на чтение только из готовых витрин" },
+        { "id": "c", "text": "Заменить Metabase на Tableau -- он поддерживает кэширование" },
+        { "id": "d", "text": "Добавить ещё один ClickHouse для Metabase" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Проблема -- нарушение архитектурных слоёв: BI-инструмент (Consumption) читает из Source и Staging вместо подготовленных витрин. Создание Consumption Layer (dbt marts) решает три проблемы: (1) данные проходят через валидацию и трансформацию, (2) PostgreSQL разгружается от аналитических запросов, (3) все дашборды используют единообразные, проверенные витрины. Замена Metabase на Tableau (C) не решает архитектурную проблему -- Tableau тоже будет читать из Source Layer.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m02-01-q3",
+      "type": "multiple-choice",
+      "question": "TOGAF определяет четыре домена Enterprise Architecture. Какова роль Data Architecture относительно остальных трёх доменов?",
+      "options": [
+        { "id": "a", "text": "Data Architecture заменяет Business Architecture для организаций, работающих с данными" },
+        { "id": "b", "text": "Data Architecture связывает бизнес-потребности (Business Architecture) с технической реализацией (Technology Architecture) через определение моделей данных и стандартов интеграции" },
+        { "id": "c", "text": "Data Architecture подчиняется Application Architecture и не связана с бизнесом напрямую" },
+        { "id": "d", "text": "Все четыре домена независимы и проектируются отдельно" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "В TOGAF Data Architecture занимает связующую позицию: Business Architecture определяет бизнес-процессы и потребности в данных, Data Architecture переводит их в модели и стандарты, Application Architecture реализует доступ к данным, Technology Architecture обеспечивает инфраструктуру. Четыре домена взаимосвязаны, а не независимы (D). Data Architecture не заменяет Business Architecture (A) -- они дополняют друг друга.",
+      "bloomLevel": "conceptual"
+    },
+    {
+      "id": "dg-m02-01-q4",
+      "type": "true-false",
+      "question": "Принцип Minimal Redundancy запрещает создание аналитических витрин (dbt marts), потому что они дублируют данные из Source Layer.",
+      "correctAnswer": false,
+      "explanation": "Minimal Redundancy запрещает ненужное дублирование, но аналитические витрины -- обоснованная избыточность. dbt marts создаются целенаправленно: данные проходят через трансформации, валидацию и агрегацию. Это не дублирование, а derived data с добавленной ценностью. Minimal Redundancy запрещает случайное копирование (три таблицы с одинаковыми данными без трансформации), а не слоёную архитектуру.",
+      "hint": "Различайте 'случайные дубликаты' (три одинаковые таблицы без трансформации) и 'целенаправленную материализацию' (dbt mart с агрегацией и валидацией).",
+      "bloomLevel": "applied"
+    }
+  ]
+}
