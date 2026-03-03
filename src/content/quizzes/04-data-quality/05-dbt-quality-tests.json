@@ -1,0 +1,92 @@
+{
+  "lessonSlug": "04-data-quality/05-dbt-quality-tests",
+  "moduleId": "04-data-quality",
+  "_meta": {
+    "idPrefix": "dg-m04-05",
+    "description": "Use IDs: dg-m04-05-q1 through dg-m04-05-q4 + dg-m04-05-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m04-05-q1",
+      "type": "multiple-choice",
+      "question": "DataTech добавила dbt test unique + not_null на order_id и обнаружила 8 моделей с нарушением uniqueness. Это указывает на баги в SQL-трансформациях, а не в исходных данных. Почему?",
+      "options": [
+        { "id": "a", "text": "Потому что dbt тестирует только результат трансформации, а не сырые данные. Если order_id дублируется после dbt run -- проблема в SQL-логике модели (например, неправильный JOIN, создающий дубликаты)" },
+        { "id": "b", "text": "Потому что dbt не может тестировать сырые данные" },
+        { "id": "c", "text": "Потому что unique тест всегда находит баги в трансформациях" },
+        { "id": "d", "text": "Потому что 8 моделей -- это слишком много для проблем в источниках" }
+      ],
+      "correctAnswer": "a",
+      "explanation": "dbt test запускается после dbt run и проверяет результат SQL-трансформации. Если в staging-таблице сырых данных order_id уникален, но после JOIN в mart-модели появляются дубликаты -- это баг в SQL-логике (fanout join, missing DISTINCT, неправильный GROUP BY). dbt может тестировать и source-данные (через dbt source freshness и source tests), но стандартные model tests проверяют трансформированные данные.",
+      "hint": "dbt run создаёт модели (SQL-трансформации). dbt test проверяет результат. Если в результате дубликаты, а в источнике их нет -- где проблема?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-05-q2",
+      "type": "multiple-choice",
+      "question": "Какой dbt test проверит, что поле amount в модели orders всегда неотрицательное?",
+      "options": [
+        { "id": "a", "text": "tests: [not_null]" },
+        { "id": "b", "text": "tests: [accepted_values: {values: ['positive']}]" },
+        { "id": "c", "text": "tests: [dbt_utils.expression_is_true: {expression: '>= 0'}]" },
+        { "id": "d", "text": "tests: [unique]" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "dbt_utils.expression_is_true позволяет задать произвольное SQL-выражение. expression '>= 0' проверяет, что amount >= 0 для каждой строки. Встроенные тесты (not_null, unique, accepted_values, relationships) не поддерживают range-проверки. not_null (A) проверяет только наличие значения. accepted_values (B) ожидает список строковых значений. unique (D) проверяет уникальность.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m04-05-q3",
+      "type": "multiple-choice",
+      "question": "DataTech интегрирует dbt tests в CI/CD: каждый Pull Request запускает dbt run + dbt test. Новый Data Engineer добавляет модель с ошибкой в JOIN -- тест unique на order_id падает. Что происходит?",
+      "options": [
+        { "id": "a", "text": "Модель создаётся в production, тест показывает warning в логах" },
+        { "id": "b", "text": "CI/CD pipeline блокирует merge PR: ошибка обнаружена до попадания в production" },
+        { "id": "c", "text": "dbt автоматически исправляет ошибку в JOIN" },
+        { "id": "d", "text": "Тест выполняется после merge в production" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "При CI/CD интеграции dbt test выполняется на staging environment при каждом PR. Если тест падает -- pipeline fails, PR не может быть смержен. Это 'shift-left' подход: ошибки обнаруживаются до production. Data Engineer видит: 'unique test failed on order_id: 3 duplicates found', исправляет JOIN, пушит fix, CI проходит, PR мержится. Без CI/CD ошибка попала бы в production и обнаружилась бы только когда бизнес-пользователь увидит неверные цифры.",
+      "hint": "CI/CD = проверка до merge. Если тест падает в CI -- что происходит с Pull Request?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m04-05-q4",
+      "type": "true-false",
+      "question": "Четыре встроенных dbt теста (unique, not_null, accepted_values, relationships) достаточны для полного покрытия Data Quality Rules без использования custom tests.",
+      "correctAnswer": false,
+      "explanation": "Четыре встроенных теста покрывают базовые проверки: uniqueness, completeness, validity (enum), consistency (FK). Но не покрывают: range checks (amount >= 0), temporal logic (created_at <= updated_at), cross-column consistency, statistical distribution checks, freshness (recency). Для этих проверок нужны dbt_utils (expression_is_true, recency) или singular tests (custom SQL). Реальный проект использует 60-70% встроенных тестов и 30-40% custom.",
+      "hint": "Перечислите типы Data Quality Rules из урока 3 (null, duplicate, range, temporal, referential, format). Какие из них покрываются четырьмя встроенными тестами, а какие нет?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-05-code-1",
+      "type": "code-challenge",
+      "question": "Создайте dbt schema.yml файл с тестами качества для модели orders: not_null и unique на order_id, not_null и relationships на customer_id, not_null и range check на amount, not_null и accepted_values на status, not_null на created_at.",
+      "language": "yaml",
+      "starterCode": "version: 2\n\nmodels:\n  - name: orders\n    description: \"TODO: Add description\"\n    columns:\n      - name: order_id\n        description: \"TODO\"\n        tests:\n          # TODO: Add unique and not_null tests\n      - name: customer_id\n        description: \"TODO\"\n        tests:\n          # TODO: Add not_null and relationships tests\n      - name: amount\n        description: \"TODO\"\n        tests:\n          # TODO: Add not_null and range check\n      - name: status\n        description: \"TODO\"\n        tests:\n          # TODO: Add not_null and accepted_values\n      - name: created_at\n        description: \"TODO\"\n        tests:\n          # TODO: Add not_null",
+      "solutionCode": "version: 2\n\nmodels:\n  - name: orders\n    description: \"Customer orders with payment and delivery status\"\n    columns:\n      - name: order_id\n        description: \"Unique order identifier\"\n        tests:\n          - unique\n          - not_null\n      - name: customer_id\n        description: \"Reference to customers table\"\n        tests:\n          - not_null\n          - relationships:\n              to: ref('customers')\n              field: customer_id\n      - name: amount\n        description: \"Order total amount in RUB\"\n        tests:\n          - not_null\n          - dbt_utils.expression_is_true:\n              expression: \">= 0\"\n      - name: status\n        description: \"Order fulfillment status\"\n        tests:\n          - not_null\n          - accepted_values:\n              values: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled']\n      - name: created_at\n        description: \"Order creation timestamp\"\n        tests:\n          - not_null",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Validate YAML structure has correct model and column definitions",
+          "expectedOutput": "Valid dbt schema.yml: model 'orders' with 5 columns, each having tests defined"
+        },
+        {
+          "id": "tc2",
+          "description": "Validate test types: unique, not_null, accepted_values, relationships, expression_is_true",
+          "expectedOutput": "Test types present: unique (order_id), not_null (5 columns), accepted_values (status), relationships (customer_id), expression_is_true (amount)"
+        },
+        {
+          "id": "tc3",
+          "description": "Validate accepted_values includes all 5 valid statuses",
+          "expectedOutput": "accepted_values for status: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled']",
+          "hidden": true
+        }
+      ],
+      "explanation": "schema.yml -- декларативный способ определения dbt tests. Каждый столбец может иметь несколько тестов. Встроенные тесты (unique, not_null, accepted_values, relationships) покрывают базовые проверки. dbt_utils.expression_is_true расширяет возможности для range checks и custom expressions.",
+      "hint": "Для каждого столбца определите тесты в списке tests. relationships требует параметры to и field. accepted_values требует список values. expression_is_true требует параметр expression.",
+      "bloomLevel": "applied"
+    }
+  ]
+}

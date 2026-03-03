@@ -1,0 +1,94 @@
+{
+  "lessonSlug": "04-data-quality/01-quality-dimensions",
+  "moduleId": "04-data-quality",
+  "_meta": {
+    "idPrefix": "dg-m04-01",
+    "description": "Use IDs: dg-m04-01-q1 through dg-m04-01-q4 + dg-m04-01-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m04-01-q1",
+      "type": "multiple-choice",
+      "question": "В таблице customers у 20% записей отсутствует email, у 5% записей возраст равен 999, у 10% записей customer_id дублируется. Какие три измерения качества нарушены соответственно?",
+      "options": [
+        { "id": "a", "text": "Completeness, Accuracy, Uniqueness" },
+        { "id": "b", "text": "Validity, Consistency, Completeness" },
+        { "id": "c", "text": "Completeness, Validity, Consistency" },
+        { "id": "d", "text": "Accuracy, Uniqueness, Timeliness" }
+      ],
+      "correctAnswer": "a",
+      "explanation": "Отсутствующий email -- нарушение Completeness (полнота): данные не заполнены. Возраст 999 -- нарушение Accuracy (точность): значение не соответствует реальному миру (человек не может иметь возраст 999). Дублирующийся customer_id -- нарушение Uniqueness (уникальность): один и тот же идентификатор присвоен нескольким записям. Validity проверяет формат (email без @), а не наличие. Consistency -- согласованность между системами.",
+      "hint": "Для каждого типа проблемы определите: данные отсутствуют (completeness), не соответствуют реальности (accuracy), нарушают формат (validity), дублируются (uniqueness) или рассогласованы (consistency)?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m04-01-q2",
+      "type": "multiple-choice",
+      "question": "DataTech Solutions получает Data Quality Score 0.72. VP Engineering спрашивает: 'Достаточно ли это хорошо?' Почему на этот вопрос нельзя ответить без дополнительного контекста?",
+      "options": [
+        { "id": "a", "text": "Потому что 0.72 -- это всегда плохой результат для любой организации" },
+        { "id": "b", "text": "Потому что пороговое значение (target) зависит от бизнес-контекста, типа данных и регуляторных требований" },
+        { "id": "c", "text": "Потому что Data Quality Score не является стандартной метрикой" },
+        { "id": "d", "text": "Потому что VP Engineering не имеет права оценивать качество данных" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Score 0.72 может быть приемлемым для маркетинговых данных (target 0.80) и катастрофическим для клинических данных (target 0.995). Контекст определяет target: бизнес-требования (маркетинг vs финансы), регуляторные стандарты (152-ФЗ, GCP), тип данных (PII требует 99%+ completeness). Без определённого target score -- просто число. Data Quality SLA формализует эти пороги.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-01-q3",
+      "type": "multiple-choice",
+      "question": "BioGenesis Lab устанавливает completeness target 99.5% для клинических данных и 95% для исследовательских. Какой принцип Data Governance объясняет это различие?",
+      "options": [
+        { "id": "a", "text": "Исследовательские данные менее важны, чем клинические" },
+        { "id": "b", "text": "Data Quality SLA должны отражать бизнес-ценность и регуляторные требования каждого домена данных" },
+        { "id": "c", "text": "Клинические данные всегда имеют 100% completeness" },
+        { "id": "d", "text": "Исследовательские данные не подлежат мониторингу качества" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Data Quality SLA определяется контекстом использования данных. Клинические данные напрямую влияют на безопасность пациентов и регулируются GCP стандартами -- поэтому порог выше. Исследовательские данные используются для анализа, где допустим некоторый уровень пропусков. Это не значит, что исследовательские данные 'менее важны' -- у них другой профиль риска и допустимых потерь.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m04-01-q4",
+      "type": "true-false",
+      "question": "Timeliness (своевременность) и Freshness -- это разные измерения качества данных с разными метриками.",
+      "correctAnswer": false,
+      "explanation": "Timeliness -- одно из шести измерений качества данных по DMBOK2. Freshness -- это операционная метрика Timeliness, выраженная как время с момента последнего обновления данных. Freshness не является отдельным измерением; это способ количественного измерения Timeliness. Другие метрики Timeliness: latency (задержка обработки), currency (актуальность относительно бизнес-события).",
+      "hint": "Подумайте: Freshness измеряет своевременность обновления данных. Является ли это самостоятельным измерением или способом измерить уже существующее?",
+      "bloomLevel": "conceptual"
+    },
+    {
+      "id": "dg-m04-01-code-1",
+      "type": "code-challenge",
+      "question": "Напишите функцию, которая принимает датасет (список словарей) и правила валидации, и оценивает качество данных по шести измерениям: completeness, uniqueness, validity, accuracy, consistency и timeliness. Верните per-dimension score (0.0-1.0) и общий взвешенный score.",
+      "language": "python",
+      "starterCode": "import json\nfrom datetime import datetime\n\ndef score_quality(data_json: str) -> str:\n    data = json.loads(data_json)\n    records = data[\"data\"]\n    rules = data[\"rules\"]\n    ref_date = datetime.strptime(data[\"reference_date\"], \"%Y-%m-%d\")\n    \n    # TODO: Calculate six dimension scores\n    # completeness: fraction of non-null fields across all records\n    # uniqueness: fraction of unique IDs\n    # validity: fraction of fields passing format rules\n    # accuracy: fraction of values in valid ranges\n    # consistency: fraction of internally consistent records\n    # timeliness: fraction of records updated within SLA\n    \n    pass\n\n# Read input and print result\nimport sys\nresult = score_quality(sys.stdin.read())\nprint(result)",
+      "solutionCode": "import json\nimport re\nfrom datetime import datetime\n\ndef score_quality(data_json: str) -> str:\n    data = json.loads(data_json)\n    records = data[\"data\"]\n    rules = data[\"rules\"]\n    ref_date = datetime.strptime(data[\"reference_date\"], \"%Y-%m-%d\")\n    n = len(records)\n    \n    # Completeness: non-null fields / total fields\n    total_fields = 0\n    non_null = 0\n    for r in records:\n        for k in rules:\n            total_fields += 1\n            if r.get(k) is not None:\n                non_null += 1\n    completeness = round(non_null / total_fields, 2) if total_fields else 0\n    \n    # Uniqueness: unique IDs / total IDs\n    ids = [r[\"id\"] for r in records]\n    uniqueness = round(len(set(ids)) / len(ids), 2)\n    \n    # Validity: fields passing format rules\n    valid_count = 0\n    validity_total = 0\n    for r in records:\n        for field, rule in rules.items():\n            val = r.get(field)\n            if val is None:\n                continue\n            validity_total += 1\n            if rule[\"type\"] == \"email\":\n                if re.match(r'^[^@]+@[^@]+\\.[^@]+$', str(val)):\n                    valid_count += 1\n            elif rule[\"type\"] == \"integer\":\n                if rule.get(\"min\", float('-inf')) <= val <= rule.get(\"max\", float('inf')):\n                    valid_count += 1\n            elif rule[\"type\"] == \"iso_country_code\":\n                if re.match(r'^[A-Z]{2}$', str(val)):\n                    valid_count += 1\n            elif rule[\"type\"] == \"date\":\n                try:\n                    d = datetime.strptime(str(val), \"%Y-%m-%d\")\n                    age_days = (ref_date - d).days\n                    max_age = rule.get(\"max_age_days\", 99999)\n                    if age_days <= max_age:\n                        valid_count += 1\n                except ValueError:\n                    pass\n    validity = round(valid_count / validity_total, 2) if validity_total else 0\n    \n    # Accuracy: age in range + valid country codes\n    acc_total = 0\n    acc_pass = 0\n    for r in records:\n        age = r.get(\"age\")\n        if age is not None:\n            acc_total += 1\n            if 0 <= age <= 120:\n                acc_pass += 1\n        country = r.get(\"country\")\n        if country is not None:\n            acc_total += 1\n            if re.match(r'^[A-Z]{2}$', str(country)) and country != \"XX\":\n                acc_pass += 1\n    accuracy = round(acc_pass / acc_total, 2) if acc_total else 0\n    \n    # Consistency: records where all present fields are internally consistent\n    cons_pass = 0\n    for r in records:\n        consistent = True\n        email = r.get(\"email\")\n        age = r.get(\"age\")\n        if email is not None and not re.match(r'^[^@]+@[^@]+\\.[^@]+$', str(email)):\n            consistent = False\n        if age is not None and (age < 0 or age > 120):\n            consistent = False\n        if consistent:\n            cons_pass += 1\n    consistency = round(cons_pass / n, 2)\n    \n    # Timeliness: records updated within SLA\n    time_pass = 0\n    for r in records:\n        updated = r.get(\"updated\")\n        if updated:\n            d = datetime.strptime(updated, \"%Y-%m-%d\")\n            if (ref_date - d).days <= 365:\n                time_pass += 1\n    timeliness = round(time_pass / n, 2)\n    \n    scores = [completeness, uniqueness, validity, accuracy, consistency, timeliness]\n    overall = round(sum(scores) / len(scores), 2)\n    \n    lines = [\n        \"Quality Report:\",\n        f\"  Completeness: {completeness:.2f} ({non_null}/{total_fields} fields non-null)\",\n        f\"  Uniqueness:   {uniqueness:.2f} ({len(set(ids))}/{len(ids)} unique IDs)\",\n        f\"  Validity:     {validity:.2f} ({valid_count}/{validity_total} pass format rules)\",\n        f\"  Accuracy:     {accuracy:.2f} (age: {sum(1 for r in records if r.get('age') is not None and 0 <= r['age'] <= 120)}/{sum(1 for r in records if r.get('age') is not None)} in range, country: {sum(1 for r in records if r.get('country') is not None and re.match(r'^[A-Z]{2}$', str(r['country'])) and r['country'] != 'XX')}/{sum(1 for r in records if r.get('country') is not None)} valid ISO)\",\n        f\"  Consistency:  {consistency:.2f} ({cons_pass}/{n} records internally consistent)\",\n        f\"  Timeliness:   {timeliness:.2f} ({time_pass}/{n} updated within SLA)\",\n        \"\",\n        f\"  Overall Score: {overall:.2f} (weighted average)\"\n    ]\n    return \"\\n\".join(lines)\n\nimport sys\nresult = score_quality(sys.stdin.read())\nprint(result)",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Mixed quality dataset with violations across all dimensions",
+          "input": "{\"data\":[{\"id\":1,\"email\":\"user1@example.com\",\"age\":25,\"country\":\"RU\",\"updated\":\"2025-12-01\"},{\"id\":2,\"email\":\"user2@example.com\",\"age\":150,\"country\":\"RU\",\"updated\":\"2025-12-01\"},{\"id\":3,\"email\":null,\"age\":30,\"country\":\"XX\",\"updated\":\"2020-01-01\"},{\"id\":3,\"email\":\"user3@example.com\",\"age\":-5,\"country\":\"US\",\"updated\":\"2025-12-01\"},{\"id\":4,\"email\":\"invalid-email\",\"age\":40,\"country\":\"DE\",\"updated\":\"2025-12-01\"}],\"rules\":{\"email\":{\"type\":\"email\",\"required\":true},\"age\":{\"type\":\"integer\",\"min\":0,\"max\":120},\"country\":{\"type\":\"iso_country_code\"},\"updated\":{\"type\":\"date\",\"max_age_days\":365}},\"reference_date\":\"2025-12-15\"}",
+          "expectedOutput": "Quality Report:\n  Completeness: 0.90 (18/20 fields non-null)\n  Uniqueness:   0.80 (4/5 unique IDs)\n  Validity:     0.65 (13/20 pass format rules)\n  Accuracy:     0.80 (age: 3/5 in range, country: 4/5 valid ISO)\n  Consistency:  0.80 (4/5 records internally consistent)\n  Timeliness:   0.80 (4/5 updated within SLA)\n\n  Overall Score: 0.79 (weighted average)"
+        },
+        {
+          "id": "tc2",
+          "description": "Perfect quality dataset",
+          "input": "{\"data\":[{\"id\":1,\"email\":\"a@b.com\",\"age\":30,\"country\":\"RU\",\"updated\":\"2025-12-01\"},{\"id\":2,\"email\":\"c@d.com\",\"age\":25,\"country\":\"US\",\"updated\":\"2025-12-01\"}],\"rules\":{\"email\":{\"type\":\"email\",\"required\":true},\"age\":{\"type\":\"integer\",\"min\":0,\"max\":120},\"country\":{\"type\":\"iso_country_code\"},\"updated\":{\"type\":\"date\",\"max_age_days\":365}},\"reference_date\":\"2025-12-15\"}",
+          "expectedOutput": "Quality Report:\n  Completeness: 1.00 (8/8 fields non-null)\n  Uniqueness:   1.00 (2/2 unique IDs)\n  Validity:     1.00 (8/8 pass format rules)\n  Accuracy:     1.00 (age: 2/2 in range, country: 2/2 valid ISO)\n  Consistency:  1.00 (2/2 records internally consistent)\n  Timeliness:   1.00 (2/2 updated within SLA)\n\n  Overall Score: 1.00 (weighted average)"
+        },
+        {
+          "id": "tc3",
+          "description": "Dataset with stale records",
+          "input": "{\"data\":[{\"id\":1,\"email\":\"x@y.com\",\"age\":20,\"country\":\"RU\",\"updated\":\"2020-01-01\"},{\"id\":2,\"email\":\"z@w.com\",\"age\":30,\"country\":\"US\",\"updated\":\"2020-06-01\"}],\"rules\":{\"email\":{\"type\":\"email\",\"required\":true},\"age\":{\"type\":\"integer\",\"min\":0,\"max\":120},\"country\":{\"type\":\"iso_country_code\"},\"updated\":{\"type\":\"date\",\"max_age_days\":365}},\"reference_date\":\"2025-12-15\"}",
+          "expectedOutput": "Quality Report:\n  Completeness: 1.00 (8/8 fields non-null)\n  Uniqueness:   1.00 (2/2 unique IDs)\n  Validity:     0.75 (6/8 pass format rules)\n  Accuracy:     1.00 (age: 2/2 in range, country: 2/2 valid ISO)\n  Consistency:  1.00 (2/2 records internally consistent)\n  Timeliness:   0.00 (0/2 updated within SLA)\n\n  Overall Score: 0.79 (weighted average)",
+          "hidden": true
+        }
+      ],
+      "explanation": "Функция оценивает качество данных по шести стандартным измерениям DMBOK2. Completeness считает non-null поля, Uniqueness проверяет уникальность ID, Validity проверяет форматы (email, ISO country, ranges), Accuracy проверяет реалистичность значений (возраст 0-120), Consistency проверяет внутреннюю согласованность записей, Timeliness проверяет актуальность по SLA.",
+      "hint": "Разбейте задачу на 6 независимых расчётов. Completeness = non_null / total fields. Uniqueness = unique IDs / total IDs. Для Validity проверьте каждое non-null поле по соответствующему правилу.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

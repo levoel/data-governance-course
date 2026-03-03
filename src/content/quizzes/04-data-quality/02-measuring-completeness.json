@@ -1,0 +1,94 @@
+{
+  "lessonSlug": "04-data-quality/02-measuring-completeness",
+  "moduleId": "04-data-quality",
+  "_meta": {
+    "idPrefix": "dg-m04-02",
+    "description": "Use IDs: dg-m04-02-q1 through dg-m04-02-q4 + dg-m04-02-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m04-02-q1",
+      "type": "multiple-choice",
+      "question": "В таблице customers (10,000 записей, 5 полей) поле email заполнено у 7,000 записей, phone -- у 5,500. Чему равна field-level completeness для email и phone соответственно?",
+      "options": [
+        { "id": "a", "text": "70% и 55%" },
+        { "id": "b", "text": "30% и 45%" },
+        { "id": "c", "text": "7,000 и 5,500" },
+        { "id": "d", "text": "Невозможно определить без знания required fields" }
+      ],
+      "correctAnswer": "a",
+      "explanation": "Field-level completeness = COUNT(non_null) / COUNT(total). Для email: 7,000 / 10,000 = 0.70 (70%). Для phone: 5,500 / 10,000 = 0.55 (55%). Это метрика не зависит от того, является ли поле required -- она измеряет заполненность. Required fields влияют на row-level completeness (доля строк, где все обязательные поля заполнены).",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m04-02-q2",
+      "type": "multiple-choice",
+      "question": "DataTech измеряет overall completeness таблицы customers: 80%. VP Marketing говорит, что email completeness 70% -- критическая проблема для рассылок. Data Engineer отвечает, что overall score 80% -- в пределах нормы. Кто прав?",
+      "options": [
+        { "id": "a", "text": "Data Engineer -- overall score 80% показывает, что данные в целом хорошие" },
+        { "id": "b", "text": "VP Marketing -- overall score маскирует проблемы отдельных полей, field-level анализ важнее для конкретных бизнес-процессов" },
+        { "id": "c", "text": "Оба неправы -- нужно ориентироваться только на row-level completeness" },
+        { "id": "d", "text": "Оба правы -- это вопрос перспективы" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Overall completeness -- агрегированная метрика, которая маскирует проблемы отдельных полей. Если 4 поля заполнены на 90% и одно на 40%, overall = 82%, что выглядит приемлемо. Но для бизнес-процесса, зависящего от email (рассылки), 70% completeness означает потерю 30% аудитории. Правильный подход: определить SLA для каждого критического поля отдельно, а не полагаться на агрегированный score.",
+      "hint": "Подумайте: может ли средняя температура по больнице быть нормальной, если у одного пациента 42 градуса? Тот же принцип работает с агрегированными метриками.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-02-q3",
+      "type": "multiple-choice",
+      "question": "Какой SQL-запрос корректно вычислит field-level completeness для столбца email в таблице customers?",
+      "options": [
+        { "id": "a", "text": "SELECT COUNT(email) / COUNT(*) FROM customers" },
+        { "id": "b", "text": "SELECT COUNT(DISTINCT email) / COUNT(*) FROM customers" },
+        { "id": "c", "text": "SELECT SUM(CASE WHEN email IS NOT NULL THEN 1 ELSE 0 END) FROM customers" },
+        { "id": "d", "text": "SELECT COUNT(*) - COUNT(email) FROM customers" }
+      ],
+      "correctAnswer": "a",
+      "explanation": "COUNT(email) подсчитывает только non-null значения (по определению SQL). COUNT(*) подсчитывает все строки. Их отношение -- field-level completeness. Вариант B считает уникальные email (это uniqueness, не completeness). Вариант C возвращает абсолютное число, а не долю. Вариант D возвращает количество NULL -- полезно, но это не completeness score.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m04-02-q4",
+      "type": "true-false",
+      "question": "Если поле phone не является обязательным (optional), то его completeness не нужно мониторить.",
+      "correctAnswer": false,
+      "explanation": "Optional поля тоже нужно мониторить -- не для блокировки пайплайна, а для информирования бизнеса. Если phone completeness снижается с 80% до 40%, это сигнал: возможно, изменился UI формы регистрации, или мобильное приложение не собирает phone. Бизнес-процессы (SMS-уведомления, двухфакторная аутентификация) зависят от этих данных. Мониторинг optional полей -- это observability, а не enforcement.",
+      "hint": "Подумайте: если phone заполнен у 80% клиентов и маркетинг использует SMS-рассылки, важно ли знать, когда completeness падает до 40%?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m04-02-code-1",
+      "type": "code-challenge",
+      "question": "Напишите функцию, которая рассчитывает метрики полноты данных: field-level completeness (процент non-null значений по каждому столбцу), row-level completeness (процент строк с заполненными required fields) и overall completeness score.",
+      "language": "python",
+      "starterCode": "import json\nimport sys\n\ndef calculate_completeness(data_json: str) -> str:\n    data = json.loads(data_json)\n    records = data[\"data\"]\n    required_fields = data[\"required_fields\"]\n    \n    # TODO: Calculate field_completeness, row_completeness, overall_completeness\n    # field_completeness: {field_name: fraction_non_null} for ALL fields\n    # row_completeness: fraction of rows where ALL required fields are non-null\n    # overall_completeness: total_non_null_cells / total_cells\n    \n    pass\n\nresult = calculate_completeness(sys.stdin.read())\nprint(result)",
+      "solutionCode": "import json\nimport sys\n\ndef calculate_completeness(data_json: str) -> str:\n    data = json.loads(data_json)\n    records = data[\"data\"]\n    required_fields = data[\"required_fields\"]\n    \n    if not records:\n        return json.dumps({\"field_completeness\": {}, \"row_completeness\": 0, \"overall_completeness\": 0, \"total_cells\": 0, \"null_cells\": 0, \"rows_with_all_required\": 0})\n    \n    all_fields = list(records[0].keys())\n    n = len(records)\n    \n    # Field-level completeness\n    field_completeness = {}\n    for field in all_fields:\n        non_null = sum(1 for r in records if r.get(field) is not None)\n        field_completeness[field] = round(non_null / n, 2)\n    \n    # Row-level completeness\n    rows_complete = sum(\n        1 for r in records\n        if all(r.get(f) is not None for f in required_fields)\n    )\n    row_completeness = round(rows_complete / n, 2)\n    \n    # Overall completeness\n    total_cells = n * len(all_fields)\n    null_cells = sum(\n        1 for r in records for f in all_fields if r.get(f) is None\n    )\n    overall_completeness = round((total_cells - null_cells) / total_cells, 2)\n    \n    result = {\n        \"field_completeness\": field_completeness,\n        \"row_completeness\": row_completeness,\n        \"overall_completeness\": overall_completeness,\n        \"total_cells\": total_cells,\n        \"null_cells\": null_cells,\n        \"rows_with_all_required\": rows_complete\n    }\n    return json.dumps(result)\n\nresult = calculate_completeness(sys.stdin.read())\nprint(result)",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Dataset with mixed null values",
+          "input": "{\"data\":[{\"name\":\"Alice\",\"email\":\"alice@test.com\",\"phone\":\"+79001234567\",\"department\":\"Engineering\"},{\"name\":\"Bob\",\"email\":null,\"phone\":\"+79007654321\",\"department\":\"Sales\"},{\"name\":\"Charlie\",\"email\":\"charlie@test.com\",\"phone\":null,\"department\":null},{\"name\":null,\"email\":\"dave@test.com\",\"phone\":\"+79001111111\",\"department\":\"HR\"},{\"name\":\"Eve\",\"email\":\"eve@test.com\",\"phone\":\"+79002222222\",\"department\":\"Engineering\"}],\"required_fields\":[\"name\",\"email\"]}",
+          "expectedOutput": "{\"field_completeness\": {\"name\": 0.8, \"email\": 0.8, \"phone\": 0.8, \"department\": 0.8}, \"row_completeness\": 0.6, \"overall_completeness\": 0.8, \"total_cells\": 20, \"null_cells\": 4, \"rows_with_all_required\": 3}"
+        },
+        {
+          "id": "tc2",
+          "description": "Fully complete dataset",
+          "input": "{\"data\":[{\"name\":\"A\",\"email\":\"a@b.com\"},{\"name\":\"B\",\"email\":\"c@d.com\"}],\"required_fields\":[\"name\",\"email\"]}",
+          "expectedOutput": "{\"field_completeness\": {\"name\": 1.0, \"email\": 1.0}, \"row_completeness\": 1.0, \"overall_completeness\": 1.0, \"total_cells\": 4, \"null_cells\": 0, \"rows_with_all_required\": 2}"
+        },
+        {
+          "id": "tc3",
+          "description": "Dataset with all nulls in optional field",
+          "input": "{\"data\":[{\"name\":\"X\",\"email\":null,\"notes\":null},{\"name\":\"Y\",\"email\":\"y@z.com\",\"notes\":null}],\"required_fields\":[\"name\"]}",
+          "expectedOutput": "{\"field_completeness\": {\"name\": 1.0, \"email\": 0.5, \"notes\": 0.0}, \"row_completeness\": 1.0, \"overall_completeness\": 0.5, \"total_cells\": 6, \"null_cells\": 3, \"rows_with_all_required\": 2}",
+          "hidden": true
+        }
+      ],
+      "explanation": "Функция рассчитывает три уровня полноты: field-level (доля non-null по каждому полю), row-level (доля строк с заполненными required fields) и overall (общая доля non-null ячеек). Field-level помогает найти проблемные столбцы, row-level показывает usable rows, overall -- общую картину.",
+      "hint": "Для field_completeness пройдитесь по каждому полю и подсчитайте non-null значения. Для row_completeness проверьте каждую строку на наличие всех required полей. overall = (total_cells - null_cells) / total_cells.",
+      "bloomLevel": "applied"
+    }
+  ]
+}

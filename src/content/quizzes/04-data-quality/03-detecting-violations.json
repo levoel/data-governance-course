@@ -1,0 +1,91 @@
+{
+  "lessonSlug": "04-data-quality/03-detecting-violations",
+  "moduleId": "04-data-quality",
+  "_meta": {
+    "idPrefix": "dg-m04-03",
+    "description": "Use IDs: dg-m04-03-q1 through dg-m04-03-q4 + dg-m04-03-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m04-03-q1",
+      "type": "multiple-choice",
+      "question": "DataTech запускает аудит таблицы orders (200,000 записей) и находит: 3,200 NULL в required полях, 450 дубликатов, 180 отрицательных сумм, 1,500 orphaned records. Какой тип нарушения наиболее приоритетен для исправления и почему?",
+      "options": [
+        { "id": "a", "text": "Orphaned records -- они указывают на нарушение referential integrity, что может привести к ошибкам в JOIN-запросах и неверной аналитике" },
+        { "id": "b", "text": "NULL в required полях -- это наибольшее количество нарушений" },
+        { "id": "c", "text": "Отрицательные суммы -- они непосредственно влияют на финансовую отчётность" },
+        { "id": "d", "text": "Дубликаты -- они завышают выручку в отчётах" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Хотя NULL нарушений больше (3,200), отрицательные суммы (180) наиболее критичны: они непосредственно искажают финансовые расчёты (revenue, GMV, average order value). Один заказ на -150,000 RUB может изменить дневной отчёт на значительную сумму. Приоритет определяется бизнес-impact, а не количеством нарушений. Orphaned records (A) важны, но не влияют на финансы напрямую. NULL (B) -- количество без контекста. Дубликаты (D) тоже важны, но их impact зависит от суммы дублей.",
+      "hint": "Приоритизация нарушений определяется не количеством, а бизнес-impact. Какой тип нарушения может исказить финансовый отчёт для CEO?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-03-q2",
+      "type": "multiple-choice",
+      "question": "Какой SQL-запрос найдёт orphaned orders -- заказы, ссылающиеся на несуществующих клиентов?",
+      "options": [
+        { "id": "a", "text": "SELECT * FROM orders WHERE customer_id NOT IN (SELECT customer_id FROM customers)" },
+        { "id": "b", "text": "SELECT * FROM orders o LEFT JOIN customers c ON o.customer_id = c.customer_id WHERE c.customer_id IS NULL AND o.customer_id IS NOT NULL" },
+        { "id": "c", "text": "SELECT * FROM orders WHERE customer_id IS NULL" },
+        { "id": "d", "text": "SELECT * FROM customers WHERE customer_id NOT IN (SELECT customer_id FROM orders)" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "LEFT JOIN + WHERE c.customer_id IS NULL находит записи в orders, для которых нет соответствующей записи в customers. Условие AND o.customer_id IS NOT NULL исключает заказы без customer_id (это NULL violation, не orphaned). Вариант A работает, но NOT IN с подзапросом менее эффективен и некорректно обрабатывает NULL в customer_id. Вариант C находит NULL, а не orphaned. Вариант D ищет клиентов без заказов (обратная задача).",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m04-03-q3",
+      "type": "multiple-choice",
+      "question": "В таблице orders поле status содержит значение 'DELETED', которого нет в допустимом списке ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled'). Это нарушение какого измерения качества?",
+      "options": [
+        { "id": "a", "text": "Accuracy -- значение не соответствует реальному миру" },
+        { "id": "b", "text": "Validity -- значение не соответствует допустимому набору" },
+        { "id": "c", "text": "Consistency -- значение не согласовано с другими системами" },
+        { "id": "d", "text": "Completeness -- значение некорректно заполнено" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Validity проверяет соответствие данных определённым форматам и бизнес-правилам. Допустимый набор статусов -- это бизнес-правило. 'DELETED' -- невалидное значение, оно не в списке допустимых. Accuracy проверяет соответствие реальному миру (возраст 999). Consistency -- согласованность между системами. Completeness -- наличие данных. dbt test accepted_values специально предназначен для обнаружения таких нарушений.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m04-03-q4",
+      "type": "true-false",
+      "question": "FOREIGN KEY constraint в PostgreSQL предотвращает появление orphaned records, поэтому SQL-проверки на referential integrity не нужны, если constraints настроены.",
+      "correctAnswer": false,
+      "explanation": "FK constraint предотвращает появление НОВЫХ orphaned records, но не обнаруживает существующие. Если orphaned records появились до создания constraint (или constraint был временно отключён для bulk load), они остаются в базе. Кроме того, многие data warehouse (ClickHouse, BigQuery, Redshift) не поддерживают FK enforcement. SQL-проверки нужны для: (1) обнаружения исторических orphaned records, (2) проверки данных в системах без FK support, (3) мониторинга cross-database referential integrity.",
+      "hint": "FK constraint работает как 'забор' -- предотвращает новые нарушения. Но что если нарушения уже были до установки забора?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-03-code-1",
+      "type": "code-challenge",
+      "question": "Напишите SQL-запросы для обнаружения нарушений качества в таблице orders: NULL в required полях, дублирующиеся order_id, отрицательные суммы, temporal violations (created_at > updated_at), невалидные значения status.",
+      "language": "sql",
+      "starterCode": "-- Table: orders (order_id, customer_id, amount, status, created_at, updated_at)\n-- Valid statuses: 'pending', 'confirmed', 'shipped', 'delivered', 'cancelled'\n-- Write queries to find all quality violations\n\n-- 1. Null violations in required fields (customer_id, status, amount)\nSELECT 'TODO' AS violation_type;\n\n-- 2. Duplicate order_ids\n\n-- 3. Negative amounts\n\n-- 4. Temporal violations (created_at > updated_at)\n\n-- 5. Invalid status values",
+      "solutionCode": "-- 1. Null violations in required fields\nSELECT order_id,\n  CASE\n    WHEN customer_id IS NULL THEN 'customer_id is NULL'\n    WHEN status IS NULL THEN 'status is NULL'\n    WHEN amount IS NULL THEN 'amount is NULL'\n  END AS violation\nFROM orders\nWHERE customer_id IS NULL OR status IS NULL OR amount IS NULL;\n\n-- 2. Duplicate order_ids\nSELECT order_id, COUNT(*) AS duplicate_count\nFROM orders\nGROUP BY order_id\nHAVING COUNT(*) > 1;\n\n-- 3. Negative amounts\nSELECT order_id, amount\nFROM orders\nWHERE amount < 0;\n\n-- 4. Temporal violations\nSELECT order_id, created_at, updated_at\nFROM orders\nWHERE created_at > updated_at;\n\n-- 5. Invalid status values\nSELECT order_id, status\nFROM orders\nWHERE status NOT IN ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled');",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Find null violations in required fields",
+          "expectedOutput": "Null violations (required fields): 3 rows\n  - order_id 45: customer_id is NULL\n  - order_id 67: status is NULL\n  - order_id 89: amount is NULL"
+        },
+        {
+          "id": "tc2",
+          "description": "Find duplicate order_ids and negative amounts",
+          "expectedOutput": "Duplicate order_ids: 2 duplicates (order_id 23, order_id 78)\nNegative amounts: 1 row (order_id 34: amount = -150.00)"
+        },
+        {
+          "id": "tc3",
+          "description": "Find temporal violations and invalid statuses",
+          "expectedOutput": "Temporal violations: 2 rows (created_at > updated_at)\nInvalid status values: 1 row (order_id 56: status = 'DELETED')\nTotal violations: 9",
+          "hidden": true
+        }
+      ],
+      "explanation": "Пять типов SQL-проверок покрывают основные нарушения качества: NULL checks (completeness), GROUP BY HAVING (uniqueness), range checks (validity), temporal comparisons (consistency), NOT IN (validity). Каждый тип нарушения соответствует одному из шести измерений качества данных.",
+      "hint": "Используйте WHERE ... IS NULL для поиска пропусков, GROUP BY ... HAVING COUNT(*) > 1 для дубликатов, WHERE amount < 0 для отрицательных сумм, WHERE created_at > updated_at для temporal violations.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

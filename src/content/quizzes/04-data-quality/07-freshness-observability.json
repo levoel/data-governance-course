@@ -1,0 +1,95 @@
+{
+  "lessonSlug": "04-data-quality/07-freshness-observability",
+  "moduleId": "04-data-quality",
+  "_meta": {
+    "idPrefix": "dg-m04-07",
+    "description": "Use IDs: dg-m04-07-q1 through dg-m04-07-q4 + dg-m04-07-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m04-07-q1",
+      "type": "multiple-choice",
+      "question": "В DataTech аналитический дашборд показывает данные за пятницу, хотя сейчас понедельник. Freshness SLA = 24 часа. Какой столп Data Observability обнаружил бы проблему, и какой severity инцидента?",
+      "options": [
+        { "id": "a", "text": "Volume anomaly, P3 Medium" },
+        { "id": "b", "text": "Freshness violation, P1 Critical (SLA нарушен более чем в 2 раза: 60+ часов vs 24 часа SLA)" },
+        { "id": "c", "text": "Schema change, P4 Low" },
+        { "id": "d", "text": "Distribution anomaly, P2 High" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Данные stale 60+ часов при SLA 24 часа: ratio = 60/24 = 2.5x. По классификации: ratio > 2x = P1 Critical (бизнес-impact: руководство принимает решения на основе устаревших данных). Response time для P1 = 15 минут. Volume, schema и distribution -- другие столпы observability, не связанные с freshness. Проблема обнаруживается Freshness monitoring, который проверяет last_updated каждой критической таблицы.",
+      "hint": "Вычислите SLA ratio: 60 часов / 24 часа SLA = 2.5x. По таблице severity: ratio > 2x = ?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-07-q2",
+      "type": "multiple-choice",
+      "question": "analytics_daily загружается ежедневно. Сегодня загрузилось 500 записей вместо обычных 10,000. Данные свежие (freshness OK). Какой столп observability обнаружит проблему?",
+      "options": [
+        { "id": "a", "text": "Freshness -- данные несвежие" },
+        { "id": "b", "text": "Volume -- количество записей аномально низкое" },
+        { "id": "c", "text": "Schema -- структура таблицы изменилась" },
+        { "id": "d", "text": "Lineage -- зависимости нарушены" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Freshness OK (данные обновлены вовремя), но Volume anomaly: 500 vs ожидаемых 10,000 (5% от нормы). Это может указывать на: partial failure в ETL, проблему с API-источником (вернул неполный ответ), фильтр, отсекающий записи. Без Volume мониторинга проблема обнаружится только когда бизнес-пользователь заметит пробелы в дашборде. Volume и Freshness -- комплементарные столпы: один проверяет 'обновилось ли', другой -- 'сколько пришло'.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m04-07-q3",
+      "type": "multiple-choice",
+      "question": "BioGenesis определяет freshness SLA: clinical_results не более 2 часов, research_data не более 72 часов. Почему SLA различается в 36 раз?",
+      "options": [
+        { "id": "a", "text": "Clinical data обновляется чаще из-за большего объёма" },
+        { "id": "b", "text": "Research data менее важна, поэтому получает низкий приоритет" },
+        { "id": "c", "text": "Clinical data влияет на безопасность пациентов (врач принимает решения о лечении), research data используется для долгосрочного анализа без срочности" },
+        { "id": "d", "text": "Инфраструктура BioGenesis не позволяет обновлять research data чаще" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "SLA определяется бизнес-impact задержки: для clinical data задержка более 2 часов может привести к назначению неактуального лечения (риск для жизни пациента). Research data используется для долгосрочных исследований (месяцы-годы), задержка в 72 часа не влияет на результат. SLA отражает risk profile, а не техническую возможность или 'важность'. Оба типа данных важны, но имеют разный time-to-action.",
+      "hint": "Подумайте о последствиях задержки: что произойдёт, если врач не получит результат анализа вовремя? Что произойдёт, если исследователь получит данные на 3 дня позже?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-07-q4",
+      "type": "true-false",
+      "question": "CDC (Change Data Capture) через Debezium полностью решает проблему freshness, устраняя необходимость мониторинга freshness SLA.",
+      "correctAnswer": false,
+      "explanation": "CDC снижает freshness lag с часов до секунд, но не устраняет необходимость мониторинга. CDC создаёт новые observability-вызовы: consumer lag (consumer не успевает обрабатывать события), connector health (Debezium connector может упасть), schema evolution (upstream schema changes ломают consumer), network partitions. Freshness SLA по-прежнему нужен, но с более строгими порогами (минуты вместо часов). Мониторинг смещается с 'данные обновились?' на 'CDC pipeline здоров?'.",
+      "hint": "CDC решает проблему доставки данных. Но что если CDC pipeline сам падает? Нужен ли тогда мониторинг?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-07-code-1",
+      "type": "code-challenge",
+      "question": "Напишите функцию, которая проверяет freshness таблиц против определённых SLA. Для каждой таблицы определите статус: fresh (в пределах SLA), stale (превышен SLA, но не более 2x), critical (превышен SLA более чем в 2 раза). Верните результаты по каждой таблице и общую сводку.",
+      "language": "python",
+      "starterCode": "import json\nimport sys\nfrom datetime import datetime, timezone\n\ndef check_freshness(data_json: str) -> str:\n    data = json.loads(data_json)\n    ref_time = datetime.strptime(data[\"reference_time\"], \"%Y-%m-%dT%H:%M:%SZ\")\n    tables = data[\"tables\"]\n    \n    # TODO: For each table:\n    # 1. Calculate age_hours = (ref_time - last_updated) in hours\n    # 2. Calculate sla_ratio = age_hours / sla_hours\n    # 3. Determine status: fresh (ratio <= 1), stale (1 < ratio <= 2), critical (ratio > 2)\n    # 4. Return results and summary\n    \n    pass\n\nresult = check_freshness(sys.stdin.read())\nprint(result)",
+      "solutionCode": "import json\nimport sys\nfrom datetime import datetime, timezone\n\ndef check_freshness(data_json: str) -> str:\n    data = json.loads(data_json)\n    ref_time = datetime.strptime(data[\"reference_time\"], \"%Y-%m-%dT%H:%M:%SZ\")\n    tables = data[\"tables\"]\n    \n    results = []\n    fresh_count = 0\n    stale_count = 0\n    critical_count = 0\n    \n    for t in tables:\n        last_updated = datetime.strptime(t[\"last_updated\"], \"%Y-%m-%dT%H:%M:%SZ\")\n        age_seconds = (ref_time - last_updated).total_seconds()\n        age_hours = age_seconds / 3600\n        sla_hours = t[\"sla_hours\"]\n        sla_ratio = age_hours / sla_hours\n        \n        if sla_ratio <= 1.0:\n            status = \"fresh\"\n            fresh_count += 1\n        elif sla_ratio <= 2.0:\n            status = \"stale\"\n            stale_count += 1\n        else:\n            status = \"critical\"\n            critical_count += 1\n        \n        results.append({\n            \"table\": t[\"name\"],\n            \"status\": status,\n            \"age_hours\": round(age_hours, 1),\n            \"sla_hours\": sla_hours,\n            \"sla_ratio\": round(sla_ratio, 2)\n        })\n    \n    total = len(tables)\n    overall_freshness = round(fresh_count / total, 2) if total > 0 else 0\n    \n    output = {\n        \"results\": results,\n        \"summary\": {\n            \"fresh\": fresh_count,\n            \"stale\": stale_count,\n            \"critical\": critical_count,\n            \"overall_freshness\": overall_freshness\n        }\n    }\n    return json.dumps(output)\n\nresult = check_freshness(sys.stdin.read())\nprint(result)",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Mix of fresh, stale, and critical tables",
+          "input": "{\"reference_time\":\"2025-12-15T12:00:00Z\",\"tables\":[{\"name\":\"orders\",\"last_updated\":\"2025-12-15T11:30:00Z\",\"sla_hours\":1},{\"name\":\"customers\",\"last_updated\":\"2025-12-15T06:00:00Z\",\"sla_hours\":24},{\"name\":\"inventory\",\"last_updated\":\"2025-12-14T00:00:00Z\",\"sla_hours\":12},{\"name\":\"analytics_daily\",\"last_updated\":\"2025-12-13T00:00:00Z\",\"sla_hours\":24},{\"name\":\"audit_log\",\"last_updated\":\"2025-12-10T00:00:00Z\",\"sla_hours\":48}]}",
+          "expectedOutput": "{\"results\": [{\"table\": \"orders\", \"status\": \"fresh\", \"age_hours\": 0.5, \"sla_hours\": 1, \"sla_ratio\": 0.5}, {\"table\": \"customers\", \"status\": \"fresh\", \"age_hours\": 6.0, \"sla_hours\": 24, \"sla_ratio\": 0.25}, {\"table\": \"inventory\", \"status\": \"stale\", \"age_hours\": 36.0, \"sla_hours\": 12, \"sla_ratio\": 3.0}, {\"table\": \"analytics_daily\", \"status\": \"stale\", \"age_hours\": 60.0, \"sla_hours\": 24, \"sla_ratio\": 2.5}, {\"table\": \"audit_log\", \"status\": \"critical\", \"age_hours\": 132.0, \"sla_hours\": 48, \"sla_ratio\": 2.75}], \"summary\": {\"fresh\": 2, \"stale\": 2, \"critical\": 1, \"overall_freshness\": 0.4}}"
+        },
+        {
+          "id": "tc2",
+          "description": "All tables fresh",
+          "input": "{\"reference_time\":\"2025-12-15T12:00:00Z\",\"tables\":[{\"name\":\"t1\",\"last_updated\":\"2025-12-15T11:00:00Z\",\"sla_hours\":2},{\"name\":\"t2\",\"last_updated\":\"2025-12-15T10:00:00Z\",\"sla_hours\":4}]}",
+          "expectedOutput": "{\"results\": [{\"table\": \"t1\", \"status\": \"fresh\", \"age_hours\": 1.0, \"sla_hours\": 2, \"sla_ratio\": 0.5}, {\"table\": \"t2\", \"status\": \"fresh\", \"age_hours\": 2.0, \"sla_hours\": 4, \"sla_ratio\": 0.5}], \"summary\": {\"fresh\": 2, \"stale\": 0, \"critical\": 0, \"overall_freshness\": 1.0}}"
+        },
+        {
+          "id": "tc3",
+          "description": "Edge case: exactly at SLA boundary",
+          "input": "{\"reference_time\":\"2025-12-15T12:00:00Z\",\"tables\":[{\"name\":\"t1\",\"last_updated\":\"2025-12-15T00:00:00Z\",\"sla_hours\":12}]}",
+          "expectedOutput": "{\"results\": [{\"table\": \"t1\", \"status\": \"fresh\", \"age_hours\": 12.0, \"sla_hours\": 12, \"sla_ratio\": 1.0}], \"summary\": {\"fresh\": 1, \"stale\": 0, \"critical\": 0, \"overall_freshness\": 1.0}}",
+          "hidden": true
+        }
+      ],
+      "explanation": "Функция проверяет freshness по трём уровням: fresh (ratio <= 1.0), stale (ratio > 1.0 и <= 2.0), critical (ratio > 2.0). SLA ratio = age_hours / sla_hours показывает, насколько данные превышают SLA. overall_freshness = доля fresh таблиц от общего числа.",
+      "hint": "Для каждой таблицы: (1) вычислите разницу между reference_time и last_updated в часах, (2) разделите на sla_hours для получения ratio, (3) определите статус по пороговым значениям.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

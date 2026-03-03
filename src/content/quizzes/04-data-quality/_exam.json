@@ -3,34 +3,151 @@
   "moduleId": "04-data-quality",
   "_meta": {
     "idPrefix": "dg-exam-m04",
-    "description": "Use IDs: dg-exam-m04-q1, dg-exam-m04-q2, ... (8-12 analytical questions)"
+    "description": "Use IDs: dg-exam-m04-q1 through dg-exam-m04-q10 (10 analytical questions)"
   },
   "questions": [
     {
-      "id": "dg-exam-04-data-quality-placeholder",
+      "id": "dg-exam-m04-q1",
       "type": "multiple-choice",
-      "question": "Placeholder -- будет заменён в следующих фазах",
+      "question": "DataTech Quality Dashboard показывает: Completeness=0.72, Accuracy=0.85, Consistency=0.60, Timeliness=0.50, Uniqueness=0.85, Validity=0.78. Overall Score=0.72. VP Engineering хочет за квартал довести Overall Score до 0.90. Какой порядок приоритетов оптимален?",
       "options": [
-        {
-          "id": "a",
-          "text": "Вариант A"
-        },
-        {
-          "id": "b",
-          "text": "Вариант B"
-        },
-        {
-          "id": "c",
-          "text": "Вариант C"
-        },
-        {
-          "id": "d",
-          "text": "Вариант D"
-        }
+        { "id": "a", "text": "Начать с Completeness (наибольший вес в overall score)" },
+        { "id": "b", "text": "Начать с Timeliness (0.50 -- самый низкий score) и Consistency (0.60), затем Completeness и Validity" },
+        { "id": "c", "text": "Улучшать все шесть измерений одновременно" },
+        { "id": "d", "text": "Начать с Validity (проще всего исправить форматные ошибки)" }
       ],
-      "correctAnswer": "a",
-      "explanation": "Placeholder question -- будет заменён полноценным содержанием.",
+      "correctAnswer": "b",
+      "explanation": "Оптимальная стратегия -- начинать с наибольших gaps: Timeliness (gap 0.45) и Consistency (gap 0.30) дают наибольший прирост overall score. Timeliness решается определением SLA и настройкой мониторинга. Consistency решается синхронизацией PostgreSQL и ClickHouse. Затем Completeness (gap 0.23) и Validity (gap 0.17). Одновременное улучшение всех шести -- неэффективно (распыление ресурсов). Для подготовки повторите уроки 1 (измерения) и 7 (observability) этого модуля.",
+      "hint": "Вычислите gap для каждого измерения (target 0.95 - current). Наибольший gap = наибольший потенциал улучшения overall score.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m04-q2",
+      "type": "multiple-choice",
+      "question": "BioGenesis получает CSV-файл от внешней лаборатории. После загрузки в PostgreSQL обнаружено: 3 столбца с нестандартными названиями, 15% значений 'N/A' вместо NULL, единицы измерения в мг/дл вместо ммоль/л. Какая последовательность инструментов решит все три проблемы?",
+      "options": [
+        { "id": "a", "text": "dbt test после загрузки + manual fix" },
+        { "id": "b", "text": "Great Expectations checkpoint ДО загрузки (schema + value validation), затем ETL для нормализации, затем dbt tests после трансформации" },
+        { "id": "c", "text": "Manual review каждого CSV-файла перед загрузкой" },
+        { "id": "d", "text": "PostgreSQL CHECK constraints при INSERT" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Трёхэтапный подход: (1) GE checkpoint валидирует CSV до загрузки -- обнаруживает нестандартные столбцы и 'N/A' значения. (2) ETL нормализует: переименовывает столбцы, заменяет 'N/A' на NULL, конвертирует единицы. (3) dbt tests проверяют результат трансформации в PostgreSQL. GE незаменим для raw data validation (CSV не в dbt pipeline). Для подготовки повторите уроки 5 (dbt) и 6 (Great Expectations) этого модуля.",
+      "hint": "Где находятся данные на каждом этапе? CSV файл (до загрузки) -> ETL -> PostgreSQL (после загрузки). Какой инструмент работает с CSV? Какой с PostgreSQL?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m04-q3",
+      "type": "multiple-choice",
+      "question": "DataTech Airflow DAG падает в субботу, проблему обнаруживают в понедельник -- 48 часов downtime. Какая комбинация мер предотвратит повторение?",
+      "options": [
+        { "id": "a", "text": "Добавить DAG retry policy с exponential backoff" },
+        { "id": "b", "text": "Freshness monitoring + pipeline health monitoring + DAG retry policy + incident response playbook с on-call rotation" },
+        { "id": "c", "text": "Перейти на CDC (Debezium) для real-time обновлений" },
+        { "id": "d", "text": "Увеличить частоту загрузки с ежедневной до почасовой" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Комплексное решение: (1) Freshness monitoring -- алерт при нарушении SLA (симптом). (2) Pipeline health monitoring -- алерт при failure DAG (причина). (3) DAG retry -- автоматическое восстановление при transient failures. (4) Incident response playbook с on-call -- реагирование в выходные. Только retry (A) не поможет при длительном failure. CDC (C) не решает проблему мониторинга. Для подготовки повторите урок 7 (observability и incident response) этого модуля.",
+      "hint": "Проблема состоит из трёх частей: DAG не восстановился (retry), никто не получил алерт (monitoring), никто не реагировал в выходные (on-call).",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m04-q4",
+      "type": "multiple-choice",
+      "question": "DataTech внедряет dbt tests для 120 моделей и обнаруживает 13 проблем (8 нарушений uniqueness, 3 orphaned records, 2 невалидных статуса). Все проблемы в SQL-трансформациях, не в сырых данных. Что это говорит о pipeline?",
+      "options": [
+        { "id": "a", "text": "Сырые данные идеальны, проблемы только в dbt" },
+        { "id": "b", "text": "SQL-трансформации создавались без quality checks -- dbt tests выявили технический долг в pipeline-коде (fanout JOINs, missing DISTINCT)" },
+        { "id": "c", "text": "13 проблем -- это мало для 120 моделей, можно игнорировать" },
+        { "id": "d", "text": "Нужно переписать все 120 моделей с нуля" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "13 проблем в трансформациях -- технический долг: SQL-модели писались без тестов, баги накапливались незамеченными. dbt tests сделали этот долг видимым. Сырые данные не проверены (только pipeline). 13 проблем могут искажать бизнес-отчёты. Переписывание -- overreaction. Для подготовки повторите урок 5 (dbt tests) этого модуля.",
+      "hint": "dbt test проверяет результат SQL-трансформации. Если uniqueness нарушен после трансформации, но не в источнике -- где баг?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m04-q5",
+      "type": "multiple-choice",
+      "question": "DataTech нашла 2,500 дубликатов клиентов: 200 exact, 600 same-email, 450 same-phone. Data Engineer предлагает автоматический merge всех по email. Data Steward возражает. Кто прав?",
+      "options": [
+        { "id": "a", "text": "Data Engineer -- автоматизация эффективнее" },
+        { "id": "b", "text": "Data Steward -- merge по email без учёта confidence уровней может удалить реальных клиентов: exact = auto merge, same-email = review, same-phone = manual" },
+        { "id": "c", "text": "Оба неправы -- нужно оставить дубликаты до MDM" },
+        { "id": "d", "text": "5% дубликатов -- не критично, можно игнорировать" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Уровни уверенности: exact (High) -- безопасный auto merge. Same-email (Medium) -- auto с review исключений. Same-phone (Low) -- manual (один телефон у семьи/коллег). Слепой merge может объединить записи разных людей. Data Steward определяет правила (governance), Engineer реализует (management). Для подготовки повторите урок 4 (дедупликация) этого модуля.",
+      "hint": "Три уровня уверенности: High (exact), Medium (same email), Low (same phone). Автоматизация допустима только при высокой уверенности.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m04-q6",
+      "type": "multiple-choice",
+      "question": "DataTech выбирает между dbt tests и Great Expectations. Стек: PostgreSQL -> dbt -> ClickHouse + CSV от поставщиков (вне pipeline). Какое решение оптимально?",
+      "options": [
+        { "id": "a", "text": "Только dbt tests" },
+        { "id": "b", "text": "Только Great Expectations" },
+        { "id": "c", "text": "dbt tests для pipeline + Great Expectations для CSV от поставщиков" },
+        { "id": "d", "text": "Коммерческий инструмент (Monte Carlo)" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Гибридный подход: dbt tests для pipeline (natural integration), GE для CSV вне pipeline. dbt покрывает 80% (все данные через dbt). GE закрывает 20% (CSV). Только dbt не покроет CSV. Только GE -- overkill для данных в dbt. Коммерческий инструмент дорог для Level 1 организации. Для подготовки повторите уроки 5 и 6 (сравнение инструментов) этого модуля.",
+      "hint": "Какие данные проходят через dbt pipeline, какие -- нет? Каждый инструмент оптимален для своего типа данных.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m04-q7",
+      "type": "multiple-choice",
+      "question": "BioGenesis обнаруживает freshness violation для clinical_results: 4 часа stale при SLA 2 часа (ratio = 2.0, P2 High). Какая правильная последовательность действий?",
+      "options": [
+        { "id": "a", "text": "Подождать до конца рабочего дня" },
+        { "id": "b", "text": "Detect -> Triage (scope downstream) -> Diagnose (pipeline/source) -> Resolve -> Verify -> Postmortem" },
+        { "id": "c", "text": "Перезапустить все ETL-пайплайны" },
+        { "id": "d", "text": "Уведомить Data Council" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "6-шаговый incident response: Detect, Triage (какие пациенты/отчёты затронуты), Diagnose (причина), Resolve (fix), Verify (SLA восстановлен), Postmortem (root cause + prevention). Ожидание недопустимо для clinical data. Перезапуск всех pipeline может вызвать cascading failures. Data Council -- слишком медленно для P2. Для подготовки повторите урок 7 (incident response) этого модуля.",
+      "hint": "6 шагов playbook: Detect, Triage, Diagnose, Resolve, Verify, Postmortem. Для clinical data время реакции критично.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m04-q8",
+      "type": "true-false",
+      "question": "Data Quality Score 0.95 гарантирует, что данные достаточно качественные для любого бизнес-сценария.",
+      "correctAnswer": false,
+      "explanation": "Score 0.95 -- агрегированная метрика, маскирующая проблемы отдельных измерений. Completeness может быть 0.99, но Timeliness -- 0.70. Для клинических данных target 0.995, для финансов -- per-field SLA. Quality score без контекста (domain, use-case) не определяет достаточность. Для подготовки повторите уроки 1 (измерения) и 2 (thresholds) этого модуля.",
       "bloomLevel": "conceptual"
+    },
+    {
+      "id": "dg-exam-m04-q9",
+      "type": "multiple-choice",
+      "question": "DataTech обнаруживает 1,500 orphaned orders. Data Engineer предлагает: (A) FK constraint + удаление orphaned, (B) FK с ON DELETE SET NULL, (C) root cause analysis, затем governance-решение, затем constraint. Какой подход правильный?",
+      "options": [
+        { "id": "a", "text": "Вариант A -- быстро и надёжно" },
+        { "id": "b", "text": "Вариант B -- сохраняет заказы" },
+        { "id": "c", "text": "Вариант C -- root cause analysis определит причину и возможность восстановления, governance-решение определит обработку" },
+        { "id": "d", "text": "Не добавлять constraint" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Root cause первичен: клиенты удалены без каскада (восстановить из бэкапа?), ошибка миграции (сматчить?), баг API (fix?). Удаление 1,500 заказов может потерять финансовые данные. SET NULL теряет связь. Правильно: diagnose, governance decision (Data Owner), implement, add constraint. Для подготовки повторите уроки 3 (обнаружение) и 7 (incident response) этого модуля.",
+      "hint": "1,500 заказов -- потенциально значительная сумма. Можно ли удалить без анализа причины?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m04-q10",
+      "type": "multiple-choice",
+      "question": "DataTech за 3 месяца внедрила dbt tests, freshness monitoring, volume anomaly detection, dedup pipeline. DQ Score вырос с 0.72 до 0.88. Что следующий приоритет?",
+      "options": [
+        { "id": "a", "text": "Остановиться -- 0.88 достаточно" },
+        { "id": "b", "text": "GE для CSV от поставщиков + schema change detection + incident response playbook с postmortem" },
+        { "id": "c", "text": "Перейти к Privacy/Security модулям" },
+        { "id": "d", "text": "Нанять Data Quality Manager" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Закрыты основные gaps, но остаются: CSV от поставщиков не валидируются (GE), schema changes не мониторятся, нет формализованного incident response. Target 0.90 не достигнут, quality -- непрерывный процесс. Остановка преждевременна. Переход к другим модулям возможен параллельно. Найм полезен, но не немедленно. Для подготовки повторите все уроки модуля.",
+      "hint": "Какие столпы Observability покрыты (freshness, volume)? Какие нет (schema, distribution, lineage)? Какие данные без валидации (CSV)?",
+      "bloomLevel": "analytical"
     }
   ]
 }

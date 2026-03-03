@@ -1,0 +1,91 @@
+{
+  "lessonSlug": "04-data-quality/06-great-expectations",
+  "moduleId": "04-data-quality",
+  "_meta": {
+    "idPrefix": "dg-m04-06",
+    "description": "Use IDs: dg-m04-06-q1 through dg-m04-06-q4 + dg-m04-06-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m04-06-q1",
+      "type": "multiple-choice",
+      "question": "BioGenesis получает CSV-файлы от внешних лабораторий с нестандартными названиями столбцов. Какой Great Expectations expectation обнаружит несоответствие схемы при загрузке?",
+      "options": [
+        { "id": "a", "text": "expect_column_values_to_not_be_null" },
+        { "id": "b", "text": "expect_table_columns_to_match_set" },
+        { "id": "c", "text": "expect_column_values_to_be_unique" },
+        { "id": "d", "text": "expect_column_values_to_be_in_set" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "expect_table_columns_to_match_set проверяет, что набор столбцов в датасете соответствует ожидаемому списку. При несовпадении (лишние или отсутствующие столбцы) expectation возвращает failure с детализацией: какие столбцы отсутствуют, какие лишние. Это первая линия защиты от файлов с нестандартной схемой. Остальные expectations проверяют содержимое столбцов, а не структуру таблицы.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m04-06-q2",
+      "type": "multiple-choice",
+      "question": "Команда DataTech выбирает между dbt tests и Great Expectations. Все данные проходят через dbt pipeline в ClickHouse. Какой инструмент предпочтительнее и почему?",
+      "options": [
+        { "id": "a", "text": "Great Expectations -- он мощнее и имеет Data Docs" },
+        { "id": "b", "text": "dbt tests -- данные уже в dbt pipeline, дополнительный инструмент не нужен; GE имеет смысл для данных вне pipeline" },
+        { "id": "c", "text": "Оба одновременно -- для максимального покрытия" },
+        { "id": "d", "text": "Ни один -- нужен коммерческий инструмент (Monte Carlo, Soda)" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Если все данные проходят через dbt, dbt tests -- естественный выбор: тесты определяются рядом с моделями, запускаются автоматически при dbt run, не требуют отдельной инфраструктуры. Great Expectations оправдан, когда есть данные вне dbt pipeline: CSV-файлы, API-данные, raw data в S3. В DataTech все данные идут PostgreSQL -> dbt -> ClickHouse, поэтому dbt tests покрывают основные потребности. GE добавляет complexity без дополнительной ценности в этом сценарии.",
+      "hint": "Подумайте: где находятся данные DataTech? Все ли они проходят через dbt pipeline?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-06-q3",
+      "type": "multiple-choice",
+      "question": "В Great Expectations expectation expect_column_pair_values_a_to_be_less_than_or_equal_to_b(column_a='payment_date', column_b='settlement_date') провалился для 5% записей. Что это означает?",
+      "options": [
+        { "id": "a", "text": "У 5% записей settlement_date раньше payment_date -- невозможная ситуация, указывающая на ошибку данных" },
+        { "id": "b", "text": "У 5% записей оба поля пустые" },
+        { "id": "c", "text": "У 5% записей payment_date в неверном формате" },
+        { "id": "d", "text": "Expectation неправильно настроен" }
+      ],
+      "correctAnswer": "a",
+      "explanation": "Expectation проверяет, что column_a <= column_b, то есть payment_date <= settlement_date. Если провалился -- у 5% записей payment_date > settlement_date: дата оплаты позже даты расчёта, что невозможно в реальности (оплата всегда предшествует расчёту). Это temporal violation -- нарушение consistency. Возможные причины: ошибка в timezone conversion, сбой в API платёжной системы, ручной ввод с ошибкой.",
+      "hint": "column_a <= column_b означает payment_date <= settlement_date. Если тест провалился -- что произошло с хронологией?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-06-q4",
+      "type": "true-false",
+      "question": "Great Expectations Data Docs -- это статическая HTML-документация, которая генерируется один раз и не обновляется автоматически.",
+      "correctAnswer": false,
+      "explanation": "Data Docs перегенерируются при каждом запуске checkpoint. Каждый run добавляет новую запись в историю результатов. Data Docs показывают: текущий статус (pass/fail по каждому expectation), историю запусков (деградация/улучшение со временем), статистику данных (observed values distribution). Это делает Data Docs 'живой' документацией состояния качества данных, а не одноразовым отчётом.",
+      "bloomLevel": "conceptual"
+    },
+    {
+      "id": "dg-m04-06-code-1",
+      "type": "code-challenge",
+      "question": "Создайте YAML-представление Great Expectations expectation suite для датасета payments. Включите expectations: проверку набора столбцов, уникальность payment_id, not_null для обязательных полей, валидные значения currency и status, диапазон amount, хронологический порядок payment_date и settlement_date, и допустимую долю null для settlement_date.",
+      "language": "yaml",
+      "starterCode": "expectation_suite:\n  name: payments_quality_suite\n  dataset: payments\n  expectations:\n    # TODO: Add expectations\n    # 1. Column set validation\n    # 2. Unique payment_id\n    # 3. Not null for required fields\n    # 4. Currency values: RUB, USD, EUR\n    # 5. Status values: pending, completed, failed, refunded\n    # 6. Method values: card, bank_transfer, e-wallet, cash\n    # 7. Amount range: 0.01 to 10000000\n    # 8. payment_date <= settlement_date\n    # 9. settlement_date null proportion < 0.3",
+      "solutionCode": "expectation_suite:\n  name: payments_quality_suite\n  dataset: payments\n  expectations:\n    - type: expect_table_columns_to_match_set\n      columns:\n        - payment_id\n        - order_id\n        - amount\n        - currency\n        - payment_date\n        - settlement_date\n        - status\n        - method\n\n    - type: expect_column_values_to_be_unique\n      column: payment_id\n\n    - type: expect_column_values_to_not_be_null\n      columns:\n        - payment_id\n        - order_id\n        - amount\n        - currency\n        - payment_date\n        - status\n\n    - type: expect_column_values_to_be_in_set\n      column: currency\n      value_set: [RUB, USD, EUR]\n\n    - type: expect_column_values_to_be_in_set\n      column: status\n      value_set: [pending, completed, failed, refunded]\n\n    - type: expect_column_values_to_be_in_set\n      column: method\n      value_set: [card, bank_transfer, e-wallet, cash]\n\n    - type: expect_column_values_to_be_between\n      column: amount\n      min_value: 0.01\n      max_value: 10000000\n\n    - type: expect_column_pair_values_a_to_be_less_than_or_equal_to_b\n      column_a: payment_date\n      column_b: settlement_date\n\n    - type: expect_column_proportion_of_null_values_to_be_less_than\n      column: settlement_date\n      max_proportion: 0.3",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Validate suite structure and column set expectation",
+          "expectedOutput": "Valid expectation suite: payments_quality_suite with 9 expectations for dataset 'payments'"
+        },
+        {
+          "id": "tc2",
+          "description": "Validate all expectation types are present",
+          "expectedOutput": "Expectation types: expect_table_columns_to_match_set, expect_column_values_to_be_unique, expect_column_values_to_not_be_null, expect_column_values_to_be_in_set (3x), expect_column_values_to_be_between, expect_column_pair_values_a_to_be_less_than_or_equal_to_b, expect_column_proportion_of_null_values_to_be_less_than"
+        },
+        {
+          "id": "tc3",
+          "description": "Validate specific value sets and ranges",
+          "expectedOutput": "currency: [RUB, USD, EUR], status: [pending, completed, failed, refunded], amount: [0.01, 10000000], settlement_date null max: 0.3",
+          "hidden": true
+        }
+      ],
+      "explanation": "Expectation suite объединяет все правила валидации для одного датасета. Каждый expectation проверяет один аспект качества: schema match (structure), unique/not_null (completeness + uniqueness), in_set (validity), between (accuracy), pair comparison (consistency), null proportion (completeness threshold).",
+      "hint": "Каждый expectation -- отдельный элемент в списке expectations. Используйте type для указания типа проверки. Параметры зависят от типа: column для одного столбца, columns для нескольких, value_set для списка допустимых значений.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

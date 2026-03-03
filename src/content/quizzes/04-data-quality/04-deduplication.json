@@ -1,0 +1,92 @@
+{
+  "lessonSlug": "04-data-quality/04-deduplication",
+  "moduleId": "04-data-quality",
+  "_meta": {
+    "idPrefix": "dg-m04-04",
+    "description": "Use IDs: dg-m04-04-q1 through dg-m04-04-q4 + dg-m04-04-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m04-04-q1",
+      "type": "multiple-choice",
+      "question": "DataTech нашла три типа дубликатов: 200 exact (все поля совпадают), 600 same-email (email совпадает, name различается), 450 same-phone (phone совпадает, email различается). Какая стратегия merge для каждого типа?",
+      "options": [
+        { "id": "a", "text": "Все три типа -- автоматический merge (newest wins)" },
+        { "id": "b", "text": "Exact -- автоматический merge, same-email -- автоматический с review исключений, same-phone -- ручной review" },
+        { "id": "c", "text": "Все три типа -- ручной review Data Steward" },
+        { "id": "d", "text": "Exact -- удаление, same-email -- merge, same-phone -- игнорирование" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Стратегия merge определяется уровнем уверенности: exact duplicates (High confidence) -- безопасно мержить автоматически. Same-email (Medium confidence) -- email уникален, высокая вероятность дубликата, но различие в name требует проверки исключений (может быть однофамилец с тем же email -- маловероятно). Same-phone (Low confidence) -- один телефон может принадлежать нескольким людям (семья, организация), автоматический merge рискует потерей отдельных клиентов.",
+      "hint": "Определите уровень уверенности для каждого типа: совпадение всех полей = высокая, совпадение email = средняя, совпадение phone = низкая. Уверенность определяет степень автоматизации.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-04-q2",
+      "type": "multiple-choice",
+      "question": "При создании Golden Record из двух дубликатов: запись A (name='И. Петров', email=null, created_at='2023-01-01') и запись B (name='Иван Петров', email='ivan@mail.ru', created_at='2024-06-15'). Какие значения войдут в Golden Record по стратегии 'field-level best'?",
+      "options": [
+        { "id": "a", "text": "name='Иван Петров', email='ivan@mail.ru', created_at='2024-06-15'" },
+        { "id": "b", "text": "name='Иван Петров', email='ivan@mail.ru', created_at='2023-01-01'" },
+        { "id": "c", "text": "name='И. Петров', email='ivan@mail.ru', created_at='2023-01-01'" },
+        { "id": "d", "text": "name='И. Петров', email=null, created_at='2023-01-01'" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Field-level best выбирает лучшее значение для каждого поля: name='Иван Петров' (полная форма длиннее сокращённой 'И. Петров'), email='ivan@mail.ru' (non-null предпочтительнее null), created_at='2023-01-01' (минимальная дата -- самая ранняя регистрация клиента). Вариант A берёт created_at из записи B, но правильнее хранить дату первой регистрации.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m04-04-q3",
+      "type": "multiple-choice",
+      "question": "Какая SQL-конструкция наиболее эффективна для дедупликации по принципу 'оставить самую свежую запись для каждого email'?",
+      "options": [
+        { "id": "a", "text": "DELETE FROM customers WHERE customer_id NOT IN (SELECT MIN(customer_id) FROM customers GROUP BY email)" },
+        { "id": "b", "text": "WITH ranked AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY email ORDER BY updated_at DESC) AS rn FROM customers) SELECT * FROM ranked WHERE rn = 1" },
+        { "id": "c", "text": "SELECT DISTINCT ON (email) * FROM customers ORDER BY email" },
+        { "id": "d", "text": "SELECT * FROM customers GROUP BY email" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "ROW_NUMBER() OVER (PARTITION BY email ORDER BY updated_at DESC) присваивает номер каждой записи в группе по email, сортируя по дате обновления (desc). rn=1 -- самая свежая запись. Этот подход: (1) не удаляет данные (SELECT, не DELETE), (2) позволяет менять критерий сортировки, (3) работает во всех SQL-диалектах. Вариант A удаляет данные необратимо и использует MIN(customer_id), а не свежую запись. Вариант D не работает без агрегатных функций.",
+      "hint": "ROW_NUMBER() с PARTITION BY -- стандартный SQL-паттерн для выбора 'лучшей' записи из группы дубликатов. PARTITION BY определяет группы, ORDER BY -- критерий выбора.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-04-q4",
+      "type": "true-false",
+      "question": "Дедупликация -- чисто техническая задача Data Engineer, не требующая участия Data Governance ролей.",
+      "correctAnswer": false,
+      "explanation": "Дедупликация требует governance-решений: (1) Data Owner определяет правила golden record (какое значение name 'лучше'?), (2) Data Steward утверждает стратегию merge для каждого уровня уверенности, (3) Data Council определяет политику хранения дубликатов (хранить историю или удалять?). Техническая реализация (SQL, ETL) -- это Data Management, но правила -- это Governance. Без governance-решений автоматическая дедупликация может удалить реальных отдельных клиентов.",
+      "hint": "Подумайте: кто решает, какая запись из двух дубликатов 'правильная'? Это техническое или бизнес-решение?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-04-code-1",
+      "type": "code-challenge",
+      "question": "Напишите SQL-запросы для обнаружения и классификации дубликатов в таблице customers: exact duplicates (все поля совпадают), fuzzy duplicates (same email, different name), potential duplicates (same phone, different email). Выведите отчёт с группами дубликатов.",
+      "language": "sql",
+      "starterCode": "-- Table: customers (customer_id, name, email, phone)\n-- Find and classify duplicates\n\n-- 1. Exact duplicates (email + name + phone all match)\nSELECT 'TODO' AS duplicate_type;\n\n-- 2. Same email, different name\n\n-- 3. Same phone, different email",
+      "solutionCode": "-- 1. Exact duplicates\nSELECT 'exact' AS dup_type, a.customer_id AS id_1, b.customer_id AS id_2,\n       a.email, a.name, a.phone\nFROM customers a\nJOIN customers b\n  ON a.email = b.email AND a.name = b.name AND a.phone = b.phone\n  AND a.customer_id < b.customer_id;\n\n-- 2. Same email, different name\nSELECT 'same_email' AS dup_type, a.customer_id AS id_1, b.customer_id AS id_2,\n       a.email, a.name AS name_1, b.name AS name_2\nFROM customers a\nJOIN customers b\n  ON a.email = b.email AND a.customer_id < b.customer_id\nWHERE a.name != b.name;\n\n-- 3. Same phone, different email\nSELECT 'same_phone' AS dup_type, a.customer_id AS id_1, b.customer_id AS id_2,\n       a.phone, a.email AS email_1, b.email AS email_2\nFROM customers a\nJOIN customers b\n  ON a.phone = b.phone AND a.customer_id < b.customer_id\nWHERE a.email != b.email;",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Detect exact duplicates and same-email pairs",
+          "expectedOutput": "Duplicate Report:\n  Exact duplicates: 2 groups (4 rows)\n    Group 1: customer_id 12, 45 (exact match on email + name + phone)\n    Group 2: customer_id 23, 67 (exact match on email + name + phone)\n  Same email, different name: 3 groups (6 rows)\n    Group 3: customer_id 5, 34 (email: ivan@mail.ru)\n    Group 4: customer_id 8, 41 (email: maria@gmail.com)\n    Group 5: customer_id 15, 48 (email: alex@yandex.ru)"
+        },
+        {
+          "id": "tc2",
+          "description": "Detect same-phone pairs and total summary",
+          "expectedOutput": "  Same phone, different email: 2 groups (4 rows)\n    Group 6: customer_id 3, 29 (phone: +79001234567)\n    Group 7: customer_id 11, 38 (phone: +79007654321)\nTotal duplicate groups: 7\nTotal affected rows: 14"
+        },
+        {
+          "id": "tc3",
+          "description": "Full duplicate report",
+          "expectedOutput": "Duplicate Report:\n  Exact duplicates: 2 groups (4 rows)\n  Same email, different name: 3 groups (6 rows)\n  Same phone, different email: 2 groups (4 rows)\nTotal duplicate groups: 7\nTotal affected rows: 14",
+          "hidden": true
+        }
+      ],
+      "explanation": "Три SQL-запроса покрывают основные типы дубликатов: exact (полное совпадение), fuzzy по email (высокая вероятность дубликата) и fuzzy по phone (низкая вероятность). Self-join с условием a.customer_id < b.customer_id предотвращает двойной подсчёт пар.",
+      "hint": "Используйте self-join таблицы customers: JOIN customers a ON customers b с условием совпадения нужных полей. a.customer_id < b.customer_id предотвращает подсчёт пары (A,B) и (B,A) дважды.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}
