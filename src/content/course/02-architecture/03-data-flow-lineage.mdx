@@ -1,0 +1,127 @@
+---
+title: "Data Flow и Data Lineage"
+description: "Маппинг потоков данных, построение графа lineage, анализ влияния изменений, автоматизация lineage"
+order: 3
+difficulty: "intermediate"
+estimatedTime: 25
+audience: "engineers"
+topics: ["Data Flow", "Data Lineage", "Traceability"]
+---
+
+# Data Flow и Data Lineage
+
+## Введение
+
+Когда дашборд показывает неправильную выручку, первый вопрос -- «откуда пришли эти данные?». Если невозможно отследить путь данных от источника до отчёта, диагностика превращается в детективное расследование. **Data Lineage (происхождение данных)** решает эту проблему: визуализирует и отслеживает путь данных через все трансформации, отвечая на вопросы «откуда», «как трансформировались» и «кто использует».
+
+## Data Flow: маппинг потоков данных
+
+Data Flow -- это карта движения данных между системами. В отличие от lineage, data flow фокусируется на **физическом перемещении**: какие системы обмениваются данными, с какой частотой, по какому протоколу.
+
+Типичный data flow для e-commerce:
+
+<FlowRow>
+  <FlowNode variant="database" label="PostgreSQL" sublabel="OLTP, 200+ таблиц" />
+  <Arrow direction="right" label="Airflow DAG" />
+  <FlowNode variant="pipeline" label="Staging (ClickHouse)" sublabel="Raw-данные" />
+  <Arrow direction="right" label="dbt transform" />
+  <FlowNode variant="catalog" label="Data Marts" sublabel="Аналитические витрины" />
+  <Arrow direction="right" label="SQL-запросы" />
+  <FlowNode variant="stakeholder" label="Metabase" sublabel="Дашборды и отчёты" />
+</FlowRow>
+
+Каждый переход -- это точка, где данные могут быть потеряны, дублированы, задержаны или повреждены. Data flow mapping выявляет эти риски.
+
+## Data Lineage: граф происхождения
+
+**Data Lineage (происхождение данных)** -- визуализация и отслеживание пути данных от источника до потребителя через все трансформации. Data Lineage отвечает на три вопроса:
+
+1. **Откуда пришли данные?** (upstream lineage)
+2. **Как они трансформировались?** (transformation lineage)
+3. **Кто их использует?** (downstream lineage)
+
+### Уровни детализации lineage
+
+| Уровень | Детализация | Пример |
+|---------|------------|--------|
+| **Table-level** | Связи между таблицами | `orders` -> `stg_orders` -> `fct_orders` |
+| **Column-level** | Связи между колонками | `orders.total` -> `fct_orders.revenue` |
+| **Row-level** | Связи на уровне записей | Заказ #12345 -> строка в отчёте CFO |
+
+Column-level lineage -- минимальный стандарт для организаций с governance-программой. Row-level lineage нужен для compliance (GDPR right to erasure, 152-ФЗ запросы на удаление).
+
+<KnowledgeCheck
+  question="Почему column-level lineage важнее table-level для governance?"
+  answer="Table-level lineage показывает, что таблица orders участвует в создании отчёта revenue. Но если колонка orders.customer_email (PII) трансформируется в mart_revenue.region (агрегация), table-level lineage создаёт ложное впечатление, что PII попадает в отчёт. Column-level lineage точно показывает, какие колонки участвуют в каких трансформациях, что критично для impact analysis и compliance (GDPR, 152-ФЗ)."
+/>
+
+## Impact Analysis: анализ влияния
+
+**Impact Analysis (анализ влияния)** -- процесс оценки последствий изменений в данных, схемах или процессах на downstream системы. Использует Data Lineage для определения всех затронутых объектов.
+
+Типичные триггеры impact analysis:
+
+| Изменение | Вопрос | Lineage помогает |
+|-----------|--------|------------------|
+| Удаление колонки | Что сломается? | Downstream зависимости колонки |
+| Изменение типа данных | Где нужна миграция? | Все трансформации, использующие эту колонку |
+| Добавление PII | Где нужна маскировка? | Все downstream-системы, получающие эти данные |
+| Вывод источника из эксплуатации | Какие пайплайны затронуты? | Все downstream от этого source |
+
+## Автоматизация lineage
+
+Ручное ведение lineage нереалистично для организаций с десятками пайплайнов. Современные подходы:
+
+1. **dbt lineage** -- dbt автоматически строит DAG зависимостей между моделями. Column-level lineage доступен через dbt docs.
+
+2. **OpenLineage** -- открытый стандарт для сбора lineage из различных инструментов (Airflow, Spark, dbt). Инструменты вроде Marquez реализуют этот стандарт.
+
+3. **Каталоги данных** -- OpenMetadata, DataHub автоматически собирают lineage из подключённых источников.
+
+<FlowRow>
+  <FlowNode variant="pipeline" label="dbt" sublabel="Model-level lineage" />
+  <FlowNode variant="pipeline" label="Airflow" sublabel="DAG-level lineage" />
+  <FlowNode variant="pipeline" label="Spark" sublabel="Job-level lineage" />
+</FlowRow>
+<FlowRow>
+  <Arrow direction="down" label="OpenLineage API" />
+</FlowRow>
+<FlowRow>
+  <FlowNode variant="catalog" label="Marquez / OpenMetadata" sublabel="Консолидация lineage" />
+</FlowRow>
+
+## Сценарий: DataTech Solutions
+
+> **Сценарий: ДатаТех Солюшенз**
+>
+> В DataTech нет lineage-трекинга. Последствия:
+>
+> - Data Engineer Мария изменила тип колонки `orders.discount_amount` с `integer` на `decimal`. Через 2 дня CFO обнаружил, что 5 дашбордов показывают «0» вместо скидок -- Airflow DAG'и упали без алертов.
+> - При подготовке к аудиту 152-ФЗ юрист спросил: «Где хранятся персональные данные клиентов?». Ответ потребовал 2 недели ручного аудита.
+> - Три dbt-модели вычисляют «дневную выручку» разными формулами. Без column-level lineage невозможно понять, какая формула правильная.
+>
+> DataTech использует dbt Core 1.7, который поддерживает автоматический lineage. Но 120 dbt-моделей не имеют тестов и описаний -- lineage есть, но он бесполезен без метаданных.
+
+Первые шаги для DataTech:
+1. Включить `dbt docs generate` для автоматического lineage dbt-моделей
+2. Добавить описания (`description`) к ключевым моделям
+3. Внедрить column-level lineage для таблиц с PII
+4. Настроить алерты на поломку downstream-зависимостей
+
+> Подробнее о CDC и Data Lineage: [CDC и Data Lineage](/debezium/06-module-6/03-data-pipeline-patterns/)
+
+<KnowledgeCheck
+  question="DataTech хочет реализовать lineage. Почему начинать с column-level lineage для PII-колонок -- правильная приоритизация?"
+  answer="PII-данные создают наибольший compliance-риск (152-ФЗ штрафы, репутационные потери). Column-level lineage для PII позволяет: (1) ответить на запросы аудиторов за часы вместо недель, (2) автоматизировать impact analysis при изменениях PII-колонок, (3) обнаружить утечки PII в непредназначенные системы. Начинать с PII -- это governance-приоритизация по риску."
+/>
+
+## Итоги
+
+- **Data Flow** -- карта физического перемещения данных между системами
+- **Data Lineage (происхождение данных)** -- граф трансформаций от источника до потребителя
+- Три уровня lineage: table-level, column-level (минимальный стандарт), row-level (для compliance)
+- **Impact Analysis (анализ влияния)** использует lineage для оценки последствий изменений
+- Автоматизация lineage: dbt, OpenLineage, каталоги данных
+- DataTech: отсутствие lineage привело к 2-дневным outage'ам и 2-недельным аудитам
+
+В следующем уроке мы рассмотрим **naming conventions и документирование** -- как единые стандарты именования и data dictionary превращают хаотичную схему в управляемый актив.

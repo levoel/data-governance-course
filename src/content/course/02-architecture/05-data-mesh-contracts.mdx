@@ -1,0 +1,173 @@
+---
+title: "Data Mesh и Data Contracts"
+description: "Принципы Data Mesh, data contracts между командами, domain-driven ownership, когда применять mesh vs centralized"
+order: 5
+difficulty: "advanced"
+estimatedTime: 25
+audience: "engineers"
+topics: ["Data Mesh", "Data Contracts", "Domain-Driven Design"]
+---
+
+import { DecisionMatrix } from '../../../components/diagrams/governance';
+
+# Data Mesh и Data Contracts
+
+## Введение
+
+Централизованные команды данных не масштабируются. Когда одна data-команда из 7 человек обслуживает 500 сотрудников, каждый новый запрос встаёт в очередь. Data Mesh -- архитектурный подход, который переносит ответственность за данные в доменные команды, превращая каждый домен в поставщика data products. Но децентрализация без контрактов -- это хаос. Data Contracts обеспечивают согласованность в распределённой архитектуре.
+
+## Четыре принципа Data Mesh
+
+Data Mesh, предложенный Zhamak Dehghani (2019), основан на четырёх принципах:
+
+<Grid columns={2}>
+  <FlowNode variant="governance" label="1. Domain Ownership" sublabel="Домен владеет своими данными" />
+  <FlowNode variant="catalog" label="2. Data as a Product" sublabel="Данные = продукт для потребителей" />
+  <FlowNode variant="pipeline" label="3. Self-Serve Platform" sublabel="Инфраструктура как сервис" />
+  <FlowNode variant="policy" label="4. Federated Governance" sublabel="Общие стандарты, локальная реализация" />
+</Grid>
+
+### 1. Domain Ownership
+
+Каждый бизнес-домен (клиенты, заказы, финансы) владеет **и** данными, **и** пайплайнами, **и** качеством. Центральная data-команда не является бутылочным горлышком.
+
+### 2. Data as a Product
+
+Доменная команда не просто хранит данные -- она поставляет **data product**: датасет с SLA, документацией, quality-метриками и контрактом. Потребители получают продукт, а не сырые таблицы.
+
+### 3. Self-Serve Data Platform
+
+Централизованная платформа предоставляет инфраструктуру (хранилище, вычисления, каталог) как сервис. Доменные команды используют платформу, но не зависят от центральной команды для создания пайплайнов.
+
+### 4. Federated Governance (федеративное руководство)
+
+**Federated Governance (федеративное руководство)** -- модель, в которой центральный governance-орган определяет общие стандарты (naming, security, quality thresholds), а доменные команды реализуют их в своём контексте. Баланс между автономией и согласованностью.
+
+<KnowledgeCheck
+  question="Чем Federated Governance отличается от полной децентрализации governance?"
+  answer="Полная децентрализация означает, что каждый домен устанавливает собственные правила -- это приводит к несовместимым стандартам (один домен использует camelCase, другой snake_case). Federated Governance сохраняет общие стандарты (naming conventions, classification levels, security requirements) на центральном уровне, но даёт доменам свободу в реализации. Центр определяет 'что' (стандарт), домен определяет 'как' (реализация в своём контексте)."
+/>
+
+## Data Contracts
+
+**Data Contract** -- формальное соглашение между producer (поставщиком) и consumer (потребителем) данных. Контракт определяет: какие данные предоставляются, в каком формате, с каким SLA, и что происходит при нарушении.
+
+### Структура Data Contract
+
+```yaml
+contract:
+  name: customer_data_product
+  version: "2.1.0"
+  owner: CRM Domain Team
+
+  schema:
+    type: object
+    properties:
+      customer_id:
+        type: integer
+        description: Unique customer identifier
+        pii: false
+      email:
+        type: string
+        format: email
+        description: Customer email address
+        pii: true
+        classification: confidential
+
+  sla:
+    freshness: "1 hour"
+    availability: "99.5%"
+    quality_score: "> 0.95"
+
+  breaking_changes:
+    policy: "30 days notice"
+    notification: "data-contracts@datatech.ru"
+```
+
+### Версионирование контрактов
+
+Data Contracts используют **semver** (Semantic Versioning):
+- **Major** (2.x.x -> 3.0.0): breaking change -- удаление колонки, изменение типа
+- **Minor** (2.1.x -> 2.2.0): добавление колонки, новый consumer
+- **Patch** (2.1.0 -> 2.1.1): fix описания, обновление SLA
+
+Breaking changes требуют уведомления всех consumers за 30 дней (определяется в контракте).
+
+## Data Mesh vs Centralized: когда что применять
+
+Выбор между Data Mesh и централизованной архитектурой -- это архитектурное решение, зависящее от масштаба, зрелости и организационной структуры.
+
+<DecisionMatrix
+  client:load
+  title="Data Mesh vs Centralized Architecture"
+  criteria={[
+    { name: "Масштаб организации (500+ сотрудников)", weight: 3 },
+    { name: "Количество доменов данных (5+)", weight: 2 },
+    { name: "Governance-зрелость (Level 3+)", weight: 3 },
+    { name: "Готовность доменных команд", weight: 2 },
+    { name: "Инвестиции в платформу", weight: 1 }
+  ]}
+  options={[
+    { name: "Centralized", scores: [4, 3, 2, 5, 2] },
+    { name: "Data Mesh", scores: [2, 5, 5, 2, 4] },
+    { name: "Hybrid", scores: [3, 4, 3, 3, 3] }
+  ]}
+/>
+
+### Когда Centralized подходит лучше
+
+- Организация < 200 сотрудников (DataTech: 500, пограничный случай)
+- Data-команда < 10 человек
+- Governance maturity Level 1-2
+- Немного доменов (< 5)
+
+### Когда Data Mesh оправдан
+
+- Организация > 1000 сотрудников (FinSecure: 2000+)
+- Выделенные data-инженеры в каждом домене
+- Governance maturity Level 3+ с Federated Governance
+- Централизованная команда стала бутылочным горлышком
+
+### Hybrid: практический компромисс
+
+Большинство организаций используют гибридный подход: центральная платформа + domain ownership для крупных доменов. DataTech на текущем уровне зрелости (Level 1) должна начинать с централизованной архитектуры и переходить к mesh по мере роста.
+
+## Сценарий: DataTech оценивает Data Mesh
+
+> **Сценарий: ДатаТех Солюшенз**
+>
+> CTO DataTech прочитал статью о Data Mesh и предложил внедрить его немедленно. VP Engineering сомневается.
+>
+> **За Data Mesh:**
+> - Центральная data-команда (7 человек) не справляется с запросами от 500 сотрудников
+> - Каждый новый дашборд ждёт в очереди 2-3 недели
+> - Домены данных чётко определены: клиенты, заказы, продукты, финансы
+>
+> **Против Data Mesh:**
+> - Governance maturity Level 1 -- нет базовых стандартов и политик
+> - Ни один домен не имеет выделенного data-инженера
+> - Нет data platform (Self-Serve невозможен без инфраструктуры)
+> - 120 dbt-моделей без тестов и документации -- ownership непонятен
+>
+> **Решение:** DataTech не готова к Data Mesh. Первый шаг -- centralized governance с чёткими naming conventions и data dictionary. Второй шаг (через 12-18 месяцев) -- Domain Ownership для крупнейших доменов (клиенты, финансы). Третий шаг -- Data Contracts между доменами.
+
+> **Для сравнения: ФинСекьюр Банк**
+>
+> FinSecure (Level 3, 2000+ сотрудников) -- более подходящий кандидат для Data Mesh. У них уже есть доменные Data Stewards, OpenMetadata (каталог), 12 data-инженеров. Проблема FinSecure -- не масштаб, а **legacy Oracle** (800+ таблиц без документации). Data Mesh для FinSecure начнётся с микросервисных доменов (15 PostgreSQL баз), а не с Oracle.
+
+<KnowledgeCheck
+  question="Почему внедрение Data Mesh на Level 1 зрелости приведёт к ухудшению, а не улучшению?"
+  answer="Data Mesh требует Federated Governance -- общие стандарты, которые домены реализуют локально. На Level 1 нет никаких стандартов (нет naming conventions, нет data dictionary, нет quality thresholds). Передача ownership доменам без стандартов приведёт к тому, что каждый домен изобретёт свои правила, несовместимые с другими. Результат: вместо одной хаотичной схемы -- несколько изолированных хаотичных схем. Сначала стандарты (Level 2-3), потом децентрализация."
+/>
+
+## Итоги
+
+- **Data Mesh** -- четыре принципа: Domain Ownership, Data as a Product, Self-Serve Platform, Federated Governance
+- **Data Contracts** -- формальные соглашения между producer и consumer: schema, SLA, breaking change policy
+- Контракты версионируются по semver: major (breaking), minor (additive), patch (fix)
+- **Centralized** подходит для < 200 сотрудников и Level 1-2 зрелости
+- **Data Mesh** требует Level 3+ и доменные data-команды
+- **Hybrid** -- практический компромисс для большинства организаций
+- DataTech: не готова к Mesh на Level 1, начать с centralized governance
+
+Это завершающий урок модуля «Архитектура и Моделирование Данных». В следующем модуле мы перейдём к **Метаданным и Каталогам Данных** -- практическим инструментам реализации архитектурных принципов, описанных в этом модуле.

@@ -1,0 +1,192 @@
+---
+title: "Naming Conventions и документирование"
+description: "Стандарты именования объектов данных, data dictionary, документация как governance-артефакт"
+order: 4
+difficulty: "intermediate"
+estimatedTime: 20
+audience: "engineers"
+topics: ["Naming Conventions", "Documentation", "Data Dictionary"]
+---
+
+# Naming Conventions и документирование
+
+## Введение
+
+Когда Data Engineer видит колонку `cst_nm` в одной таблице и `customerName` в другой, он тратит время на расшифровку вместо работы. Когда таблица `tmp_orders_v2_final_FINAL` существует в production, это симптом отсутствия стандартов. Naming conventions и документирование -- это governance-артефакты, превращающие хаотичную схему данных в понятный, управляемый актив.
+
+## Зачем нужны naming conventions
+
+Стандарты именования решают три проблемы:
+
+1. **Discoverability (обнаружение)** -- единообразные имена позволяют находить данные по паттерну, без каталога
+2. **Readability (читаемость)** -- новый инженер понимает назначение таблицы без документации
+3. **Automation (автоматизация)** -- convention-based правила позволяют автоматически классифицировать объекты, строить lineage и проверять compliance
+
+## Правила naming conventions
+
+### Общие правила
+
+| Правило | Пример (верно) | Пример (неверно) |
+|---------|----------------|-------------------|
+| **snake_case** для всех объектов | `customer_orders` | `customerOrders`, `CustomerOrders` |
+| **Английский язык** для идентификаторов | `payment_status` | `статус_оплаты` |
+| **Singular** для таблиц | `customer`, `order` | `customers`, `orders` |
+| **Нет аббревиатур** (кроме общепринятых) | `customer_name` | `cst_nm`, `cust_n` |
+| **Нет префиксов типов** | `order_date` | `dt_order`, `str_name` |
+| **Минимум 3 символа** | `tax`, `sku` | `id`, `tp` |
+
+### Правила для dbt-моделей
+
+Стандарт dbt-проектов DataTech (рекомендация):
+
+| Слой | Префикс | Пример |
+|------|---------|--------|
+| **Staging** | `stg_` | `stg_order`, `stg_customer` |
+| **Intermediate** | `int_` | `int_order_enriched` |
+| **Mart** | `mart_` или `fct_`/`dim_` | `mart_daily_revenue`, `dim_customer` |
+
+```sql
+-- Правильно: читаемая иерархия
+stg_order          -- raw data, as-is
+int_order_enriched -- joined with customer, validated
+mart_daily_revenue -- aggregated business metric
+
+-- Неправильно: невозможно понять назначение
+orders_v2
+tmp_orders_joined
+revenue_FINAL_fixed
+```
+
+### PII-маркировка в именах
+
+Governance-рекомендация: колонки с PII должны быть узнаваемы по naming pattern. Это не замена data catalog, но помогает при code review:
+
+```sql
+-- PII-индикаторы в именах колонок
+customer_email         -- email = PII-индикатор
+customer_phone_number  -- phone = PII-индикатор
+billing_address        -- address = PII-индикатор
+```
+
+<KnowledgeCheck
+  question="Почему naming convention -- это governance-артефакт, а не просто 'стандарт кодирования'?"
+  answer="Naming convention затрагивает не только инженерные решения, но и governance-процессы: (1) автоматическая классификация PII по паттернам имён (колонки с 'email', 'phone'), (2) lineage-трекинг (префиксы stg_/int_/mart_ определяют слой), (3) policy enforcement (правила запрещающие 'tmp_' в production). Утверждает naming convention Data Council (governance), а реализуют инженеры (management)."
+/>
+
+## Словарь данных (Data Dictionary)
+
+**Словарь данных (Data Dictionary)** -- детальное описание структуры данных: таблицы, колонки, типы, ограничения, допустимые значения, связи. В отличие от каталога данных, словарь фокусируется на технической структуре.
+
+### Структура записи в data dictionary
+
+Для каждой таблицы:
+
+| Поле | Описание | Пример |
+|------|----------|--------|
+| **table_name** | Имя таблицы | `customer` |
+| **owner** | Data Owner | CRM Team |
+| **classification** | Уровень конфиденциальности | Confidential |
+| **retention_days** | Срок хранения | 2555 (7 лет) |
+| **source_systems** | Откуда данные приходят | `crm_postgresql`, `web_analytics` |
+
+Для каждой колонки:
+
+| Поле | Описание | Пример |
+|------|----------|--------|
+| **column_name** | Имя колонки | `email` |
+| **type** | Тип данных | `varchar(255)` |
+| **description** | Бизнес-описание | Customer email address |
+| **pii** | Флаг PII | `true` |
+| **nullable** | Допускает NULL | `false` |
+
+### Data dictionary как YAML
+
+Data dictionary в формате YAML -- машиночитаемый артефакт, который можно версионировать в Git и валидировать автоматически:
+
+```yaml
+entity:
+  name: customer
+  owner: CRM Team
+  classification: confidential
+  retention_days: 2555
+  columns:
+    - name: customer_id
+      type: bigint
+      description: Unique customer identifier
+      pii: false
+      nullable: false
+    - name: email
+      type: varchar
+      description: Customer email address
+      pii: true
+      nullable: false
+```
+
+Этот формат используется в code challenge CC-07 этого модуля.
+
+## Документация как governance-артефакт
+
+Документация данных -- не опциональное дополнение, а обязательный governance-артефакт. Без документации:
+
+- **Onboarding** занимает недели вместо дней
+- **Impact analysis** невозможен (нет описания, что делает каждая таблица)
+- **Compliance** под угрозой (аудиторы требуют inventory данных)
+
+### dbt docs как инструмент документирования
+
+dbt Core предоставляет встроенный механизм документирования:
+
+```yaml
+# models/schema.yml
+models:
+  - name: stg_customer
+    description: "Staging model for customer data from PostgreSQL"
+    columns:
+      - name: customer_id
+        description: "Unique customer identifier (PK)"
+        tests:
+          - unique
+          - not_null
+      - name: email
+        description: "Customer email (PII - Confidential)"
+        meta:
+          pii: true
+          classification: confidential
+```
+
+`dbt docs generate` создаёт интерактивный data dictionary с lineage -- это минимальный стандарт документирования для DataTech.
+
+## Сценарий: DataTech Solutions
+
+> **Сценарий: ДатаТех Солюшенз**
+>
+> В DataTech нет единых naming conventions. Примеры из PostgreSQL:
+>
+> - Таблица `customers` (plural) vs `order` (singular) vs `ProductCategories` (camelCase)
+> - Колонки `cst_id` (аббревиатура), `orderDate` (camelCase), `STATUS_CODE` (UPPER_CASE)
+> - dbt-модели: `orders_v2`, `tmp_revenue_fix`, `FINAL_customers`
+>
+> Новый Data Engineer тратит 40% рабочего времени на «расшифровку» имён и поиск правильных таблиц. Из 120 dbt-моделей ни одна не имеет описания в `schema.yml`.
+
+Решение для DataTech:
+1. Утвердить naming convention через Data Council
+2. Провести аудит существующих имён (code challenge CC-06 этого модуля)
+3. Создать data dictionary для 20 ключевых таблиц (code challenge CC-07)
+4. Включить naming validation в CI/CD pipeline
+
+<KnowledgeCheck
+  question="DataTech имеет 200+ таблиц с хаотичными именами. Почему нельзя переименовать все таблицы сразу?"
+  answer="Массовое переименование -- это breaking change для всех downstream-зависимостей: Airflow DAG'ов (45 шт.), dbt-моделей (120 шт.), Metabase дашбордов (80+ шт.). Без column-level lineage невозможно оценить impact. Правильный подход: (1) утвердить naming convention для новых объектов, (2) создать migration plan для существующих по приоритету (начать с 20 ключевых таблиц), (3) использовать views-алиасы как промежуточный шаг: CREATE VIEW customer AS SELECT * FROM customers."
+/>
+
+## Итоги
+
+- **Naming conventions** обеспечивают discoverability, readability и automation
+- Основные правила: snake_case, singular, без аббревиатур, минимум 3 символа
+- dbt-модели: `stg_` -> `int_` -> `mart_`/`fct_`/`dim_`
+- **Словарь данных (Data Dictionary)** -- техническое описание структуры данных
+- Data dictionary в YAML -- машиночитаемый, версионируемый governance-артефакт
+- dbt docs -- минимальный стандарт документирования
+- DataTech: хаотичные имена стоят 40% времени инженеров
+
+В следующем уроке мы рассмотрим **Data Mesh и Data Contracts** -- современные подходы к децентрализованной архитектуре данных и контрактам между командами.
