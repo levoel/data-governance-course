@@ -1,0 +1,172 @@
+---
+title: "Обнаружение нарушений качества данных"
+description: "SQL-запросы для поиска нарушений: NULL в обязательных полях, дубликаты, невалидные значения, temporal violations"
+order: 3
+difficulty: "intermediate"
+estimatedTime: 25
+audience: "engineers"
+topics: ["Quality Violations", "SQL Checks", "Validation Rules"]
+---
+
+# Обнаружение нарушений качества данных
+
+## Введение
+
+Измерение completeness (урок 2) даёт общую картину. Но для исправления проблем нужна детализация: **какие именно записи** нарушают правила качества? В этом уроке мы напишем SQL-запросы для систематического обнаружения нарушений по всем шести измерениям.
+
+## Типы нарушений
+
+Data Quality Rules (правила качества данных) определяют допустимые значения, форматы и связи. Каждое нарушение правила -- это **violation**. Типы нарушений:
+
+| Тип нарушения | Измерение | Пример |
+|---------------|-----------|--------|
+| NULL required field | Completeness | `customer_id IS NULL` |
+| Duplicate primary key | Uniqueness | Два заказа с одним `order_id` |
+| Invalid format | Validity | Email без `@` |
+| Out of range | Accuracy | `age = 250` |
+| Referential integrity | Consistency | `order.customer_id` не существует в `customers` |
+| Temporal inconsistency | Consistency | `created_at > updated_at` |
+
+## SQL-запросы для обнаружения нарушений
+
+### 1. NULL в обязательных полях
+
+```sql
+-- Найти записи с NULL в required columns
+SELECT order_id, 'customer_id is NULL' AS violation
+FROM orders WHERE customer_id IS NULL
+UNION ALL
+SELECT order_id, 'status is NULL' AS violation
+FROM orders WHERE status IS NULL
+UNION ALL
+SELECT order_id, 'amount is NULL' AS violation
+FROM orders WHERE amount IS NULL;
+```
+
+### 2. Дубликаты primary key
+
+```sql
+-- Найти дублирующиеся order_id
+SELECT order_id, COUNT(*) AS duplicate_count
+FROM orders
+GROUP BY order_id
+HAVING COUNT(*) > 1;
+```
+
+### 3. Отрицательные суммы
+
+```sql
+-- Суммы должны быть >= 0
+SELECT order_id, amount
+FROM orders
+WHERE amount < 0;
+```
+
+### 4. Temporal violations
+
+```sql
+-- created_at не может быть позже updated_at
+SELECT order_id, created_at, updated_at
+FROM orders
+WHERE created_at > updated_at;
+```
+
+### 5. Невалидные значения из справочника
+
+```sql
+-- Статус заказа должен быть из фиксированного списка
+SELECT order_id, status
+FROM orders
+WHERE status NOT IN ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled');
+```
+
+### 6. Orphaned records (referential integrity)
+
+```sql
+-- Заказы без существующего клиента
+SELECT o.order_id, o.customer_id
+FROM orders o
+LEFT JOIN customers c ON o.customer_id = c.customer_id
+WHERE c.customer_id IS NULL AND o.customer_id IS NOT NULL;
+```
+
+<KnowledgeCheck
+  question="Запрос нашёл 50 записей в orders, где amount < 0. Это нарушение Accuracy или Validity? Почему?"
+  answer="Это нарушение Validity -- значение не соответствует бизнес-правилу (сумма заказа не может быть отрицательной). Accuracy подразумевает несоответствие реальному миру (например, сумма 100 вместо реальных 150). Отрицательная сумма -- не 'неточная', а невалидная: такого значения не может существовать по определению бизнес-логики."
+/>
+
+## Агрегированный отчёт о нарушениях
+
+Для системного подхода результаты всех проверок агрегируются в единый отчёт:
+
+```sql
+-- Агрегированный violation report
+WITH violations AS (
+  SELECT 'null_required' AS type, COUNT(*) AS cnt
+  FROM orders WHERE customer_id IS NULL OR status IS NULL OR amount IS NULL
+  UNION ALL
+  SELECT 'duplicate_id', COUNT(*) - COUNT(DISTINCT order_id)
+  FROM orders
+  UNION ALL
+  SELECT 'negative_amount', COUNT(*)
+  FROM orders WHERE amount < 0
+  UNION ALL
+  SELECT 'temporal', COUNT(*)
+  FROM orders WHERE created_at > updated_at
+  UNION ALL
+  SELECT 'invalid_status', COUNT(*)
+  FROM orders WHERE status NOT IN ('pending','confirmed','shipped','delivered','cancelled')
+)
+SELECT type, cnt AS violation_count,
+       ROUND(100.0 * cnt / (SELECT COUNT(*) FROM orders), 2) AS pct_of_total
+FROM violations
+WHERE cnt > 0
+ORDER BY cnt DESC;
+```
+
+## Библиотека проверок
+
+Опытные команды создают **библиотеку правил** -- набор повторно используемых проверок:
+
+```python
+QUALITY_RULES = {
+    "not_null": lambda col: f"SELECT COUNT(*) FROM orders WHERE {col} IS NULL",
+    "unique": lambda col: f"SELECT {col}, COUNT(*) FROM orders GROUP BY {col} HAVING COUNT(*) > 1",
+    "positive": lambda col: f"SELECT COUNT(*) FROM orders WHERE {col} < 0",
+    "in_set": lambda col, vals: f"SELECT COUNT(*) FROM orders WHERE {col} NOT IN ({','.join(repr(v) for v in vals)})",
+}
+```
+
+В следующих уроках мы увидим, как dbt и Great Expectations предоставляют готовые библиотеки проверок "из коробки".
+
+## Сценарий: ДатаТех
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> Алексей запустил полный аудит таблицы `orders` (200,000 записей в PostgreSQL). Результат:
+>
+> | Тип нарушения | Количество | % от total |
+> |---------------|-----------|------------|
+> | NULL в required полях | 3,200 | 1.6% |
+> | Дублирующиеся order_id | 450 | 0.2% |
+> | Отрицательные суммы | 180 | 0.09% |
+> | `created_at > updated_at` | 95 | 0.05% |
+> | Невалидный status | 12 | 0.006% |
+> | Orphaned records | 1,500 | 0.75% |
+>
+> Всего: 5,437 нарушений (2.7% записей). Наибольшая проблема -- NULL в required полях (3,200) и orphaned records (1,500). Orphaned records -- следствие удаления клиентов без каскадного удаления заказов.
+
+<KnowledgeCheck
+  question="В ДатаТех 1,500 orphaned orders ссылаются на несуществующих клиентов. Какое техническое решение предотвратит появление новых orphaned records?"
+  answer="Добавить FOREIGN KEY constraint с ON DELETE CASCADE или ON DELETE SET NULL на уровне PostgreSQL: ALTER TABLE orders ADD CONSTRAINT fk_customer FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE SET NULL. Это предотвратит удаление клиента без обработки связанных заказов. Для 1,500 существующих orphaned records нужна миграция: либо найти и восстановить клиентов, либо пометить заказы как orphaned для последующего review."
+/>
+
+## Итоги
+
+- Нарушения качества классифицируются по измерениям: completeness, uniqueness, validity, accuracy, consistency
+- SQL-запросы для обнаружения: `NULL` checks, `GROUP BY HAVING`, range checks, `NOT IN`, `LEFT JOIN WHERE NULL`, temporal comparisons
+- Агрегированный отчёт показывает масштаб проблем и приоритеты исправления
+- Библиотека правил -- повторно используемые проверки для стандартизации
+- Orphaned records -- частая проблема при отсутствии FK constraints
+
+В следующем уроке мы разберём **дедупликацию** -- обнаружение и устранение дубликатов, одну из самых сложных задач Data Quality.

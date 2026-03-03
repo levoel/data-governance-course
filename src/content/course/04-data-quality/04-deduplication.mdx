@@ -1,0 +1,170 @@
+---
+title: "Стратегии дедупликации данных"
+description: "Exact и fuzzy dedup, детерминистическое сопоставление, golden record, SQL-подходы к дедупликации"
+order: 4
+difficulty: "intermediate"
+estimatedTime: 25
+audience: "engineers"
+topics: ["Deduplication", "Fuzzy Matching", "Record Linkage"]
+---
+
+# Стратегии дедупликации данных
+
+## Введение
+
+В ДатаТех 15% записей клиентов -- дубликаты. Один и тот же человек представлен как "Иван Петров" (CRM), "И. Петров" (Metabase) и "ivan.petrov@mail.ru" (PostgreSQL). Дубликаты искажают аналитику, увеличивают затраты на маркетинг и нарушают compliance. В этом уроке мы разберём стратегии обнаружения и устранения дубликатов.
+
+## Exact vs Fuzzy Deduplication
+
+### Exact Duplicates
+
+Записи, идентичные по всем полям. Самый простой случай:
+
+```sql
+-- Найти exact duplicates (все поля совпадают)
+SELECT name, email, phone, COUNT(*) AS cnt
+FROM customers
+GROUP BY name, email, phone
+HAVING COUNT(*) > 1;
+```
+
+### Fuzzy Duplicates
+
+Записи, описывающие одну и ту же сущность, но с различиями:
+
+| Поле | Запись 1 | Запись 2 | Тип различия |
+|------|---------|---------|-------------|
+| name | Иван Петров | И. Петров | Сокращение |
+| email | ivan@mail.ru | ivan@mail.ru | Совпадает |
+| phone | +79001234567 | 89001234567 | Формат |
+
+Fuzzy-дубликаты -- основная проблема. Их нельзя найти простым `GROUP BY`.
+
+## Детерминистическое сопоставление
+
+**Детерминистическое сопоставление** -- matching по точным совпадениям отдельных полей:
+
+```sql
+-- Стратегия 1: Same email, different name
+SELECT a.customer_id AS id_1, b.customer_id AS id_2,
+       a.email, a.name AS name_1, b.name AS name_2
+FROM customers a
+JOIN customers b
+  ON a.email = b.email AND a.customer_id < b.customer_id
+WHERE a.name != b.name;
+```
+
+```sql
+-- Стратегия 2: Same phone (normalized), different email
+SELECT a.customer_id AS id_1, b.customer_id AS id_2,
+       a.phone, a.email AS email_1, b.email AS email_2
+FROM customers a
+JOIN customers b
+  ON REPLACE(REPLACE(a.phone, '+7', '8'), '-', '')
+   = REPLACE(REPLACE(b.phone, '+7', '8'), '-', '')
+  AND a.customer_id < b.customer_id
+WHERE a.email != b.email;
+```
+
+### Уровни уверенности
+
+Результаты сопоставления классифицируются по уровню уверенности:
+
+| Совпадение | Confidence | Действие |
+|------------|-----------|----------|
+| email + name + phone | High (exact duplicate) | Автоматический merge |
+| email совпадает, name отличается | Medium | Review Data Steward |
+| phone совпадает, email отличается | Low | Manual review |
+
+<KnowledgeCheck
+  question="Два клиента: customer_id=12 (email: ivan@mail.ru, name: 'Иван Петров') и customer_id=45 (email: ivan@mail.ru, name: 'Петров Иван'). Это exact duplicate или fuzzy duplicate? Какой уровень уверенности?"
+  answer="Это fuzzy duplicate: email совпадает, но name различается (порядок слов). Уровень уверенности Medium -- email-совпадение даёт высокую вероятность того, что это один и тот же человек (email уникален), но различие в name требует проверки. Data Steward должен подтвердить merge."
+/>
+
+## Golden Record
+
+После обнаружения дубликатов создаётся **Golden Record** -- единая мастер-запись:
+
+```python
+def create_golden_record(duplicates):
+    """Создать Golden Record из группы дубликатов.
+
+    Правила:
+    - name: самое длинное (полная форма)
+    - email: первое non-null
+    - phone: нормализованный формат +7
+    - created_at: минимальный (самая ранняя регистрация)
+    - updated_at: максимальный (последнее обновление)
+    """
+    golden = {
+        "name": max(
+            (d["name"] for d in duplicates if d.get("name")),
+            key=len, default=None
+        ),
+        "email": next(
+            (d["email"] for d in duplicates if d.get("email")),
+            None
+        ),
+        "phone": normalize_phone(
+            next((d["phone"] for d in duplicates if d.get("phone")), None)
+        ),
+        "created_at": min(d["created_at"] for d in duplicates),
+        "updated_at": max(d["updated_at"] for d in duplicates),
+    }
+    return golden
+```
+
+### Стратегии merge
+
+| Стратегия | Описание | Когда использовать |
+|-----------|---------|-------------------|
+| **Newest wins** | Берём значения из самой свежей записи | Данные обновляются регулярно |
+| **Most complete** | Берём запись с наименьшим количеством NULL | Данные редко обновляются |
+| **Field-level best** | Для каждого поля выбираем лучшее значение | Разные источники дополняют друг друга |
+| **Manual resolution** | Data Steward решает вручную | Конфликтующие значения |
+
+## Dedup в SQL (оконные функции)
+
+```sql
+-- Дедупликация через ROW_NUMBER
+WITH ranked AS (
+  SELECT *,
+    ROW_NUMBER() OVER (
+      PARTITION BY email
+      ORDER BY updated_at DESC NULLS LAST
+    ) AS rn
+  FROM customers
+)
+-- Оставляем только первую (самую свежую) запись для каждого email
+SELECT * FROM ranked WHERE rn = 1;
+```
+
+## Сценарий: ДатаТех
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> После миграции CRM в ДатаТех обнаружили 5% дубликатов в таблице customers (2,500 из 50,000 записей). Декомпозиция:
+>
+> - **Exact duplicates:** 400 записей (200 пар) -- одна и та же запись загружена дважды при миграции
+> - **Same email, different name:** 1,200 записей (600 пар) -- сокращения, опечатки, транслитерация
+> - **Same phone, different email:** 900 записей (450 пар) -- один человек с несколькими email
+>
+> Алексей реализовал трёхэтапный процесс:
+> 1. Exact duplicates -- автоматический merge (newest wins)
+> 2. Same email -- автоматический merge с review исключений (когда name слишком различается)
+> 3. Same phone -- ручной review Data Steward (низкая confidence)
+
+<KnowledgeCheck
+  question="Почему стратегия 'newest wins' не подходит для дедупликации клиентов Same phone, different email?"
+  answer="При совпадении phone, но разных email, низкая уверенность, что это один человек -- могут быть члены семьи, коллеги с общим рабочим телефоном. 'Newest wins' автоматически удалит старую запись, потенциально потеряв данные реального отдельного клиента. Здесь нужен manual review: Data Steward проверяет, действительно ли это один клиент или два разных человека с общим телефоном."
+/>
+
+## Итоги
+
+- **Exact duplicates** -- полное совпадение всех полей; обнаруживаются `GROUP BY HAVING COUNT > 1`
+- **Fuzzy duplicates** -- одна сущность с различиями в написании; требуют сопоставления по ключевым полям
+- **Уровни уверенности** (High, Medium, Low) определяют: автоматический merge, review или manual resolution
+- **Golden Record** -- мастер-запись, созданная по правилам merge (newest wins, most complete, field-level best)
+- Оконная функция `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)` -- основной SQL-инструмент дедупликации
+
+В следующем уроке мы перейдём к **dbt** -- инструменту, который превращает ad-hoc SQL-проверки в автоматические тесты качества, встроенные в data pipeline.

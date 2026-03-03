@@ -1,0 +1,189 @@
+---
+title: "Тестирование качества данных с dbt"
+description: "dbt tests: unique, not_null, accepted_values, relationships, custom tests, CI-интеграция"
+order: 5
+difficulty: "advanced"
+estimatedTime: 25
+audience: "engineers"
+topics: ["dbt", "Data Testing", "YAML Tests"]
+---
+
+import { ToolDeepDive } from '../../../components/diagrams/governance';
+
+# Тестирование качества данных с dbt
+
+## Введение
+
+До сих пор мы писали ad-hoc SQL-запросы для обнаружения нарушений. Проблема: эти запросы нужно запускать вручную, результаты нигде не хранятся, при изменении схемы запросы ломаются. **dbt (data build tool)** решает эту проблему, встраивая тесты качества прямо в data pipeline: каждый `dbt run` автоматически выполняет `dbt test`.
+
+## Концепция: Tests as Code
+
+Идея проста: правила качества данных описываются как код (YAML + SQL) и выполняются автоматически при каждой трансформации данных. Если тест падает -- pipeline останавливается, и Data Engineer получает алерт.
+
+Преимущества tests-as-code:
+
+1. **Версионирование** -- тесты хранятся в Git вместе с моделями
+2. **Автоматизация** -- запускаются при каждом `dbt run` или в CI/CD
+3. **Документация** -- YAML-описания тестов служат документацией правил качества
+4. **Повторяемость** -- одни и те же тесты на dev, staging, production
+
+<FlowRow>
+  <FlowNode label="dbt run" tooltip="Выполнение SQL-трансформаций: staging, intermediate, mart модели" variant="process" />
+  <Arrow />
+  <FlowNode label="dbt test" tooltip="Автоматические проверки качества: unique, not_null, accepted_values, custom" variant="check" />
+  <Arrow />
+  <FlowNode label="Pass / Fail" tooltip="При провале тестов pipeline останавливается и отправляет алерт" variant="decision" />
+</FlowRow>
+
+<KnowledgeCheck
+  question="Почему тесты качества должны запускаться после dbt run, а не до?"
+  answer="dbt run выполняет SQL-трансформации, создавая staging и mart модели. Тесты проверяют результат этих трансформаций: если модель stg_orders содержит дубликаты после трансформации -- это баг в SQL-логике модели. Тестирование 'до' проверяло бы сырые данные источника, а не результат трансформации. dbt test 'после' гарантирует, что и исходные данные, и трансформации корректны."
+/>
+
+## Встроенные типы тестов dbt
+
+<ToolDeepDive tool="dbt" version="1.7.x" lastVerified="2026-03">
+
+### Четыре встроенных теста
+
+dbt предоставляет 4 типа тестов "из коробки":
+
+| Тест | Проверяет | Измерение DQ |
+|------|----------|-------------|
+| `unique` | Нет дубликатов в столбце | Uniqueness |
+| `not_null` | Нет NULL значений | Completeness |
+| `accepted_values` | Значения из фиксированного списка | Validity |
+| `relationships` | Referential integrity (FK) | Consistency |
+
+### Описание тестов в schema.yml
+
+```yaml
+version: 2
+
+models:
+  - name: orders
+    description: "Customer orders with payment and delivery status"
+    columns:
+      - name: order_id
+        description: "Unique order identifier"
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: "Reference to customers table"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('customers')
+              field: customer_id
+      - name: amount
+        description: "Order total amount in RUB"
+        tests:
+          - not_null
+      - name: status
+        description: "Order fulfillment status"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled']
+```
+
+### Custom tests с dbt_utils
+
+Для проверок, выходящих за рамки четырёх встроенных тестов, используется пакет `dbt_utils`:
+
+```yaml
+      - name: amount
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+```
+
+Этот тест проверяет, что `amount >= 0` -- бизнес-правило, которое не покрывается стандартными тестами.
+
+### Singular tests (SQL-файлы)
+
+Для сложных проверок создаются SQL-файлы в директории `tests/`:
+
+```sql
+-- tests/assert_no_orphaned_orders.sql
+-- Заказы не должны ссылаться на несуществующих клиентов
+SELECT o.order_id, o.customer_id
+FROM {{ ref('orders') }} o
+LEFT JOIN {{ ref('customers') }} c
+  ON o.customer_id = c.customer_id
+WHERE c.customer_id IS NULL
+  AND o.customer_id IS NOT NULL
+```
+
+Если запрос вернул строки -- тест провален.
+
+### Запуск тестов
+
+```bash
+# Все тесты
+dbt test
+
+# Только тесты для модели orders
+dbt test --select orders
+
+# Только severity=error тесты
+dbt test --severity error
+```
+
+</ToolDeepDive>
+
+## Test Coverage
+
+Команда dbt не имеет встроенной метрики coverage, но можно вычислить:
+
+```
+Test Coverage = (columns with tests) / (total columns) * 100%
+```
+
+В ДатаТех: 120 dbt-моделей, 0 тестов определены. Test coverage = 0%. Цель: покрыть 100% critical columns (PK, FK, required fields) и 80% всех columns.
+
+## CI/CD интеграция
+
+dbt tests встраиваются в CI/CD pipeline:
+
+```yaml
+# .github/workflows/dbt-ci.yml (концептуально)
+steps:
+  - name: dbt run
+    run: dbt run --target staging
+  - name: dbt test
+    run: dbt test --target staging
+  # Если тесты провалены -- PR не может быть смержен
+```
+
+## Сценарий: ДатаТех
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> ДатаТех использует dbt Core 1.7 с 120 моделями и 0 тестами. Алексей начинает внедрение:
+>
+> **Неделя 1:** Добавить `unique` + `not_null` тесты на все primary keys (120 моделей x 1 PK = 120 тестов). Результат: 8 моделей с нарушением uniqueness -- обнаружены баги в SQL-трансформациях.
+>
+> **Неделя 2:** Добавить `relationships` тесты на FK (45 связей). Результат: 3 модели с orphaned records.
+>
+> **Неделя 3:** Добавить `accepted_values` на enum-поля (status, type, category). Результат: 2 модели с невалидными статусами.
+>
+> За 3 недели test coverage вырос с 0% до 60%. Обнаружено 13 проблем, которые ранее были невидимы.
+
+<KnowledgeCheck
+  question="В dbt у модели orders есть тесты unique и not_null на order_id. Data Analyst обнаруживает, что amount может быть отрицательным. Какой тип теста добавить и почему не подходят встроенные?"
+  answer="Нужен тест dbt_utils.expression_is_true с expression '>= 0'. Встроенные тесты (unique, not_null, accepted_values, relationships) не поддерживают range-проверки. accepted_values проверяет принадлежность к списку, но для числовых диапазонов нужен expression test. Альтернатива -- singular test (SQL-файл), но expression_is_true компактнее и декларативнее."
+/>
+
+## Итоги
+
+- **dbt tests** -- это качество данных как код: версионируемые, автоматические, документированные
+- Четыре встроенных теста: `unique`, `not_null`, `accepted_values`, `relationships`
+- **dbt_utils** расширяет возможности: `expression_is_true`, `equality`, `recency`
+- **Singular tests** -- произвольные SQL-проверки в файлах `tests/`
+- CI/CD интеграция блокирует merge при провале тестов
+- Начинать внедрение с PK tests (unique + not_null), затем FK (relationships), затем business rules
+
+В следующем уроке мы рассмотрим **Great Expectations** -- альтернативный подход к тестированию качества, с Python API и генерацией Data Docs.

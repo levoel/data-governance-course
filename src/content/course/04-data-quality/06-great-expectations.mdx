@@ -1,0 +1,233 @@
+---
+title: "Валидация данных с Great Expectations"
+description: "Great Expectations: expectations, validators, suites, Data Docs, checkpoint execution"
+order: 6
+difficulty: "advanced"
+estimatedTime: 25
+audience: "engineers"
+topics: ["Great Expectations", "Expectation Suite", "Data Validation"]
+---
+
+import { ToolDeepDive, QualityDashboard } from '../../../components/diagrams/governance';
+
+# Валидация данных с Great Expectations
+
+## Введение
+
+dbt tests (урок 5) отлично работают внутри dbt-pipeline. Но не все данные проходят через dbt: CSV-файлы от внешних лабораторий, API-данные, raw data в S3. **Great Expectations (фреймворк)** -- open-source Python-фреймворк для валидации данных любого формата и из любого источника. В этом уроке мы разберём архитектуру GE и научимся создавать Expectation Suites.
+
+## Концепция: Expectations
+
+В Great Expectations правило качества называется **Expectation** -- декларативное утверждение о данных:
+
+```python
+# "Я ожидаю, что значения в столбце payment_id уникальны"
+expect_column_values_to_be_unique(column="payment_id")
+
+# "Я ожидаю, что currency принимает только значения RUB, USD, EUR"
+expect_column_values_to_be_in_set(column="currency", value_set=["RUB", "USD", "EUR"])
+```
+
+Каждый Expectation -- это тест, который возвращает True/False с детальным отчётом.
+
+## Архитектура Great Expectations
+
+| Компонент | Назначение |
+|-----------|-----------|
+| **Data Source** | Подключение к данным: Pandas, Spark, SQL, файлы |
+| **Expectation Suite** | Набор правил для одного датасета |
+| **Validator** | Проверяет данные против Expectation Suite |
+| **Checkpoint** | Оркестрация: какие данные проверять, какими suites, куда отправить результат |
+| **Data Docs** | Автоматически сгенерированная HTML-документация результатов |
+
+<FlowRow>
+  <FlowNode label="Data Source" tooltip="Подключение к CSV, PostgreSQL, S3, Spark DataFrame" variant="data" />
+  <Arrow />
+  <FlowNode label="Expectation Suite" tooltip="Набор правил: not_null, unique, in_set, between, custom" variant="config" />
+  <Arrow />
+  <FlowNode label="Validator" tooltip="Применяет suite к данным, генерирует результаты" variant="process" />
+  <Arrow />
+  <FlowNode label="Data Docs" tooltip="HTML-отчёт с результатами валидации: pass/fail по каждому expectation" variant="output" />
+</FlowRow>
+
+<KnowledgeCheck
+  question="dbt tests и Great Expectations решают одну задачу -- тестирование качества данных. В чём ключевое архитектурное различие?"
+  answer="dbt tests работают только с данными внутри dbt pipeline (SQL-трансформации в warehouse). Great Expectations работает с любыми данными: CSV, API, S3, Pandas DataFrames, Spark. Если все данные проходят через dbt -- достаточно dbt tests. Если есть данные вне dbt (внешние файлы, raw data) -- нужен GE. Многие команды используют оба: dbt tests для warehouse, GE для raw data validation."
+/>
+
+<ToolDeepDive tool="Great Expectations" version="0.18.x" lastVerified="2026-03">
+
+## Создание Expectation Suite
+
+### YAML-представление
+
+Expectation Suite описывается как набор expectations:
+
+```yaml
+expectation_suite:
+  name: payments_quality_suite
+  dataset: payments
+  expectations:
+    - type: expect_table_columns_to_match_set
+      columns:
+        - payment_id
+        - order_id
+        - amount
+        - currency
+        - payment_date
+        - settlement_date
+        - status
+        - method
+
+    - type: expect_column_values_to_be_unique
+      column: payment_id
+
+    - type: expect_column_values_to_not_be_null
+      columns:
+        - payment_id
+        - order_id
+        - amount
+        - currency
+        - payment_date
+        - status
+
+    - type: expect_column_values_to_be_in_set
+      column: currency
+      value_set: [RUB, USD, EUR]
+
+    - type: expect_column_values_to_be_in_set
+      column: status
+      value_set: [pending, completed, failed, refunded]
+
+    - type: expect_column_values_to_be_between
+      column: amount
+      min_value: 0.01
+      max_value: 10000000
+
+    - type: expect_column_pair_values_a_to_be_less_than_or_equal_to_b
+      column_a: payment_date
+      column_b: settlement_date
+```
+
+### Python API
+
+```python
+import great_expectations as gx
+
+context = gx.get_context()
+
+# Подключение к данным
+datasource = context.sources.add_pandas("payments_source")
+data_asset = datasource.add_csv_asset("payments", filepath="data/payments.csv")
+
+# Создание suite
+suite = context.add_expectation_suite("payments_quality_suite")
+
+# Добавление expectations
+validator = context.get_validator(
+    batch_request=data_asset.build_batch_request(),
+    expectation_suite_name="payments_quality_suite"
+)
+
+validator.expect_column_values_to_be_unique("payment_id")
+validator.expect_column_values_to_not_be_null("payment_id")
+validator.expect_column_values_to_be_in_set("currency", ["RUB", "USD", "EUR"])
+validator.expect_column_values_to_be_between("amount", min_value=0.01, max_value=10000000)
+
+# Сохранение suite
+validator.save_expectation_suite()
+```
+
+### Checkpoint Execution
+
+```python
+# Создание checkpoint
+checkpoint = context.add_or_update_checkpoint(
+    name="payments_checkpoint",
+    validations=[{
+        "batch_request": data_asset.build_batch_request(),
+        "expectation_suite_name": "payments_quality_suite"
+    }]
+)
+
+# Запуск валидации
+result = checkpoint.run()
+print(f"Success: {result.success}")
+```
+
+### Data Docs
+
+GE автоматически генерирует HTML-документацию:
+
+```python
+context.build_data_docs()
+context.open_data_docs()
+```
+
+Data Docs показывают:
+- Список expectations с результатами (pass/fail)
+- Статистику: % passed, observed values distribution
+- Историю запусков для отслеживания деградации
+
+</ToolDeepDive>
+
+## GE vs dbt tests: когда что использовать
+
+| Критерий | dbt tests | Great Expectations |
+|----------|----------|-------------------|
+| **Данные** | Только в dbt pipeline (warehouse) | Любые: CSV, API, S3, DB, Spark |
+| **Язык** | YAML + SQL | Python + YAML |
+| **Отчётность** | CLI output, dbt Cloud | Data Docs (HTML), Slack, email |
+| **Профилирование** | Нет (через dbt_profiler) | Встроенное data profiling |
+| **Оркестрация** | `dbt test` в pipeline | Checkpoints, интеграция с Airflow |
+| **Кривая обучения** | Низкая (YAML) | Средняя (Python) |
+
+## Сценарий: БиоГенезис
+
+> **Сценарий: BioGenesis Lab (БиоГенезис Лаб)**
+>
+> БиоГенезис получает результаты клинических анализов от внешних лабораторий в CSV-файлах по email. Данные загружаются в PostgreSQL без валидации. Проблемы:
+>
+> - Формат CSV различается между лабораториями (разные названия столбцов)
+> - Единицы измерения: одна лаборатория отправляет мг/дл, другая -- ммоль/л
+> - Пропущенные значения не обозначены как NULL: используются пустые строки, "N/A", "-"
+>
+> Great Expectations решает эти проблемы до загрузки в PostgreSQL:
+>
+> ```yaml
+> expectations:
+>   - type: expect_table_columns_to_match_set
+>     columns: [patient_id, test_name, result_value, unit, lab_id, test_date]
+>   - type: expect_column_values_to_be_in_set
+>     column: unit
+>     value_set: [mg/dL, mmol/L, g/L, U/L]
+>   - type: expect_column_values_to_not_be_null
+>     columns: [patient_id, test_name, result_value]
+> ```
+
+<QualityDashboard
+  client:visible
+  title="BioGenesis: GE Validation Results"
+  dimensions={[
+    { name: "Schema Match", score: 0.85, target: 1.0, tooltip: "85% файлов соответствуют ожидаемой схеме. 15% -- нестандартные столбцы" },
+    { name: "Null Coverage", score: 0.92, target: 0.99, tooltip: "92% required полей заполнены. 8% -- пустые строки вместо NULL" },
+    { name: "Value Range", score: 0.78, target: 0.95, tooltip: "78% значений в допустимом диапазоне. 22% -- выходят за пределы или содержат текст" },
+    { name: "Unit Consistency", score: 0.70, target: 1.0, tooltip: "70% файлов используют стандартные единицы. 30% -- нестандартные или отсутствующие" }
+  ]}
+/>
+
+<KnowledgeCheck
+  question="БиоГенезис получает CSV-файл с результатами анализов. 15% файлов имеют нестандартные столбцы. Какой GE expectation обнаружит это при загрузке?"
+  answer="expect_table_columns_to_match_set -- проверяет, что набор столбцов в файле соответствует ожидаемому. При несовпадении (лишние или отсутствующие столбцы) expectation возвращает failure с детализацией: какие столбцы отсутствуют, какие лишние. Это первая линия защиты от нестандартных форматов."
+/>
+
+## Итоги
+
+- **Great Expectations** -- Python-фреймворк для валидации любых данных (CSV, API, S3, DB)
+- **Expectation** -- декларативное правило качества: `expect_column_values_to_be_unique`, `expect_column_values_to_be_in_set`
+- **Expectation Suite** -- набор правил для одного датасета
+- **Checkpoint** -- оркестрация: запуск suite на данных с генерацией отчёта
+- **Data Docs** -- автоматическая HTML-документация результатов
+- GE и dbt tests комплементарны: dbt для warehouse, GE для raw data
+
+В следующем уроке мы завершим модуль темой **Data Observability** -- непрерывного мониторинга здоровья data pipeline, включая freshness SLA, incident response и интеграцию с CDC-системами.

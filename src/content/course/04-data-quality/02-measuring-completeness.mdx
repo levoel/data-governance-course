@@ -1,0 +1,149 @@
+---
+title: "Измерение полноты данных"
+description: "Программный расчёт completeness: field-level, row-level, overall score, threshold alerts"
+order: 2
+difficulty: "intermediate"
+estimatedTime: 25
+audience: "engineers"
+topics: ["Completeness", "Null Analysis", "Quality Metrics"]
+---
+
+import { QualityGauge } from '../../../components/diagrams/governance';
+
+# Измерение полноты данных
+
+## Введение
+
+Completeness (полнота) -- самое фундаментальное измерение качества данных. Если данные отсутствуют, остальные измерения бессмысленны: нельзя оценить accuracy несуществующего значения. В этом уроке мы научимся программно измерять completeness на трёх уровнях: по полям, по строкам и по всему датасету.
+
+## Три уровня измерения полноты
+
+### Field-level completeness
+
+Доля заполненных (non-null) значений для каждого поля. Это наиболее детальная метрика:
+
+```python
+# Field-level completeness
+def field_completeness(data, field):
+    total = len(data)
+    non_null = sum(1 for row in data if row.get(field) is not None)
+    return round(non_null / total, 2) if total > 0 else 0.0
+```
+
+В SQL:
+
+```sql
+SELECT
+  'email' AS field,
+  COUNT(*) AS total,
+  COUNT(email) AS non_null,
+  ROUND(100.0 * COUNT(email) / COUNT(*), 1) AS completeness_pct
+FROM customers;
+```
+
+### Row-level completeness
+
+Доля строк, в которых все **обязательные** поля заполнены. Строка с одним пропуском считается неполной:
+
+```python
+def row_completeness(data, required_fields):
+    total = len(data)
+    complete = sum(
+        1 for row in data
+        if all(row.get(f) is not None for f in required_fields)
+    )
+    return round(complete / total, 2) if total > 0 else 0.0
+```
+
+### Overall completeness
+
+Отношение заполненных ячеек к общему количеству ячеек:
+
+```python
+def overall_completeness(data):
+    if not data:
+        return 0.0
+    total_cells = len(data) * len(data[0])
+    null_cells = sum(
+        1 for row in data for v in row.values() if v is None
+    )
+    return round((total_cells - null_cells) / total_cells, 2)
+```
+
+<KnowledgeCheck
+  question="Таблица customers: 1000 строк, 4 поля (name, email, phone, department). name заполнен на 100%, email на 80%, phone на 60%, department на 90%. Чему равна overall completeness?"
+  answer="Overall completeness = (1000 + 800 + 600 + 900) / (1000 * 4) = 3300 / 4000 = 0.825 (82.5%). Это среднее field-level completeness: (1.0 + 0.8 + 0.6 + 0.9) / 4 = 0.825."
+/>
+
+## Completeness Gauge: визуализация
+
+<QualityGauge
+  client:load
+  title="DataTech: Completeness таблицы customers"
+  value={0.72}
+  target={0.95}
+  thresholds={[
+    { value: 0.5, label: "Critical", color: "red" },
+    { value: 0.8, label: "Warning", color: "orange" },
+    { value: 0.95, label: "OK", color: "green" }
+  ]}
+  tooltip="Overall completeness 72%: 4 из 20 ячеек на каждые 5 записей пусты. Целевой порог 95%."
+/>
+
+Gauge показывает, что DataTech далеко от целевого порога (95%). Красная зона (менее 50%) означает критическую проблему, оранжевая (50-80%) -- требует внимания, зелёная (более 95%) -- в норме.
+
+## Threshold Alerts
+
+Completeness без пороговых значений -- просто число. Чтобы превратить метрику в actionable insight, определяют **Data Quality SLA (SLA качества данных)**:
+
+```python
+def check_completeness_sla(data, field, threshold=0.95):
+    score = field_completeness(data, field)
+    status = "OK" if score >= threshold else "ALERT"
+    return {
+        "field": field,
+        "completeness": score,
+        "threshold": threshold,
+        "status": status,
+        "gap": round(threshold - score, 2) if score < threshold else 0
+    }
+```
+
+Пример вывода для DataTech customers:
+
+```json
+[
+  {"field": "name",       "completeness": 0.98, "threshold": 0.95, "status": "OK",    "gap": 0},
+  {"field": "email",      "completeness": 0.70, "threshold": 0.95, "status": "ALERT", "gap": 0.25},
+  {"field": "phone",      "completeness": 0.55, "threshold": 0.80, "status": "ALERT", "gap": 0.25},
+  {"field": "department", "completeness": 0.90, "threshold": 0.90, "status": "OK",    "gap": 0}
+]
+```
+
+## Сценарий: ДатаТех
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> Data Engineer Алексей запустил completeness-анализ таблицы `customers` (50,000 записей):
+>
+> - `name`: 98% (975 пропусков из-за анонимных заказов)
+> - `email`: 70% (15,000 NULL -- клиенты из мобильного приложения не вводят email)
+> - `phone`: 55% (22,500 NULL -- необязательное поле, но нужно для SMS-уведомлений)
+> - `created_at`: 100% (системное поле, всегда заполнено)
+>
+> Вопрос для Data Steward: какие поля обязательные? Если email не обязателен для checkout, то 70% completeness -- не проблема. Но если маркетинг строит email-кампании на этих данных, 70% -- это 15,000 недоступных клиентов. **Completeness без бизнес-контекста -- просто число.**
+
+<KnowledgeCheck
+  question="Поле phone заполнено на 55%. VP Marketing требует повысить до 95% для SMS-кампаний. Какой governance-процесс должен произойти до технической реализации?"
+  answer="Data Owner домена клиентов должен согласовать изменение статуса поля phone с 'optional' на 'required' в политике качества данных. Затем Data Council утверждает изменение SLA. Только после этого Data Engineer реализует технические меры: валидацию на уровне API, backfill исторических данных, мониторинг. Без governance-решения техническое решение будет несогласованным с бизнес-требованиями."
+/>
+
+## Итоги
+
+- **Completeness** измеряется на трёх уровнях: field-level, row-level, overall
+- Field-level completeness = `COUNT(non_null) / COUNT(total)` для каждого поля
+- Row-level completeness = доля строк с заполненными required fields
+- **Threshold alerts** превращают метрику в actionable insight: OK / Warning / Critical
+- Completeness без бизнес-контекста бессмысленна -- Data Owner определяет, какие поля обязательные
+
+В следующем уроке мы перейдём от измерения к **обнаружению нарушений**: SQL-запросы для поиска некорректных значений, нарушений referential integrity и бизнес-правил.
