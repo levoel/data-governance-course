@@ -1,0 +1,9 @@
+{
+  "lessonSlug": "02-architecture/_exam",
+  "moduleId": "02-architecture",
+  "_meta": {
+    "idPrefix": "dg-exam-m02",
+    "description": "Use IDs: dg-exam-m02-q1, dg-exam-m02-q2, ... (8-12 analytical questions)"
+  },
+  "questions": []
+}

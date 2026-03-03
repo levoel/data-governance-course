@@ -1,0 +1,9 @@
+{
+  "lessonSlug": "04-data-quality/_exam",
+  "moduleId": "04-data-quality",
+  "_meta": {
+    "idPrefix": "dg-exam-m04",
+    "description": "Use IDs: dg-exam-m04-q1, dg-exam-m04-q2, ... (8-12 analytical questions)"
+  },
+  "questions": []
+}

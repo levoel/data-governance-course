@@ -1,0 +1,9 @@
+{
+  "lessonSlug": "07-implementation/_exam",
+  "moduleId": "07-implementation",
+  "_meta": {
+    "idPrefix": "dg-exam-m07",
+    "description": "Use IDs: dg-exam-m07-q1, dg-exam-m07-q2, ... (8-12 analytical questions)"
+  },
+  "questions": []
+}

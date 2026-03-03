@@ -1,0 +1,9 @@
+{
+  "lessonSlug": "01-foundations/_exam",
+  "moduleId": "01-foundations",
+  "_meta": {
+    "idPrefix": "dg-exam-m01",
+    "description": "Use IDs: dg-exam-m01-q1, dg-exam-m01-q2, ... (8-12 analytical questions)"
+  },
+  "questions": []
+}

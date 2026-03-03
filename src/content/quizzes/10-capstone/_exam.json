@@ -1,0 +1,9 @@
+{
+  "lessonSlug": "10-capstone/_exam",
+  "moduleId": "10-capstone",
+  "_meta": {
+    "idPrefix": "dg-exam-m10",
+    "description": "Use IDs: dg-exam-m10-q1, dg-exam-m10-q2, ... (8-12 analytical questions)"
+  },
+  "questions": []
+}

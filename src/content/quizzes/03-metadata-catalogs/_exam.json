@@ -1,0 +1,9 @@
+{
+  "lessonSlug": "03-metadata-catalogs/_exam",
+  "moduleId": "03-metadata-catalogs",
+  "_meta": {
+    "idPrefix": "dg-exam-m03",
+    "description": "Use IDs: dg-exam-m03-q1, dg-exam-m03-q2, ... (8-12 analytical questions)"
+  },
+  "questions": []
+}
