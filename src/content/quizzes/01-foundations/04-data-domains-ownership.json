@@ -1,0 +1,86 @@
+{
+  "lessonSlug": "01-foundations/04-data-domains-ownership",
+  "moduleId": "01-foundations",
+  "_meta": {
+    "idPrefix": "dg-m01-04",
+    "description": "Use IDs: dg-m01-04-q1 through dg-m01-04-q4, dg-m01-04-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m01-04-q1",
+      "type": "multiple-choice",
+      "question": "DataTech имеет таблицу orders, которая нужна и команде клиентского сервиса, и финансовому отделу. Как правильно определить ownership для этой таблицы?",
+      "options": [
+        { "id": "a", "text": "Назначить двух Data Owners -- по одному от каждого отдела" },
+        { "id": "b", "text": "Назначить одного Data Owner из отдела, который определяет бизнес-правила для заказов, и предоставить другому отделу регулируемый доступ" },
+        { "id": "c", "text": "Не назначать владельца, пока отделы не договорятся между собой" },
+        { "id": "d", "text": "Создать копию таблицы для финансового отдела с отдельным владельцем" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Ключевое правило domain ownership: один Data Owner на каждый актив данных. Два владельца (A) размывают ответственность -- при конфликте неясно, чьё решение приоритетно. Копирование данных (D) создаёт дубликаты и расхождения. Ожидание (C) -- бездействие. Правильный подход: определить, кто устанавливает бизнес-правила для заказов (обычно коммерческий отдел), и назначить этого человека владельцем. Финансовый отдел получает доступ через governance-процесс.",
+      "hint": "Подумайте, что происходит, когда два владельца принимают противоречащие решения о данных. Кто будет арбитром?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m01-04-q2",
+      "type": "multiple-choice",
+      "question": "В DataTech DBA является единственным 'владельцем' всех таблиц в PostgreSQL. Почему эта модель владения создаёт governance-проблемы?",
+      "options": [
+        { "id": "a", "text": "DBA не имеет технических знаний для управления таблицами" },
+        { "id": "b", "text": "DBA знает техническую структуру, но не знает бизнес-контекст данных: какие данные конфиденциальные, какие правила качества важны для бизнеса" },
+        { "id": "c", "text": "DBA не может предоставлять доступ к таблицам другим сотрудникам" },
+        { "id": "d", "text": "DMBOK2 запрещает техническое владение данными" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Governance-решения (классификация, retention, access control) требуют бизнес-знаний: какие данные конфиденциальные, какие правила качества критичны для бизнес-процессов, кому и зачем нужен доступ. DBA знает индексы, партиционирование и бэкапы, но не может решить, является ли email клиента конфиденциальным (бизнес-решение) или каков допустимый уровень дубликатов для CRM (бизнес-метрика). Вариант A неверен -- DBA обладает техническими знаниями. DMBOK2 не 'запрещает' модели, а рекомендует бизнес-владение.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m01-04-q3",
+      "type": "multiple-choice",
+      "question": "Какой уровень классификации данных следует назначить таблице с email-адресами клиентов?",
+      "options": [
+        { "id": "a", "text": "Public -- email-адреса часто публично доступны" },
+        { "id": "b", "text": "Internal -- они нужны только сотрудникам компании" },
+        { "id": "c", "text": "Confidential -- email-адреса являются персональными данными (PII) и требуют контролируемого доступа" },
+        { "id": "d", "text": "Restricted -- email-адреса должны быть доступны только CEO" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Email-адреса клиентов -- это персональные данные (PII) по 152-ФЗ и GDPR. Они позволяют идентифицировать физическое лицо, поэтому требуют контролируемого доступа (Confidential). Public (A) -- неверно: персональные данные не могут быть публичными. Internal (B) -- недостаточный уровень защиты для PII. Restricted (D) -- избыточный уровень (Restricted обычно для платёжных данных, медицинских записей, ключей шифрования).",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m01-04-q4",
+      "type": "true-false",
+      "question": "В модели domain-driven governance каждый домен данных полностью автономен и не обязан следовать общеорганизационным стандартам.",
+      "correctAnswer": false,
+      "explanation": "Domain-driven governance предполагает баланс: доменная автономия в реализации, но подчинение общеорганизационным стандартам (naming conventions, классификация, security requirements). Data Council устанавливает единые правила, а доменные команды реализуют их с учётом своей специфики. Полная автономия без общих стандартов приводит к хаосу -- каждый домен изобретает свои правила, несовместимые с другими.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m01-04-code-1",
+      "type": "code-challenge",
+      "question": "Напишите функцию classify_tables, которая принимает список имён таблиц и классифицирует их по доменам данных (customer, product, financial, operational, analytics) на основе паттернов имён. Таблицы, не подходящие ни под один домен, попадают в 'unclassified'.",
+      "language": "python",
+      "starterCode": "import json\nimport sys\n\ndef classify_tables(tables):\n    domains = {\n        \"customer\": [],\n        \"product\": [],\n        \"financial\": [],\n        \"operational\": [],\n        \"analytics\": [],\n        \"unclassified\": []\n    }\n    \n    for table in tables:\n        # TODO: Classify each table based on naming patterns\n        # customer: starts with 'customer' or 'dim_customer'\n        # product: starts with 'product', 'inventor'\n        # financial: starts with 'gl_', 'invoice', 'payment'\n        # operational: starts with 'etl_', 'job_', 'system_'\n        # analytics: starts with 'report_', 'fact_'\n        # unclassified: everything else\n        pass\n    \n    return domains\n\ntables = json.loads(sys.stdin.read())\nresult = classify_tables(tables)\nprint(json.dumps(result, indent=2))",
+      "solutionCode": "import json\nimport sys\n\ndef classify_tables(tables):\n    domains = {\n        \"customer\": [],\n        \"product\": [],\n        \"financial\": [],\n        \"operational\": [],\n        \"analytics\": [],\n        \"unclassified\": []\n    }\n    \n    for table in tables:\n        if table.startswith(\"customer\") or table.startswith(\"dim_customer\"):\n            domains[\"customer\"].append(table)\n        elif table.startswith(\"product\") or table.startswith(\"inventor\"):\n            domains[\"product\"].append(table)\n        elif table.startswith(\"gl_\") or table.startswith(\"invoice\") or table.startswith(\"payment\"):\n            domains[\"financial\"].append(table)\n        elif table.startswith(\"etl_\") or table.startswith(\"job_\") or table.startswith(\"system_\"):\n            domains[\"operational\"].append(table)\n        elif table.startswith(\"report_\") or table.startswith(\"fact_\"):\n            domains[\"analytics\"].append(table)\n        else:\n            domains[\"unclassified\"].append(table)\n    \n    return domains\n\ntables = json.loads(sys.stdin.read())\nresult = classify_tables(tables)\nprint(json.dumps(result, indent=2))",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Classify DataTech's 16 tables into 6 domains",
+          "input": "[\"customers\", \"customer_addresses\", \"orders\", \"order_items\", \"products\", \"product_categories\", \"inventory\", \"gl_accounts\", \"invoices\", \"payments\", \"etl_logs\", \"job_schedules\", \"system_config\", \"report_daily_sales\", \"dim_customer\", \"fact_orders\"]",
+          "expectedOutput": "{\n  \"customer\": [\n    \"customers\",\n    \"customer_addresses\",\n    \"dim_customer\"\n  ],\n  \"product\": [\n    \"products\",\n    \"product_categories\",\n    \"inventory\"\n  ],\n  \"financial\": [\n    \"gl_accounts\",\n    \"invoices\",\n    \"payments\"\n  ],\n  \"operational\": [\n    \"etl_logs\",\n    \"job_schedules\",\n    \"system_config\"\n  ],\n  \"analytics\": [\n    \"report_daily_sales\",\n    \"fact_orders\"\n  ],\n  \"unclassified\": [\n    \"orders\",\n    \"order_items\"\n  ]\n}"
+        },
+        {
+          "id": "tc2",
+          "description": "All tables unclassified when no patterns match",
+          "input": "[\"users\", \"sessions\", \"logs\"]",
+          "expectedOutput": "{\n  \"customer\": [],\n  \"product\": [],\n  \"financial\": [],\n  \"operational\": [],\n  \"analytics\": [],\n  \"unclassified\": [\n    \"users\",\n    \"sessions\",\n    \"logs\"\n  ]\n}"
+        }
+      ],
+      "explanation": "Классификация таблиц по доменам -- один из первых шагов в инвентаризации данных. В DataTech используются простые правила на основе префиксов и ключевых слов. Таблицы orders и order_items попали в 'unclassified', потому что не начинаются с domain-специфичного префикса -- они требуют ручного анализа Data Steward.",
+      "hint": "Используйте метод startswith() для проверки префиксов. Порядок проверок важен: сначала проверяйте более специфичные паттерны (dim_customer), потом более общие (customer).",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

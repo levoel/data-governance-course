@@ -1,0 +1,86 @@
+{
+  "lessonSlug": "01-foundations/03-governance-organization",
+  "moduleId": "01-foundations",
+  "_meta": {
+    "idPrefix": "dg-m01-03",
+    "description": "Use IDs: dg-m01-03-q1 through dg-m01-03-q4, dg-m01-03-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m01-03-q1",
+      "type": "multiple-choice",
+      "question": "В RACI-матрице для процесса 'Утверждение изменений схемы данных' обнаружено, что у двух ролей стоит 'A' (Accountable). Почему это является нарушением?",
+      "options": [
+        { "id": "a", "text": "Потому что 'A' означает 'выполняет работу', и двое не могут выполнять одну задачу" },
+        { "id": "b", "text": "Потому что при двух Accountable невозможно определить, кто несёт конечную ответственность за результат, что приводит к размыванию accountability" },
+        { "id": "c", "text": "Потому что RACI допускает максимум одну букву в каждой ячейке матрицы" },
+        { "id": "d", "text": "Потому что 'A' можно использовать только для роли CDO" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Ключевое правило RACI: ровно один Accountable на каждую активность. Accountable -- это не 'выполняет работу' (это Responsible), а 'несёт конечную ответственность за результат'. Когда два человека 'оба отвечают', фактически не отвечает никто: каждый считает, что ответственность на другом. Это приводит к пропущенным решениям и конфликтам при эскалации.",
+      "hint": "Вспомните разницу между Responsible (исполняет) и Accountable (отвечает за результат). Почему для Accountable критично, чтобы он был один?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m01-03-q2",
+      "type": "multiple-choice",
+      "question": "DataTech Solutions (Level 1, 7 человек в команде данных) решает назначить Data Stewards. Какой подход оптимален для организации на этом уровне зрелости?",
+      "options": [
+        { "id": "a", "text": "Нанять 5 выделенных Data Stewards -- по одному на каждый домен данных" },
+        { "id": "b", "text": "Назначить steward-обязанности существующим сотрудникам (аналитик, BI-разработчик) с 20% нагрузки" },
+        { "id": "c", "text": "Не назначать stewards до достижения Level 3 -- они нужны только зрелым организациям" },
+        { "id": "d", "text": "Возложить все обязанности steward на DBA, поскольку он ближе всех к данным" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "На Level 1 организация не имеет бюджета на выделенные роли и не знает реальный объём работы steward. Назначение 20% нагрузки существующим сотрудникам позволяет: (1) стартовать немедленно, (2) использовать доменные знания этих людей, (3) оценить реальный объём работы. Вариант A -- избыточен (стоимость 5 FTE). Вариант C -- ошибка: stewards нужны с первого дня, иначе качество данных продолжит деградировать. Вариант D -- DBA знает технику, но не бизнес-контекст.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m01-03-q3",
+      "type": "multiple-choice",
+      "question": "В чём ключевое различие между Data Owner и Data Steward?",
+      "options": [
+        { "id": "a", "text": "Data Owner -- техническая роль, Data Steward -- бизнес-роль" },
+        { "id": "b", "text": "Data Owner несёт конечную ответственность (Accountable) за данные домена, Data Steward операционно управляет качеством (Responsible)" },
+        { "id": "c", "text": "Data Owner работает с метаданными, Data Steward -- с исходными данными" },
+        { "id": "d", "text": "Data Owner назначается на Level 5, Data Steward -- на Level 2" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Data Owner -- бизнес-руководитель, несущий конечную ответственность (Accountable) за данные домена: решения о доступе, классификации, приоритетах. Data Steward -- специалист, операционно управляющий качеством (Responsible): бизнес-правила, метаданные, инциденты. Owner определяет 'что', Steward реализует 'как'. Вариант A перевёрнут: Owner -- бизнес-роль, не техническая.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m01-03-q4",
+      "type": "true-false",
+      "question": "Федеративная модель governance подходит для небольших организаций (до 100 человек) лучше, чем централизованная, потому что снижает административную нагрузку.",
+      "correctAnswer": false,
+      "explanation": "Для небольших организаций (до 100 человек) централизованная модель обычно эффективнее: единая команда обеспечивает единообразие стандартов при минимальных координационных затратах. Федеративная модель предполагает автономные доменные команды с собственными stewards и стандартами -- это создаёт дополнительные координационные расходы, оправданные только для крупных организаций (сотни-тысячи сотрудников) с множеством доменов.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m01-03-code-1",
+      "type": "code-challenge",
+      "question": "Напишите функцию validate_and_display_raci, которая принимает словарь с активностями, ролями и назначениями, валидирует правила RACI (ровно один Accountable на активность, хотя бы один Responsible) и выводит отформатированную RACI-матрицу с итогами.",
+      "language": "python",
+      "starterCode": "import json\nimport sys\n\ndef validate_and_display_raci(data):\n    activities = data[\"activities\"]\n    roles = data[\"roles\"]\n    assignments = data[\"assignments\"]\n    \n    violations = 0\n    accountable_count = 0\n    responsible_count = 0\n    \n    # Validate RACI rules for each activity\n    for activity in activities:\n        # TODO: Check exactly one 'A' per activity\n        # TODO: Check at least one 'R' per activity\n        # TODO: Count violations\n        pass\n    \n    # Print validation result\n    # TODO: Print \"RACI Matrix Validation: PASSED\" or \"FAILED\"\n    \n    # Print formatted table\n    # TODO: Print table header and rows\n    \n    # Print summary\n    # TODO: Print activities count, accountable/responsible assignments, violations\n    pass\n\ninput_data = json.loads(sys.stdin.read())\nvalidate_and_display_raci(input_data)",
+      "solutionCode": "import json\nimport sys\n\ndef validate_and_display_raci(data):\n    activities = data[\"activities\"]\n    roles = data[\"roles\"]\n    assignments = data[\"assignments\"]\n    \n    violations = 0\n    accountable_count = 0\n    responsible_count = 0\n    \n    for activity in activities:\n        a_count = 0\n        r_count = 0\n        for role in roles:\n            val = assignments[activity].get(role, \"\")\n            if val == \"A\":\n                a_count += 1\n                accountable_count += 1\n            elif val == \"R\":\n                r_count += 1\n                responsible_count += 1\n        if a_count != 1:\n            violations += 1\n        if r_count < 1:\n            violations += 1\n    \n    status = \"PASSED\" if violations == 0 else \"FAILED\"\n    print(f\"RACI Matrix Validation: {status}\")\n    print()\n    \n    # Header\n    col_widths = [max(len(a) for a in activities)]\n    for role in roles:\n        col_widths.append(max(len(role), 1))\n    \n    header = \"| \" + \"Activity\".ljust(col_widths[0]) + \" | \" + \" | \".join(r.ljust(col_widths[i+1]) for i, r in enumerate(roles)) + \" |\"\n    separator = \"|\" + \"-\" * (col_widths[0] + 2) + \"|\" + \"|\".join(\"-\" * (w + 2) for w in col_widths[1:]) + \"|\"\n    print(header)\n    print(separator)\n    \n    for activity in activities:\n        row_vals = []\n        for role in roles:\n            val = assignments[activity].get(role, \"\")\n            row_vals.append(val.ljust(col_widths[roles.index(role) + 1]))\n        print(\"| \" + activity.ljust(col_widths[0]) + \" | \" + \" | \".join(row_vals) + \" |\")\n    \n    print()\n    print(\"Summary:\")\n    print(f\"  Activities: {len(activities)}\")\n    print(f\"  Accountable assignments: {accountable_count} (1 per activity)\")\n    print(f\"  Responsible assignments: {responsible_count} (at least 1 per activity)\")\n    print(f\"  Violations: {violations}\")\n\ninput_data = json.loads(sys.stdin.read())\nvalidate_and_display_raci(input_data)",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Valid RACI matrix with 4 activities and 4 roles",
+          "input": "{\"activities\":[\"Define data classification\",\"Approve access requests\",\"Monitor data quality\",\"Investigate data breaches\"],\"roles\":[\"CDO\",\"Data Steward\",\"Data Engineer\",\"Legal\"],\"assignments\":{\"Define data classification\":{\"CDO\":\"A\",\"Data Steward\":\"R\",\"Data Engineer\":\"C\",\"Legal\":\"I\"},\"Approve access requests\":{\"CDO\":\"A\",\"Data Steward\":\"R\",\"Data Engineer\":\"I\",\"Legal\":\"C\"},\"Monitor data quality\":{\"CDO\":\"I\",\"Data Steward\":\"A\",\"Data Engineer\":\"R\",\"Legal\":\"\"},\"Investigate data breaches\":{\"CDO\":\"I\",\"Data Steward\":\"C\",\"Data Engineer\":\"R\",\"Legal\":\"A\"}}}",
+          "expectedOutput": "RACI Matrix Validation: PASSED\n\n| Activity                   | CDO | Data Steward | Data Engineer | Legal |\n|----------------------------|-----|-------------|---------------|-------|\n| Define data classification | A   | R           | C             | I     |\n| Approve access requests    | A   | R           | I             | C     |\n| Monitor data quality       | I   | A           | R             |       |\n| Investigate data breaches  | I   | C           | R             | A     |\n\nSummary:\n  Activities: 4\n  Accountable assignments: 4 (1 per activity)\n  Responsible assignments: 4 (at least 1 per activity)\n  Violations: 0"
+        },
+        {
+          "id": "tc2",
+          "description": "RACI matrix with violation: missing Accountable",
+          "input": "{\"activities\":[\"Review data quality\",\"Update catalog\"],\"roles\":[\"Steward\",\"Engineer\"],\"assignments\":{\"Review data quality\":{\"Steward\":\"R\",\"Engineer\":\"C\"},\"Update catalog\":{\"Steward\":\"A\",\"Engineer\":\"R\"}}}",
+          "expectedOutput": "RACI Matrix Validation: FAILED\n\n| Activity            | Steward | Engineer |\n|---------------------|---------|----------|\n| Review data quality | R       | C        |\n| Update catalog      | A       | R        |\n\nSummary:\n  Activities: 2\n  Accountable assignments: 1 (1 per activity)\n  Responsible assignments: 2 (at least 1 per activity)\n  Violations: 1"
+        }
+      ],
+      "explanation": "RACI-матрица -- инструмент распределения ответственности в governance. Ключевые правила: ровно один Accountable (конечная ответственность) на каждую активность и хотя бы один Responsible (исполнитель). Нарушение этих правил приводит к размыванию ответственности или отсутствию исполнителя.",
+      "hint": "Для каждой активности подсчитайте количество 'A' и 'R' среди всех ролей. Если A != 1 или R < 1 -- это violation. Форматирование таблицы: выровняйте столбцы по максимальной ширине.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "lessonSlug": "01-foundations/06-governance-policies",
+  "moduleId": "01-foundations",
+  "_meta": {
+    "idPrefix": "dg-m01-06",
+    "description": "Use IDs: dg-m01-06-q1 through dg-m01-06-q4, dg-m01-06-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m01-06-q1",
+      "type": "multiple-choice",
+      "question": "FinSecure Bank имеет 47 governance-политик, но compliance проверяется только раз в год на аудите. DataTech планирует начать с 5 политик. Какое преимущество подхода DataTech?",
+      "options": [
+        { "id": "a", "text": "5 политик дешевле 47, и это единственное преимущество" },
+        { "id": "b", "text": "5 приоритетных политик с автоматическим enforcement дадут больше ценности, чем 47 без постоянного контроля" },
+        { "id": "c", "text": "DataTech не нуждается в governance-политиках на Level 1" },
+        { "id": "d", "text": "47 политик FinSecure устарели и должны быть удалены" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Каждая политика требует enforcement -- механизма контроля и ресурсов на мониторинг. С 2 Data Stewards DataTech физически не может обеспечить enforcement 47 политик. 5 приоритетных политик с автоматическим enforcement (линтеры, каталог, мониторинг) дадут реальное соответствие, а не декларативное. FinSecure -- пример 'policy bloat': compliance 45% для микросервисов при 47 политиках показывает, что количество не гарантирует качество.",
+      "hint": "Сравните: 5 политик x 100% compliance vs 47 политик x 45% compliance. Какой подход даёт больше реальной ценности для организации?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m01-06-q2",
+      "type": "multiple-choice",
+      "question": "Политика DataTech содержит правило: 'Все датасеты должны быть классифицированы своевременно'. Почему это правило неэффективно?",
+      "options": [
+        { "id": "a", "text": "Потому что классификация -- это задача Data Engineer, а не политики" },
+        { "id": "b", "text": "Потому что 'своевременно' -- неизмеримый критерий: невозможно проверить enforcement, если нет конкретного срока" },
+        { "id": "c", "text": "Потому что не все датасеты нуждаются в классификации" },
+        { "id": "d", "text": "Потому что политики не могут содержать правила о сроках" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Эффективная политика должна быть измеримой: 'в течение 30 дней после создания' вместо 'своевременно'. Без конкретного срока невозможно автоматизировать проверку (когда алертить?), невозможно определить нарушение (прошло 2 недели -- это 'несвоевременно'?) и невозможно отчитываться перед Data Council. Измеримые критерии -- ключ к enforcement.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m01-06-q3",
+      "type": "multiple-choice",
+      "question": "В иерархии governance-документов DataTech, какова правильная связь между политикой 'Все PII-данные должны быть зашифрованы' и стандартом 'Использовать AES-256 для шифрования PII-столбцов'?",
+      "options": [
+        { "id": "a", "text": "Это два разных документа одного уровня, которые дублируют друг друга" },
+        { "id": "b", "text": "Политика определяет ЧТО (шифровать PII), стандарт определяет КАК (алгоритм AES-256), стандарт реализует политику" },
+        { "id": "c", "text": "Стандарт AES-256 должен быть частью политики, а не отдельным документом" },
+        { "id": "d", "text": "Политика устарела, если есть стандарт -- нужен только стандарт" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Иерархия governance-документов: Принципы -> Политики -> Стандарты -> Процедуры. Политика отвечает на вопрос 'что': PII должны быть зашифрованы. Стандарт отвечает на 'как': использовать AES-256. Разделение позволяет менять стандарт (например, при переходе на AES-512) без изменения политики. Объединение (C) смешивает уровни абстракции: когда алгоритм устаревает, приходится пересматривать политику.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m01-06-q4",
+      "type": "true-false",
+      "question": "Если стандарт именования таблиц (snake_case) невозможно проверить автоматически, его соблюдение можно обеспечить ежегодным ручным аудитом.",
+      "correctAnswer": false,
+      "explanation": "Стандарт именования (snake_case) легко автоматизируемо проверяем -- это простая regex-проверка имён таблиц и столбцов. Утверждение неверно в своей предпосылке: этот стандарт КАН быть автоматизирован. Но даже для действительно неавтоматизируемых стандартов ежегодный аудит -- слабый enforcement: нарушения накапливаются 12 месяцев, исправление становится дорогим. Ключевое правило: стандарт должен быть автоматизируемо проверяем; если нет -- его формулировку нужно пересмотреть.",
+      "hint": "Подумайте: можно ли проверить snake_case программно? Что произойдёт за 12 месяцев без автоматической проверки?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m01-06-code-1",
+      "type": "code-challenge",
+      "question": "Создайте валидный JSON-документ governance-политики, который включает все обязательные разделы: policy_id, title, version, effective_date, owner, scope, definitions (массив объектов с term и meaning), rules (минимум 3 правила с id, description, severity), enforcement и review_schedule.",
+      "language": "json",
+      "starterCode": "{\n  \"policy_id\": \"\",\n  \"title\": \"\",\n  \"version\": \"\",\n  \"effective_date\": \"\",\n  \"owner\": \"\",\n  \"scope\": \"\",\n  \"definitions\": [],\n  \"rules\": [],\n  \"enforcement\": \"\",\n  \"review_schedule\": \"\"\n}",
+      "solutionCode": "{\n  \"policy_id\": \"DG-POL-001\",\n  \"title\": \"Data Classification Policy\",\n  \"version\": \"1.0\",\n  \"effective_date\": \"2025-01-01\",\n  \"owner\": \"Chief Data Officer\",\n  \"scope\": \"All data assets in production systems\",\n  \"definitions\": [\n    {\"term\": \"Confidential\", \"meaning\": \"Data restricted to authorized personnel only\"},\n    {\"term\": \"Internal\", \"meaning\": \"Data available to all employees\"},\n    {\"term\": \"Public\", \"meaning\": \"Data available without restrictions\"}\n  ],\n  \"rules\": [\n    {\"id\": \"R1\", \"description\": \"All datasets must be classified within 30 days of creation\", \"severity\": \"high\"},\n    {\"id\": \"R2\", \"description\": \"Confidential data must be encrypted at rest and in transit\", \"severity\": \"critical\"},\n    {\"id\": \"R3\", \"description\": \"Classification must be reviewed annually\", \"severity\": \"medium\"}\n  ],\n  \"enforcement\": \"Automated policy checks via data catalog integration\",\n  \"review_schedule\": \"annual\"\n}",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "JSON contains all required top-level keys",
+          "expectedOutput": "{\"valid\":true,\"required_keys\":[\"policy_id\",\"title\",\"version\",\"effective_date\",\"owner\",\"scope\",\"definitions\",\"rules\",\"enforcement\",\"review_schedule\"]}"
+        },
+        {
+          "id": "tc2",
+          "description": "Rules array contains at least 3 items with id, description, severity",
+          "expectedOutput": "{\"valid\":true,\"rules_count\":\">=3\",\"rule_keys\":[\"id\",\"description\",\"severity\"]}"
+        }
+      ],
+      "explanation": "Governance-политика -- формальный документ, определяющий правила в отношении данных. Обязательные разделы обеспечивают полноту: policy_id для отслеживания, owner для accountability, enforcement для контроля, review_schedule для актуальности. Без любого из этих разделов политика становится неполной и неуправляемой.",
+      "hint": "Заполните все поля конкретными значениями (не оставляйте пустые строки). Definitions должен содержать объекты с полями term и meaning. Rules -- минимум 3 объекта с полями id, description, severity.",
+      "bloomLevel": "applied"
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "lessonSlug": "01-foundations/05-business-case-maturity",
+  "moduleId": "01-foundations",
+  "_meta": {
+    "idPrefix": "dg-m01-05",
+    "description": "Use IDs: dg-m01-05-q1 through dg-m01-05-q4, dg-m01-05-code-1"
+  },
+  "questions": [
+    {
+      "id": "dg-m01-05-q1",
+      "type": "multiple-choice",
+      "question": "DataTech оценила зрелость governance: Data Quality=1, Metadata=0, Security=1, Privacy=1, Stewardship=0. Целевой уровень -- 3. Какие два измерения имеют наибольший gap и должны быть приоритизированы?",
+      "options": [
+        { "id": "a", "text": "Data Quality и Security -- они хотя бы на Level 1, значит, есть база для улучшения" },
+        { "id": "b", "text": "Metadata Management и Stewardship -- оба на 0, gap = 3, наибольший разрыв с целевым уровнем" },
+        { "id": "c", "text": "Privacy и Security -- они наиболее важны для compliance" },
+        { "id": "d", "text": "Все измерения одинаково важны, приоритизация не нужна" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Gap-анализ показывает: Metadata Management (0 -> 3, gap=3) и Stewardship (0 -> 3, gap=3) имеют наибольший разрыв. Приоритизация по gap -- стандартный подход: инвестиции в области с наибольшим разрывом дают максимальный ROI. Data Quality, Security, Privacy имеют gap=2 -- они важны, но наращивание с 1 до 3 проще, чем с 0 до 3. Вариант D игнорирует ограничения бюджета -- ресурсы всегда ограничены.",
+      "hint": "Вычислите gap для каждого измерения: target_level - current_score. Какие два измерения имеют максимальный gap?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m01-05-q2",
+      "type": "multiple-choice",
+      "question": "В бизнес-кейсе DataTech строка 'Недоверие к отчётам' оценена как 'не поддаётся оценке'. Почему это правильный подход для бизнес-кейса?",
+      "options": [
+        { "id": "a", "text": "Потому что эту проблему невозможно решить средствами Data Governance" },
+        { "id": "b", "text": "Потому что честная неопределённость в бизнес-кейсе убедительнее сомнительных цифр, а остальные строки дают достаточную обоснованность" },
+        { "id": "c", "text": "Потому что руководство DataTech не доверяет данным и не примет никаких расчётов" },
+        { "id": "d", "text": "Потому что стоимость недоверия к отчётам всегда равна нулю" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Стоимость неверных бизнес-решений на основе некорректных данных реальна, но сложно оценима: упущенные возможности, неверные инвестиции, потерянные клиенты. Для бизнес-кейса лучше честно указать 'не поддаётся оценке', чем придумать цифру, которую легко оспорить. Остальные строки (дубликаты -- 3.75M, время поиска -- 1.5M, compliance-риск -- 0.5-5M) дают достаточную обоснованность ROI = 300% без этой строки.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m01-05-q3",
+      "type": "multiple-choice",
+      "question": "Roadmap DataTech начинается с quick wins (назначение stewards, создание Data Council) перед техническими задачами (развёртывание каталога). Какой основной риск при обратном порядке?",
+      "options": [
+        { "id": "a", "text": "Каталог данных не будет работать без назначенных stewards" },
+        { "id": "b", "text": "Каталог данных будет развёрнут, но останется пустым -- некому заполнять и поддерживать метаданные" },
+        { "id": "c", "text": "Технические задачи всегда дороже организационных" },
+        { "id": "d", "text": "DMBOK2 запрещает технические задачи до создания Data Council" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Без назначенных Data Stewards каталог данных станет 'мёртвым инструментом': развёрнут, но не заполнен и не обновляется. Через 3 месяца он будет содержать устаревшую информацию, а команда потеряет доверие к инструменту. Quick wins (people + process) создают организационную инфраструктуру, которая потом использует технические инструменты эффективно.",
+      "hint": "Подумайте: каталог данных сам по себе заполняется? Кто будет вносить описания таблиц, правила качества и классификацию?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m01-05-q4",
+      "type": "true-false",
+      "question": "Организация может перейти с Level 1 зрелости сразу на Level 4, минуя промежуточные уровни, если выделит достаточный бюджет на инструменты и персонал.",
+      "correctAnswer": false,
+      "explanation": "Перескакивание через уровни зрелости крайне рискованно и практически не работает. Каждый уровень строится на фундаменте предыдущего: Level 2 требует документированных процессов, Level 3 -- их стандартизации, Level 4 -- измерения. Без базовых процессов (L2) невозможно стандартизировать (L3), а без стандартов невозможно измерять (L4). Бюджет ускоряет переход, но не позволяет пропустить этапы организационного созревания.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m01-05-code-1",
+      "type": "code-challenge",
+      "question": "Напишите функцию assess_maturity, которая принимает словарь с оценками по 5 измерениям governance (1-5), вычисляет общий уровень зрелости (среднее с округлением вниз), определяет целевой уровень 3 и выводит gap-анализ.",
+      "language": "python",
+      "starterCode": "import json\nimport sys\nimport math\n\ndef assess_maturity(scores):\n    # Level names for display\n    level_names = {\n        1: \"Initial\",\n        2: \"Managed\",\n        3: \"Defined\",\n        4: \"Quantitatively Managed\",\n        5: \"Optimizing\"\n    }\n    \n    target_level = 3\n    \n    # TODO: Calculate average score and floor to get overall level\n    # TODO: Find dimensions below target level\n    # TODO: Count dimensions at/above target\n    # TODO: Print formatted output matching expected format\n    pass\n\nscores = json.loads(sys.stdin.read())\nassess_maturity(scores)",
+      "solutionCode": "import json\nimport sys\nimport math\n\ndef assess_maturity(scores):\n    level_names = {\n        1: \"Initial\",\n        2: \"Managed\",\n        3: \"Defined\",\n        4: \"Quantitatively Managed\",\n        5: \"Optimizing\"\n    }\n    \n    target_level = 3\n    \n    avg = sum(scores.values()) / len(scores)\n    overall = max(1, math.floor(avg))\n    \n    below_target = []\n    at_above = 0\n    for dim, score in scores.items():\n        if score < target_level:\n            below_target.append((dim, score, target_level - score))\n        else:\n            at_above += 1\n    \n    print(f\"Overall Maturity: Level {overall} ({level_names[overall]})\")\n    print(f\"Below target (Level {target_level}):\")\n    for dim, score, gap in below_target:\n        print(f\"  - {dim}: {score} (gap: {gap})\")\n    print(f\"Dimensions at/above target: {at_above}/{len(scores)}\")\n\nscores = json.loads(sys.stdin.read())\nassess_maturity(scores)",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "DataTech assessment: average 2.4, Level 2",
+          "input": "{\"data_quality\": 3, \"metadata_management\": 1, \"security\": 4, \"privacy\": 2, \"stewardship\": 2}",
+          "expectedOutput": "Overall Maturity: Level 2 (Managed)\nBelow target (Level 3):\n  - metadata_management: 1 (gap: 2)\n  - privacy: 2 (gap: 1)\n  - stewardship: 2 (gap: 1)\nDimensions at/above target: 2/5"
+        },
+        {
+          "id": "tc2",
+          "description": "All dimensions at Level 1: overall Level 1",
+          "input": "{\"data_quality\": 1, \"metadata_management\": 1, \"security\": 1, \"privacy\": 1, \"stewardship\": 1}",
+          "expectedOutput": "Overall Maturity: Level 1 (Initial)\nBelow target (Level 3):\n  - data_quality: 1 (gap: 2)\n  - metadata_management: 1 (gap: 2)\n  - security: 1 (gap: 2)\n  - privacy: 1 (gap: 2)\n  - stewardship: 1 (gap: 2)\nDimensions at/above target: 0/5"
+        },
+        {
+          "id": "tc3",
+          "description": "Mature organization: all at or above target",
+          "input": "{\"data_quality\": 4, \"metadata_management\": 3, \"security\": 5, \"privacy\": 4, \"stewardship\": 3}",
+          "expectedOutput": "Overall Maturity: Level 3 (Defined)\nBelow target (Level 3):\nDimensions at/above target: 5/5"
+        }
+      ],
+      "explanation": "Оценка зрелости -- первый шаг в построении бизнес-кейса для Data Governance. Функция вычисляет среднее арифметическое оценок по 5 измерениям, округляет вниз (floor) для получения консервативного общего уровня, затем определяет gap для каждого измерения ниже целевого Level 3.",
+      "hint": "Используйте math.floor() для округления среднего вниз. Для gap-анализа переберите все измерения и сравните каждое с target_level. Обратите внимание на формат вывода: 'gap: {target - score}'.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}
