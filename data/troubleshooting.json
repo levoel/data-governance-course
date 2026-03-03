@@ -1,3 +1,457 @@
 {
-  "categories": []
+  "title": "Troubleshooting Data Governance",
+  "description": "База знаний типичных ошибок курса Data Governance с диагностикой, причинами и пошаговыми решениями. Используйте фильтры для поиска по модулю и категории проблемы, или Cmd+K для поиска по тексту ошибки.",
+  "filters": {
+    "primary": {
+      "label": "Фильтр по области",
+      "field": "domain",
+      "options": [
+        { "id": "fundamentals", "label": "Основы", "icon": "book", "color": "blue" },
+        { "id": "quality", "label": "Качество данных", "icon": "chart", "color": "green" },
+        { "id": "privacy", "label": "Приватность", "icon": "shield", "color": "purple" },
+        { "id": "security", "label": "Безопасность", "icon": "lock", "color": "rose" },
+        { "id": "platform", "label": "Платформа", "icon": "gear", "color": "gray" }
+      ]
+    },
+    "secondary": {
+      "label": "Фильтр по категории",
+      "field": "category",
+      "options": [
+        { "id": "terminology", "label": "Терминология", "icon": "tag", "color": "cyan" },
+        { "id": "code-challenge", "label": "Код-челлендж", "icon": "code", "color": "amber" },
+        { "id": "validation", "label": "Валидация", "icon": "check", "color": "teal" },
+        { "id": "policy", "label": "Политики", "icon": "document", "color": "indigo" },
+        { "id": "diagram", "label": "Диаграммы", "icon": "diagram", "color": "orange" },
+        { "id": "navigation", "label": "Навигация", "icon": "compass", "color": "gray" }
+      ]
+    }
+  },
+  "entries": [
+    {
+      "errorMessage": "Путаница между Data Governance и Data Management",
+      "domain": "fundamentals",
+      "category": "terminology",
+      "symptoms": [
+        "Студент использует термины Data Governance и Data Management как синонимы",
+        "Вопросы квиза о различиях governance/management кажутся непонятными",
+        "Нет ясности, где заканчивается governance и начинается management"
+      ],
+      "cause": "Data Governance -- это набор политик, ролей и процессов, обеспечивающих правильное управление данными. Data Management -- это практическая реализация этих политик (ETL, хранение, бэкапы). Governance определяет правила, Management их выполняет. DMBOK2 чётко разделяет эти области.",
+      "solution": [
+        "Governance = ЧТО и ЗАЧЕМ (политики, стандарты, роли, метрики)",
+        "Management = КАК и КОГДА (инструменты, процессы, инфраструктура)",
+        "Пример: Governance решает \"все PII данные должны быть зашифрованы\", Management реализует шифрование в конкретной СУБД",
+        "Повторите урок 1 модуля M01 (Что такое Data Governance)"
+      ],
+      "relatedLessons": [
+        { "title": "Что такое Data Governance", "slug": "01-foundations/01-what-is-governance" },
+        { "title": "DMBOK и фреймворки", "slug": "01-foundations/02-dmbok-frameworks" }
+      ]
+    },
+    {
+      "errorMessage": "Несоответствие терминов DMBOK2 (английский vs русский)",
+      "domain": "fundamentals",
+      "category": "terminology",
+      "symptoms": [
+        "Студент не уверен в русском эквиваленте английского термина governance",
+        "Конфликт между разными переводами одного термина в разных источниках",
+        "Квизы используют термины, которые отличаются от привычных студенту"
+      ],
+      "cause": "Курс использует DMBOK2 (русское издание, ISBN 978-5-9693-0404-8) как терминологический авторитет. Другие источники могут использовать иные переводы. Например: \"Data Steward\" = \"Стюард данных\" (не \"Администратор данных\"), \"Data Lineage\" = \"Происхождение данных\" (не \"Линейность данных\").",
+      "solution": [
+        "Все термины курса основаны на глоссарии DMBOK2 (русское издание)",
+        "При первом использовании термин всегда даётся в формате: Русский Термин (English Term)",
+        "Сверяйтесь с глоссарием курса через Cmd+K или страницу глоссария",
+        "Если в квизе встречается незнакомый термин -- ищите его в глоссарии курса"
+      ],
+      "relatedLessons": [
+        { "title": "DMBOK и фреймворки", "slug": "01-foundations/02-dmbok-frameworks" },
+        { "title": "Что такое метаданные", "slug": "03-metadata-catalogs/01-what-are-metadata" }
+      ]
+    },
+    {
+      "errorMessage": "Ошибка интерпретации уровня зрелости governance",
+      "domain": "fundamentals",
+      "category": "terminology",
+      "symptoms": [
+        "Студент неверно определяет уровень зрелости организации",
+        "Путаница между Level 2 (Managed) и Level 3 (Defined)",
+        "Scorer в код-челлендже CC-01 возвращает неожиданный результат"
+      ],
+      "cause": "Модель зрелости использует 5 уровней: 1 (Initial/Ad-hoc), 2 (Managed), 3 (Defined), 4 (Quantitatively Managed), 5 (Optimizing). Общий уровень определяется средним арифметическим с округлением вниз (floor). Если хотя бы одно измерение ниже целевого -- общий уровень не может превышать среднее.",
+      "solution": [
+        "Уровень зрелости = floor(среднее всех измерений)",
+        "Проверьте каждое измерение: data quality, metadata, security, privacy, stewardship",
+        "Для Level 3 нужно: все измерения >= 2, среднее >= 3.0",
+        "Повторите урок 5 модуля M01 (Бизнес-кейс и зрелость)"
+      ],
+      "relatedLessons": [
+        { "title": "Бизнес-кейс и зрелость", "slug": "01-foundations/05-business-case-maturity" },
+        { "title": "Организация governance", "slug": "01-foundations/03-governance-organization" }
+      ]
+    },
+    {
+      "errorMessage": "Путаница ролей: Data Steward vs Data Owner vs Data Custodian",
+      "domain": "fundamentals",
+      "category": "terminology",
+      "symptoms": [
+        "Студент путает ответственности Data Steward и Data Owner",
+        "Ошибки в RACI-матрице при определении ролей",
+        "Неправильное назначение ролей в сценариях код-челленджей"
+      ],
+      "cause": "Data Owner -- бизнес-руководитель, ответственный за данные домена (принимает решения). Data Steward -- операционный эксперт, обеспечивающий качество и соответствие стандартам (выполняет политики). Data Custodian -- технический специалист, управляющий инфраструктурой хранения (поддерживает системы).",
+      "solution": [
+        "Data Owner = ОТВЕЧАЕТ за данные (бизнес, стратегия, бюджет)",
+        "Data Steward = УПРАВЛЯЕТ качеством данных (стандарты, метаданные, профилирование)",
+        "Data Custodian = ОБСЛУЖИВАЕТ инфраструктуру (БД, бэкапы, доступы)",
+        "Мнемоника: Owner решает ЧТО, Steward контролирует КАК, Custodian обеспечивает ГДЕ",
+        "Повторите урок 3 модуля M01 (Организация governance)"
+      ],
+      "relatedLessons": [
+        { "title": "Организация governance", "slug": "01-foundations/03-governance-organization" },
+        { "title": "Домены данных и владение", "slug": "01-foundations/04-data-domains-ownership" }
+      ]
+    },
+    {
+      "errorMessage": "Timeout в Python код-челлендже (превышен лимит 10 секунд)",
+      "domain": "platform",
+      "category": "code-challenge",
+      "symptoms": [
+        "Код-челлендж показывает \"Execution timeout: 10s limit exceeded\"",
+        "Python-функция работает бесконечно или очень долго",
+        "Статус: TIMEOUT вместо PASS/FAIL"
+      ],
+      "cause": "Pyodide runner имеет жёсткий лимит 10 секунд на выполнение. Типичные причины: бесконечный цикл (while True без break), вложенные циклы O(n^3) на больших данных, рекурсия без базового случая, print() в цикле (вывод замедляет выполнение).",
+      "solution": [
+        "Проверьте циклы на наличие условия выхода",
+        "Замените вложенные циклы на словари/множества для O(1) поиска",
+        "Убедитесь, что рекурсия имеет базовый случай и глубина ограничена",
+        "Удалите отладочные print() из циклов перед отправкой",
+        "Все код-челленджи курса решаемы за < 2 секунды при правильном подходе"
+      ],
+      "relatedLessons": []
+    },
+    {
+      "errorMessage": "SQL код-челлендж: таблица не найдена (Table not found)",
+      "domain": "platform",
+      "category": "code-challenge",
+      "symptoms": [
+        "Ошибка \"no such table: ...\" при выполнении SQL запроса",
+        "SELECT возвращает пустой результат вместо ожидаемых данных",
+        "Код-челлендж не инициализирует тестовые данные"
+      ],
+      "cause": "SQL код-челленджи используют sql.js (SQLite в браузере). Тестовые таблицы создаются автоматически из раздела setup в конфигурации челленджа. Ошибка возникает при обращении к таблице с неверным именем или при использовании синтаксиса, несовместимого с SQLite.",
+      "solution": [
+        "Проверьте имена таблиц в описании челленджа (раздел \"Доступные таблицы\")",
+        "SQLite не поддерживает: FULL OUTER JOIN, RIGHT JOIN, некоторые оконные функции",
+        "Используйте одинарные кавычки для строк, двойные -- для идентификаторов",
+        "Если нужен ILIKE -- используйте LIKE с функцией LOWER(): WHERE LOWER(col) LIKE '%text%'"
+      ],
+      "relatedLessons": []
+    },
+    {
+      "errorMessage": "JSON валидация: несоответствие схеме (Schema mismatch)",
+      "domain": "platform",
+      "category": "code-challenge",
+      "symptoms": [
+        "Ошибка \"JSON does not match expected schema\"",
+        "Тесты показывают FAIL с сообщением о недостающих полях",
+        "JSON синтаксически корректен, но не проходит валидацию"
+      ],
+      "cause": "JSON-validator проверяет структуру строго: все обязательные поля должны присутствовать, типы значений должны совпадать (строка vs число), массивы должны содержать минимальное количество элементов. Лишние поля обычно допускаются, но пропущенные -- нет.",
+      "solution": [
+        "Внимательно прочитайте описание ожидаемой структуры в задании",
+        "Проверьте, что все обязательные поля указаны (required fields)",
+        "Убедитесь, что типы данных совпадают: числа без кавычек, строки в кавычках",
+        "Массивы: проверьте минимальное количество элементов (\"rules\" обычно >= 3)",
+        "Для отладки: используйте JSON.parse() в консоли браузера для проверки синтаксиса"
+      ],
+      "relatedLessons": []
+    },
+    {
+      "errorMessage": "YAML валидация: ошибка отступов (Indentation error)",
+      "domain": "platform",
+      "category": "code-challenge",
+      "symptoms": [
+        "Ошибка \"bad indentation\" или \"mapping values are not allowed here\"",
+        "YAML выглядит правильно, но не проходит парсинг",
+        "Вложенные элементы не распознаются корректно"
+      ],
+      "cause": "YAML-validator чувствителен к отступам. Типичные ошибки: смешивание табов и пробелов (YAML допускает только пробелы), непоследовательные отступы (2 vs 4 пробела в одном файле), пропущенный пробел после двоеточия, неправильная вложенность списков.",
+      "solution": [
+        "Используйте ТОЛЬКО пробелы (не табы) для отступов",
+        "Выберите один размер отступа (2 пробела рекомендуется) и соблюдайте везде",
+        "После каждого \":\" должен быть пробел: \"key: value\", не \"key:value\"",
+        "Элементы списка (\"-\") должны иметь тот же отступ, что и ключ родителя + 2 пробела",
+        "Строки со спецсимволами оборачивайте в кавычки: \"value: with colon\""
+      ],
+      "relatedLessons": []
+    },
+    {
+      "errorMessage": "JavaScript sandbox: console.log вместо return",
+      "domain": "platform",
+      "category": "code-challenge",
+      "symptoms": [
+        "JavaScript код-челлендж показывает FAIL, хотя console.log выводит правильный результат",
+        "Тесты ожидают возврат значения, но получают undefined",
+        "Функция выполняется без ошибок, но результат не захватывается"
+      ],
+      "cause": "js-sandbox runner захватывает возвращаемое значение функции (return), а не вывод в console. console.log() выводит в лог для отладки, но не является результатом выполнения. Тесты проверяют именно return value.",
+      "solution": [
+        "Убедитесь, что функция завершается оператором return с нужным значением",
+        "console.log() можно использовать для отладки, но результат -- только через return",
+        "Если нужно вернуть объект: return { key: value }, не console.log({ key: value })",
+        "Проверьте, что return находится внутри функции, а не на верхнем уровне"
+      ],
+      "relatedLessons": []
+    },
+    {
+      "errorMessage": "Код-челлендж не появляется на странице урока",
+      "domain": "platform",
+      "category": "code-challenge",
+      "symptoms": [
+        "Урок отображается, но секция код-челленджа отсутствует",
+        "Квиз отображается, но без интерактивного редактора кода",
+        "Код-челлендж виден в JSON файле, но не рендерится на странице"
+      ],
+      "cause": "Несоответствие поля lessonSlug в JSON-файле квиза и фактического пути MDX-файла урока. Квиз привязывается к уроку через lessonSlug, и если путь не совпадает -- квиз не находится и не отображается.",
+      "solution": [
+        "Проверьте lessonSlug в JSON файле квиза (без расширения .mdx)",
+        "Формат lessonSlug: \"module-dir/lesson-file\" (например: \"01-foundations/03-governance-organization\")",
+        "Убедитесь, что MDX файл существует по указанному пути в src/content/course/",
+        "Перезапустите dev-сервер после изменений в JSON файлах квизов"
+      ],
+      "relatedLessons": []
+    },
+    {
+      "errorMessage": "Quality dimension scorer возвращает неожиданные результаты",
+      "domain": "quality",
+      "category": "validation",
+      "symptoms": [
+        "Функция подсчёта качества возвращает неверный процент",
+        "Измерения полноты (completeness) или точности (accuracy) не совпадают с ожидаемыми",
+        "Тесты код-челленджа CC-13 или CC-14 не проходят"
+      ],
+      "cause": "Quality dimensions имеют строгие формулы. Completeness = (non-null values / total values) * 100. Accuracy проверяется по reference dataset. Freshness -- разница между current_timestamp и last_updated. Ошибки возникают при неправильном округлении, игнорировании пустых строк (\"\" vs NULL), или неверной обработке граничных случаев.",
+      "solution": [
+        "Completeness: считайте NULL и пустые строки ('') как missing values",
+        "Accuracy: сравнивайте с reference dataset case-insensitive (lower())",
+        "Freshness: используйте единый формат дат (ISO 8601), учитывайте timezone",
+        "Округляйте до 2 десятичных знаков: round(value, 2)",
+        "Повторите урок 1 модуля M04 (Измерения качества данных)"
+      ],
+      "relatedLessons": [
+        { "title": "Измерения качества", "slug": "04-data-quality/01-quality-dimensions" },
+        { "title": "Измерение полноты", "slug": "04-data-quality/02-measuring-completeness" }
+      ]
+    },
+    {
+      "errorMessage": "Ошибки синтаксиса dbt test в YAML конфигурации",
+      "domain": "quality",
+      "category": "validation",
+      "symptoms": [
+        "YAML код-челлендж для dbt тестов не проходит валидацию",
+        "Ошибка \"expected block end\" или \"did not find expected key\"",
+        "dbt тесты не распознают custom test конфигурацию"
+      ],
+      "cause": "dbt использует специфическую YAML структуру для тестов. Частые ошибки: неправильная вложенность columns внутри models, пропуск обязательного поля name, неверный синтаксис custom test (config: severity: warn вместо правильного формата).",
+      "solution": [
+        "Структура: models -> [name, columns -> [name, tests -> [...]]]",
+        "Каждый test -- это либо строка (\"not_null\"), либо объект ({accepted_values: {values: [...]}})",
+        "Проверьте вложенность: columns на 2 уровня глубже, чем models",
+        "severity указывается внутри config: {config: {severity: warn}}",
+        "Повторите урок 5 модуля M04 (dbt quality tests)"
+      ],
+      "relatedLessons": [
+        { "title": "dbt quality tests", "slug": "04-data-quality/05-dbt-quality-tests" },
+        { "title": "Great Expectations", "slug": "04-data-quality/06-great-expectations" }
+      ]
+    },
+    {
+      "errorMessage": "Great Expectations suite: валидация не проходит",
+      "domain": "quality",
+      "category": "validation",
+      "symptoms": [
+        "Код-челлендж CC-18 (GE suite) возвращает unexpected results",
+        "Expectation suite проходит на одних данных и падает на других",
+        "Непонятно, как указать порог (threshold) для expectation"
+      ],
+      "cause": "Great Expectations использует декларативный подход: каждый expectation определяет ожидаемое свойство данных. Ошибки возникают при неправильных параметрах (mostly vs. strict), неверных пороговых значениях, или непонимании разницы между column-level и table-level expectations.",
+      "solution": [
+        "mostly=0.95 означает \"минимум 95% значений должны соответствовать\"",
+        "Без mostly -- проверка strict (100%)",
+        "expect_column_values_to_not_be_null != expect_column_to_exist",
+        "Для JSON-структуры suite: meta, expectations[], expectation_type, kwargs",
+        "Повторите урок 6 модуля M04 (Great Expectations)"
+      ],
+      "relatedLessons": [
+        { "title": "Great Expectations", "slug": "04-data-quality/06-great-expectations" },
+        { "title": "Freshness и observability", "slug": "04-data-quality/07-freshness-observability" }
+      ]
+    },
+    {
+      "errorMessage": "PII классификатор: ложноположительные или ложноотрицательные срабатывания",
+      "domain": "privacy",
+      "category": "validation",
+      "symptoms": [
+        "Функция классификации PII не находит все поля с персональными данными",
+        "Классификатор помечает нерелевантные поля как PII",
+        "Код-челлендж CC-20 выдаёт неверное количество PII-полей"
+      ],
+      "cause": "PII-классификация в курсе использует rule-based подход (фиксированные паттерны, не ML). Ошибки: неполный набор паттернов (пропущены email, phone, passport), нечувствительность к регистру (Email vs email), ложноположительные из-за слишком широких паттернов (любое слово \"name\" помечается как PII).",
+      "solution": [
+        "Проверьте полный список PII-паттернов: email, phone, ssn/inn, passport, address, birth_date, full_name",
+        "Используйте case-insensitive matching: column_name.lower()",
+        "Различайте: \"product_name\" (не PII) vs \"customer_name\" (PII) -- контекст важен",
+        "Проверяйте и имя колонки, и содержимое (если доступно)",
+        "Повторите урок 2 модуля M05 (Обнаружение PII)"
+      ],
+      "relatedLessons": [
+        { "title": "Обнаружение PII", "slug": "05-privacy-compliance/02-pii-detection" },
+        { "title": "Принципы приватности", "slug": "05-privacy-compliance/01-privacy-principles" }
+      ]
+    },
+    {
+      "errorMessage": "Consent validator: граничные случаи (частичное согласие, отзыв)",
+      "domain": "privacy",
+      "category": "policy",
+      "symptoms": [
+        "Валидатор согласия не обрабатывает случай частичного consent",
+        "Отзыв (revocation) согласия не меняет статус обработки",
+        "Код-челлендж CC-21 не учитывает expiration date согласия"
+      ],
+      "cause": "Consent management имеет несколько граничных случаев: согласие может быть partial (на одни цели дано, на другие нет), может быть отозвано (revoked -- дата отзыва позже даты согласия), может истечь (expired -- превышен срок действия). Все три случая должны обрабатываться отдельно.",
+      "solution": [
+        "Проверяйте каждую цель (purpose) отдельно: marketing, analytics, third_party",
+        "Статус consent: active (дано, не истекло, не отозвано), revoked, expired",
+        "Приоритет: revoked > expired > active (отзыв перекрывает всё)",
+        "Дата сравнения: consent_date < current_date < expiry_date для active",
+        "Повторите урок 3 модуля M05 (Управление согласиями)"
+      ],
+      "relatedLessons": [
+        { "title": "Управление согласиями", "slug": "05-privacy-compliance/03-consent-management" },
+        { "title": "Принципы приватности", "slug": "05-privacy-compliance/01-privacy-principles" }
+      ]
+    },
+    {
+      "errorMessage": "Data masking: функция не сохраняет формат данных",
+      "domain": "privacy",
+      "category": "validation",
+      "symptoms": [
+        "Маскированные данные имеют другую длину или формат",
+        "Email после маскирования не содержит @ и домен",
+        "Телефон маскирован полностью вместо сохранения последних 4 цифр"
+      ],
+      "cause": "Format-preserving masking должен сохранять структуру оригинальных данных. Email: j***@example.com (первая буква + маска + домен). Телефон: ***-***-1234 (маска + последние 4 цифры). ИНН: ********12 (маска + последние 2). Нарушение формата делает данные непригодными для тестирования.",
+      "solution": [
+        "Email: сохраняйте первый символ, @, и домен: masking(\"john@mail.com\") = \"j***@mail.com\"",
+        "Телефон: сохраняйте последние 4 цифры: masking(\"89161234567\") = \"*******4567\"",
+        "ИНН/SSN: маскируйте всё кроме последних 2-4 символов",
+        "Общее правило: длина результата = длина оригинала",
+        "Повторите урок 4 модуля M05 (Маскирование данных)"
+      ],
+      "relatedLessons": [
+        { "title": "Маскирование данных", "slug": "05-privacy-compliance/04-data-masking" },
+        { "title": "Обнаружение PII", "slug": "05-privacy-compliance/02-pii-detection" }
+      ]
+    },
+    {
+      "errorMessage": "RBAC/ABAC конфликт: deny vs allow приоритет",
+      "domain": "security",
+      "category": "policy",
+      "symptoms": [
+        "Политика доступа разрешает и запрещает одно действие одновременно",
+        "Код-челлендж CC-29 возвращает неверное решение доступа",
+        "Непонятно, какое правило имеет приоритет при конфликте"
+      ],
+      "cause": "В RBAC/ABAC при конфликте правил (одно разрешает, другое запрещает) применяется принцип deny-overrides: запрет всегда побеждает. Ошибки возникают при неправильной оценке порядка правил или непонимании наследования ролей (роль с deny на уровне группы перекрывает allow на уровне пользователя).",
+      "solution": [
+        "Принцип: deny ВСЕГДА перекрывает allow (deny-overrides)",
+        "Порядок оценки: 1) собрать все applicable rules, 2) если есть хотя бы один deny -- запретить",
+        "RBAC: проверяйте все роли пользователя (прямые + наследованные)",
+        "ABAC: оценивайте все атрибуты (subject, resource, action, environment)",
+        "Повторите уроки 2-3 модуля M06 (RBAC и ABAC)"
+      ],
+      "relatedLessons": [
+        { "title": "RBAC реализация", "slug": "06-security-access/02-rbac-implementation" },
+        { "title": "ABAC и Policy-as-Code", "slug": "06-security-access/03-abac-policy-as-code" }
+      ]
+    },
+    {
+      "errorMessage": "Governance-диаграмма не отображается на странице урока",
+      "domain": "platform",
+      "category": "diagram",
+      "symptoms": [
+        "Место диаграммы пустое или показывает ошибку рендеринга",
+        "Компонент загрузился, но данные не отображаются",
+        "Консоль браузера показывает \"Hydration mismatch\" или React ошибку"
+      ],
+      "cause": "Governance-диаграммы (OrgChart, MaturityModel, ClassificationTree и др.) -- это React-компоненты, требующие client:load для гидрации в Astro. Если пропущена директива client:load, компонент рендерится только на сервере и не интерактивен. Другие причины: неправильный формат props (nodes вместо tree), пропущенные обязательные поля.",
+      "solution": [
+        "Убедитесь, что в MDX-файле компонент использует client:load: <MaturityModel client:load ... />",
+        "Проверьте props: каждый компонент имеет специфические обязательные поля",
+        "ClassificationTree: tree (не nodes!), OrgChart: nodes + connections",
+        "Очистите кэш браузера и перезагрузите страницу",
+        "В dev-режиме: перезапустите dev-сервер после изменений в MDX"
+      ],
+      "relatedLessons": []
+    },
+    {
+      "errorMessage": "RegulationRef popover не появляется при наведении",
+      "domain": "platform",
+      "category": "diagram",
+      "symptoms": [
+        "Текст RegulationRef подчёркнут, но popover не показывается",
+        "Popover появляется за пределами видимой области",
+        "На мобильном устройстве RegulationRef не работает"
+      ],
+      "cause": "RegulationRef использует createPortal для span-based popover (не div, чтобы не ломать inline HTML в MDX). Popover появляется при hover (desktop) или touch (mobile). Проблемы: z-index конфликт с другими элементами, overflow:hidden на родительском контейнере, или отсутствие client:load на компоненте.",
+      "solution": [
+        "Проверьте, что RegulationRef импортирован и имеет client:load",
+        "RegulationRef работает inline (внутри <p>) -- не оборачивайте в div",
+        "Если popover обрезается: проверьте overflow CSS на родительских элементах",
+        "На мобильных: используйте tap вместо hover"
+      ],
+      "relatedLessons": [
+        { "title": "Принципы приватности", "slug": "05-privacy-compliance/01-privacy-principles" },
+        { "title": "Классификация данных", "slug": "05-privacy-compliance/05-classification-frameworks" }
+      ]
+    },
+    {
+      "errorMessage": "Квиз-секция не отображается на странице урока",
+      "domain": "platform",
+      "category": "navigation",
+      "symptoms": [
+        "Урок загружается, но квиз внизу страницы отсутствует",
+        "Счётчик прогресса не обновляется после прочтения урока",
+        "В навигации нет индикатора квиза для конкретного урока"
+      ],
+      "cause": "Квиз привязывается к уроку через lessonSlug в JSON-файле. Если lessonSlug не совпадает с путём MDX-файла, квиз не будет отображён. Также возможно: JSON-файл содержит ошибку валидации (Zod schema), или квиз пуст (0 вопросов).",
+      "solution": [
+        "Проверьте lessonSlug в JSON: должен совпадать с путём MDX (без расширения)",
+        "Пример: для урока course/01-foundations/03-governance-organization.mdx slug = \"01-foundations/03-governance-organization\"",
+        "Убедитесь, что JSON валиден: node -e \"require('./path/to/quiz.json')\"",
+        "Проверьте, что массив questions не пуст (min 1 вопрос требуется Zod-схемой)"
+      ],
+      "relatedLessons": []
+    },
+    {
+      "errorMessage": "Прогресс не обновляется после завершения квиза",
+      "domain": "platform",
+      "category": "navigation",
+      "symptoms": [
+        "Квиз пройден успешно, но progress bar не изменился",
+        "Dashboard показывает старые данные",
+        "Модуль не помечается как завершённый после прохождения всех квизов"
+      ],
+      "cause": "Прогресс сохраняется в localStorage браузера. Если localStorage переполнен, отключён, или используется приватный режим -- прогресс не сохраняется. Также: разные URL (с www и без) имеют разные localStorage хранилища.",
+      "solution": [
+        "Проверьте localStorage: DevTools -> Application -> Local Storage",
+        "Убедитесь, что браузер не в приватном режиме",
+        "Используйте один и тот же URL (с или без www) для всех занятий",
+        "Для сброса: очистите localStorage данного домена и пройдите квизы заново"
+      ],
+      "relatedLessons": []
+    }
+  ]
 }
