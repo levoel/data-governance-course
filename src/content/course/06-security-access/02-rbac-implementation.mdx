@@ -1,0 +1,193 @@
+---
+title: "RBAC: ролевая модель доступа"
+description: "Role-Based Access Control, иерархия ролей, реализация в PostgreSQL, принцип наименьших привилегий"
+order: 2
+difficulty: "intermediate"
+estimatedTime: 25
+audience: "engineers"
+topics: ["RBAC", "Role-Based Access", "Permissions"]
+---
+
+import { AccessMatrix } from '../../../components/diagrams/governance';
+
+# RBAC: ролевая модель доступа
+
+## Введение
+
+В предыдущем уроке мы рассмотрели принципы безопасности данных и стратегию defence in depth. Центральный элемент этой стратегии -- **авторизация**: определение того, кто и что может делать с данными. Наиболее распространённая модель авторизации в корпоративных системах -- RBAC.
+
+## Что такое RBAC
+
+**RBAC (Role-Based Access Control)** -- модель контроля доступа, при которой разрешения назначаются ролям, а роли -- пользователям. Ключевой принцип: пользователь получает доступ не напрямую, а через роль, отражающую его функцию в организации.
+
+Компоненты RBAC:
+
+1. **Пользователь (User)** -- конкретный сотрудник или сервисный аккаунт
+2. **Роль (Role)** -- набор разрешений, отражающий функцию (data_analyst, data_engineer, admin)
+3. **Разрешение (Permission)** -- конкретное действие над ресурсом (SELECT на таблице customers)
+4. **Ресурс (Resource)** -- объект, к которому применяется доступ (таблица, схема, API)
+
+### Иерархия ролей
+
+RBAC поддерживает иерархию: роль может наследовать разрешения другой роли. Это упрощает управление -- не нужно дублировать permissions.
+
+```sql
+-- PostgreSQL: создание иерархии ролей
+CREATE ROLE viewer;        -- базовая роль: только чтение
+CREATE ROLE editor;        -- наследует viewer + запись
+CREATE ROLE admin;         -- наследует editor + управление
+
+-- Иерархия
+GRANT viewer TO editor;    -- editor включает все permissions viewer
+GRANT editor TO admin;     -- admin включает все permissions editor
+```
+
+> **Сценарий: FinSecure Bank (ФинСекьюр Банк)**
+>
+> FinSecure Bank -- крупный цифровой банк с 2,000+ сотрудников, 30 человек в команде данных. У FinSecure уже есть RBAC на production-базах данных и HashiCorp Vault для secrets management. Однако внутренний аудит выявил проблему: **47% пользователей имеют избыточные привилегии** -- аналитики с правами на запись, инженеры с admin-доступом к production.
+>
+> Задача: спроектировать строгую RBAC-модель для банковских данных с разделением обязанностей (separation of duties).
+
+## RBAC для FinSecure: матрица доступа
+
+Банковская модель RBAC должна учитывать строгое разделение обязанностей (separation of duties): один человек не может и создавать транзакцию, и подтверждать её.
+
+<AccessMatrix
+  client:load
+  title="FinSecure Bank: RBAC-матрица (банковские роли)"
+  roles={["Аналитик", "Инженер", "DBA", "Аудитор", "Admin"]}
+  resources={["Транзакции", "Клиенты PII", "Отчёты", "Audit Log", "Системные настройки"]}
+  permissions={[
+    ["allow", "deny", "allow", "deny", "deny"],
+    ["allow", "conditional", "allow", "deny", "deny"],
+    ["allow", "allow", "allow", "allow", "allow"],
+    ["deny", "deny", "allow", "allow", "deny"],
+    ["allow", "allow", "allow", "allow", "allow"]
+  ]}
+  tooltips={{
+    "Аналитик:Транзакции": "SELECT на агрегированных данных (без PII)",
+    "Аналитик:Клиенты PII": "Доступ запрещён: аналитики работают с маскированными данными",
+    "Инженер:Клиенты PII": "Conditional: доступ только через маскированные view, с approval Data Steward",
+    "Аудитор:Транзакции": "Аудитор не имеет доступа к raw-данным транзакций",
+    "Аудитор:Audit Log": "Read-only доступ к журналу аудита для compliance-проверок",
+    "DBA:Audit Log": "DBA имеет полный доступ для администрирования"
+  }}
+/>
+
+Обратите внимание на ключевые принципы:
+
+- **Аналитик** видит транзакции и отчёты, но не PII клиентов -- работает с маскированными данными
+- **Инженер** получает conditional-доступ к PII: только через маскированные view с одобрения Data Steward
+- **Аудитор** не видит raw-данные, но имеет доступ к audit log -- разделение обязанностей
+- **DBA и Admin** имеют полный доступ, но их действия логируются в отдельный immutable audit log
+
+## Реализация RBAC в PostgreSQL
+
+```sql
+-- 1. Создание ролей
+CREATE ROLE dg_viewer NOLOGIN;
+CREATE ROLE dg_analyst NOLOGIN;
+CREATE ROLE dg_engineer NOLOGIN;
+CREATE ROLE dg_auditor NOLOGIN;
+CREATE ROLE dg_admin NOLOGIN;
+
+-- 2. Назначение permissions
+-- Viewer: только чтение из аналитической схемы
+GRANT USAGE ON SCHEMA analytics TO dg_viewer;
+GRANT SELECT ON ALL TABLES IN SCHEMA analytics TO dg_viewer;
+
+-- Analyst: наследует viewer + доступ к mart-схеме
+GRANT dg_viewer TO dg_analyst;
+GRANT USAGE ON SCHEMA mart TO dg_analyst;
+GRANT SELECT ON ALL TABLES IN SCHEMA mart TO dg_analyst;
+
+-- Engineer: чтение + запись в staging и raw
+GRANT dg_viewer TO dg_engineer;
+GRANT USAGE ON SCHEMA staging TO dg_engineer;
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA staging TO dg_engineer;
+GRANT USAGE ON SCHEMA raw TO dg_engineer;
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA raw TO dg_engineer;
+
+-- Auditor: только audit log
+GRANT USAGE ON SCHEMA audit TO dg_auditor;
+GRANT SELECT ON ALL TABLES IN SCHEMA audit TO dg_auditor;
+
+-- 3. Назначение ролей пользователям
+CREATE USER alice_analyst LOGIN;
+GRANT dg_analyst TO alice_analyst;
+
+CREATE USER bob_engineer LOGIN;
+GRANT dg_engineer TO bob_engineer;
+```
+
+### Принцип наименьших привилегий
+
+**Privileged Access (привилегированный доступ)** должен управляться по принципу least privilege: каждый пользователь получает минимально необходимый набор прав для выполнения своих функций.
+
+```sql
+-- ПЛОХО: аналитику дан полный доступ ко всем схемам
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA raw, staging, mart, sensitive
+TO alice_analyst;  -- Role Explosion Risk!
+
+-- ХОРОШО: аналитику дан доступ только к mart (агрегированные данные)
+GRANT SELECT ON ALL TABLES IN SCHEMA mart TO dg_analyst;
+```
+
+<KnowledgeCheck
+  question="В FinSecure аналитик Мария просит доступ к PII клиентов для построения отчёта о churn. Как правильно решить эту задачу в рамках RBAC с least privilege?"
+  answer="Правильное решение -- создать маскированную view в mart-схеме, где PII заменены хешами или агрегированы. Мария получает доступ к view через свою роль dg_analyst, а не прямой доступ к PII. Альтернатива: временный conditional-доступ с approval Data Steward и ограничением по времени (just-in-time access). Давать аналитику постоянный доступ к PII нарушает least privilege и создаёт риск утечки."
+/>
+
+## Row-Level Security
+
+**Row-Level Security (безопасность на уровне строк)** -- дополнительный уровень RBAC, ограничивающий доступ к отдельным строкам таблицы.
+
+```sql
+-- PostgreSQL RLS: пользователь видит только данные своего региона
+ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY region_isolation ON customers
+  FOR SELECT
+  USING (region = current_setting('app.user_region'));
+
+-- Аналитик из московского офиса видит только клиентов из Москвы
+SET app.user_region = 'msk';
+SELECT * FROM customers;  -- только region='msk'
+```
+
+RLS полезен, когда одна таблица содержит данные разных бизнес-единиц, регионов или уровней конфиденциальности.
+
+<AccessMatrix
+  client:load
+  title="Row-Level Security: видимость данных по регионам"
+  roles={["Аналитик MSK", "Аналитик SPB", "Аналитик EU", "Admin"]}
+  resources={["Клиенты MSK", "Клиенты SPB", "Клиенты EU", "Все клиенты"]}
+  permissions={[
+    ["allow", "deny", "deny", "deny"],
+    ["deny", "allow", "deny", "deny"],
+    ["deny", "deny", "allow", "deny"],
+    ["allow", "allow", "allow", "allow"]
+  ]}
+  tooltips={{
+    "Аналитик MSK:Клиенты MSK": "RLS policy: region = 'msk'",
+    "Аналитик MSK:Клиенты SPB": "Запрещён по RLS: регион не совпадает",
+    "Аналитик EU:Клиенты EU": "RLS policy: region = 'eu'. GDPR compliance",
+    "Admin:Все клиенты": "Admin имеет BYPASSRLS -- видит все регионы"
+  }}
+/>
+
+<KnowledgeCheck
+  question="Почему Row-Level Security для EU-данных в FinSecure важен не только для безопасности, но и для GDPR compliance?"
+  answer="GDPR требует, чтобы персональные данные граждан ЕС обрабатывались в соответствии с правилами ЕС. Если аналитик из московского офиса получит доступ к данным EU-клиентов, это может нарушить правила трансграничной передачи данных (FinSecure имеет Standard Contractual Clauses, но технических контролей недостаточно). RLS обеспечивает техническое разграничение -- аналитик физически не может выбрать EU-записи, что упрощает compliance и снижает юридические риски."
+/>
+
+## Итоги
+
+- **RBAC** назначает разрешения ролям, а роли -- пользователям. Это основная модель авторизации
+- **Иерархия ролей** упрощает управление: editor наследует viewer, admin наследует editor
+- **Принцип наименьших привилегий** -- каждый получает минимально необходимый доступ
+- **Separation of duties** -- разделение обязанностей предотвращает злоупотребления
+- **Row-Level Security** ограничивает доступ на уровне строк -- важно для GDPR и мультирегиональных данных
+- FinSecure Bank использует RBAC + RLS для соблюдения PCI DSS и GDPR одновременно
+
+В следующем уроке мы рассмотрим **ABAC (Attribute-Based Access Control)** и **Policy-as-Code (политика как код)** -- подход, позволяющий описывать политики доступа программным кодом с помощью OPA и Rego.

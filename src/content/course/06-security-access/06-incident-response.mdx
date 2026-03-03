@@ -1,0 +1,208 @@
+---
+title: "Реагирование на инциденты безопасности"
+description: "Классификация инцидентов, playbook реагирования, containment, eradication, recovery, post-incident review"
+order: 6
+difficulty: "advanced"
+estimatedTime: 25
+audience: "both"
+topics: ["Incident Response", "Data Breach", "Response Playbook"]
+---
+
+import { ComplianceChecklist, DecisionMatrix } from '../../../components/diagrams/governance';
+
+# Реагирование на инциденты безопасности
+
+## Введение
+
+Ни одна система безопасности не даёт 100% гарантии. Defence in depth, RBAC, ABAC, audit logging -- всё это снижает вероятность инцидента, но не исключает его. Когда инцидент произошёл, критически важна **скорость и качество реагирования**. В этом уроке мы рассмотрим процесс incident response -- от обнаружения до post-incident review.
+
+## Классификация инцидентов
+
+Не все инциденты одинаково серьёзны. Классификация определяет приоритет реагирования и набор задействованных ролей.
+
+<DecisionMatrix
+  client:load
+  title="Классификация инцидентов по severity"
+  criteria={[
+    { name: "Объём данных", weight: 0.3 },
+    { name: "Чувствительность", weight: 0.3 },
+    { name: "Кол-во субъектов", weight: 0.2 },
+    { name: "Регуляторный риск", weight: 0.2 }
+  ]}
+  options={[
+    { name: "P1: Critical", scores: [5, 5, 5, 5] },
+    { name: "P2: High", scores: [3, 4, 3, 4] },
+    { name: "P3: Medium", scores: [2, 2, 2, 2] },
+    { name: "P4: Low", scores: [1, 1, 1, 1] }
+  ]}
+/>
+
+| Severity | Описание | Пример | Время реагирования |
+|----------|----------|--------|-------------------|
+| **P1 Critical** | Утечка restricted/PII данных с подтверждённым внешним доступом | Экспорт БД клиентов через SQL-инъекцию | < 1 час |
+| **P2 High** | Несанкционированный внутренний доступ к confidential данным | Инженер скачал PII без авторизации | < 4 часа |
+| **P3 Medium** | Нарушение политики без утечки данных | Аналитик получил admin-доступ через misconfiguration | < 24 часа |
+| **P4 Low** | Минимальный инцидент, нет доступа к конфиденциальным данным | Failed login attempts на test-сервере | < 72 часа |
+
+## Playbook реагирования
+
+Процесс incident response состоит из 6 фаз:
+
+<ComplianceChecklist
+  client:load
+  title="Incident Response Playbook: 6 фаз"
+  items={[
+    {
+      requirement: "1. Detection (обнаружение)",
+      status: "compliant",
+      note: "SIEM-алерт, audit log аномалия, сообщение пользователя"
+    },
+    {
+      requirement: "2. Triage (оценка)",
+      status: "compliant",
+      note: "Классификация severity (P1-P4), определение scope и затронутых данных"
+    },
+    {
+      requirement: "3. Containment (сдерживание)",
+      status: "partial",
+      note: "Изоляция скомпрометированных систем, блокировка учётных записей, отзыв токенов"
+    },
+    {
+      requirement: "4. Eradication (устранение)",
+      status: "partial",
+      note: "Удаление вредоносного кода, патч уязвимости, ротация credentials"
+    },
+    {
+      requirement: "5. Recovery (восстановление)",
+      status: "compliant",
+      note: "Восстановление из backup, возврат в production, мониторинг повторных атак"
+    },
+    {
+      requirement: "6. Post-Incident Review",
+      status: "compliant",
+      note: "Root cause analysis, timeline, lessons learned, обновление playbook"
+    }
+  ]}
+/>
+
+### Фаза 1: Detection
+
+Инциденты обнаруживаются через:
+
+- **Автоматические алерты** -- SIEM-система, audit log anomaly detection
+- **Мониторинг метрик** -- всплеск DENIED-запросов, необычные patterns экспорта
+- **Сообщения пользователей** -- "я вижу чужие данные"
+- **Внешние источники** -- регуляторы, исследователи безопасности, утечки в интернете
+
+### Фаза 2: Triage
+
+```
+Чеклист Triage:
+[ ] Какие данные затронуты? (classification: public/internal/confidential/restricted)
+[ ] Сколько записей/субъектов затронуто?
+[ ] Был ли внешний доступ к данным?
+[ ] Какие системы скомпрометированы?
+[ ] Продолжается ли инцидент прямо сейчас?
+[ ] Какие регуляторные обязательства возникают? (152-ФЗ, GDPR, PCI DSS)
+```
+
+### Фаза 3: Containment
+
+```sql
+-- Немедленные действия containment
+-- 1. Блокировка скомпрометированного аккаунта
+ALTER USER compromised_user NOLOGIN;
+
+-- 2. Отзыв всех активных сессий
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE usename = 'compromised_user';
+
+-- 3. Ротация credentials
+ALTER USER compromised_user PASSWORD 'new_secure_password';
+
+-- 4. Ограничение сетевого доступа (pg_hba.conf)
+-- Добавить: host all compromised_user 0.0.0.0/0 reject
+```
+
+## Сценарий: утечка в BioGenesis
+
+> **Сценарий: BioGenesis Lab (БиоГенезис Лаб)**
+>
+> Incident Report: В пятницу вечером SIEM-алерт зафиксировал аномалию: исследователь Олег из проекта "Genomics-Alpha" выгрузил **50,000 записей** из таблицы `patient_clinical_data` -- данные пациентов из клинического исследования, к которому он не имеет отношения. Олег работал из домашней сети (не corporate). Audit log показывает 3 попытки доступа к restricted-данным в течение часа перед успешным экспортом.
+>
+> **Классификация:** P1 Critical
+> - **Данные:** Restricted (медицинские данные пациентов)
+> - **Объём:** 50,000 записей
+> - **Субъекты:** ~3,000 пациентов
+> - **Регуляторный риск:** 323-ФЗ (здоровье), 152-ФЗ (PII), IRB протокол нарушен
+
+### Timeline реагирования BioGenesis
+
+| Время | Фаза | Действие |
+|-------|------|----------|
+| **Fri 21:15** | Detection | SIEM-алерт: bulk export из patient_clinical_data |
+| **Fri 21:30** | Triage | P1 Critical: restricted медицинские данные, 50K записей |
+| **Fri 21:45** | Containment | Блокировка аккаунта Олега, отзыв JupyterHub-сессии |
+| **Fri 22:00** | Containment | Ограничение VPN-доступа исследователей к clinical-данным |
+| **Sat 09:00** | Eradication | Обнаружена root cause: Олег нашёл shared password к clinical-БД в Slack-канале |
+| **Sat 12:00** | Eradication | Ротация всех credentials clinical-БД, удаление из Slack |
+| **Mon 09:00** | Recovery | Audit всех аккаунтов исследователей, внедрение project-based access |
+| **Mon 14:00** | Post-Incident | Отчёт IRB, уведомление пациентов (152-ФЗ), lessons learned |
+
+<KnowledgeCheck
+  question="Какие governance-проблемы BioGenesis привели к инциденту? Перечислите не менее трёх."
+  answer="Минимум три governance-проблемы: (1) Отсутствие project-based access control -- все исследователи имели доступ ко всем датасетам, не только к своим проектам. (2) Shared credentials в Slack -- пароль к clinical-БД был доступен в общем канале, нарушая принцип least privilege. (3) Отсутствие ABAC -- не было проверки сети (домашняя vs corporate) и не было ограничения по проекту. (4) Недостаточный мониторинг -- алерт сработал на export, но не на 3 предшествующих denied-запроса. (5) Отсутствие DLP -- система не заблокировала bulk export restricted данных."
+/>
+
+## Post-Incident Review
+
+Post-Incident Review -- самая ценная фаза. Цель -- не наказание, а предотвращение повторения.
+
+### Структура Post-Incident Report
+
+| Раздел | Содержание |
+|--------|------------|
+| **Executive Summary** | Что произошло, severity, impact, timeline |
+| **Root Cause Analysis** | Почему инцидент стал возможен (5 Whys) |
+| **Data Impact** | Какие данные затронуты, количество субъектов |
+| **Regulatory Obligations** | 152-ФЗ: уведомление Роскомнадзор (72 часа). 323-ФЗ: уведомление IRB |
+| **Remediation Actions** | Конкретные меры с deadlines и owners |
+| **Lessons Learned** | Что изменить в процессах, политиках, инструментах |
+
+### 5 Whys для BioGenesis
+
+```
+WHY 1: Почему Олег получил доступ к patient_clinical_data?
+  -> Потому что у всех исследователей одинаковый доступ ко всем БД
+
+WHY 2: Почему у всех исследователей одинаковый доступ?
+  -> Потому что нет project-based access control
+
+WHY 3: Почему нет project-based access control?
+  -> Потому что BioGenesis не внедрила ABAC
+
+WHY 4: Почему BioGenesis не внедрила ABAC?
+  -> Потому что governance-программа покрывает только clinical данные
+     (Level 2: только под давлением регуляторов)
+
+WHY 5: Почему governance не расширена на research данные?
+  -> Потому что нет Data Governance Office и нет бюджета на security
+     (ROOT CAUSE: отсутствие системной программы governance)
+```
+
+<KnowledgeCheck
+  question="После инцидента BioGenesis должна уведомить Роскомнадзор в течение 72 часов (требование 152-ФЗ). Какие данные должны быть в уведомлении?"
+  answer="Уведомление Роскомнадзора должно содержать: (1) описание характера нарушения -- несанкционированный доступ к персональным данным пациентов; (2) категории и приблизительное количество субъектов данных -- ~3,000 пациентов; (3) контактные данные DPO или лица, ответственного за защиту данных; (4) описание вероятных последствий нарушения; (5) описание мер, принятых или предлагаемых для устранения нарушения. Кроме того, по 323-ФЗ необходимо уведомить IRB (этический комитет) и, возможно, самих пациентов."
+/>
+
+## Итоги
+
+- **Классификация инцидентов** (P1-P4) определяет скорость реагирования и набор ролей
+- **6 фаз incident response**: Detection -> Triage -> Containment -> Eradication -> Recovery -> Post-Incident Review
+- **Containment** -- немедленная изоляция: блокировка аккаунтов, отзыв сессий, ограничение сети
+- **Post-Incident Review** с 5 Whys выявляет root cause, а не симптомы
+- **Регуляторные обязательства**: 152-ФЗ (72 часа Роскомнадзор), GDPR (72 часа DPA), 323-ФЗ (IRB)
+- В BioGenesis root cause -- отсутствие системной governance-программы, а не конкретная техническая уязвимость
+
+Этот модуль завершает обзор **Безопасности и Контроля Доступа**: от принципов шифрования до RBAC/ABAC, audit logging, проектирования политик и реагирования на инциденты. В модульном экзамене вы примените все эти знания к сценариям FinSecure, BioGenesis и DataTech.

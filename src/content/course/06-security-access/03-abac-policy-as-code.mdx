@@ -1,0 +1,199 @@
+---
+title: "ABAC и Policy-as-Code"
+description: "Attribute-Based Access Control, OPA и Rego для policy-as-code, ABAC vs RBAC, fine-grained авторизация"
+order: 3
+difficulty: "advanced"
+estimatedTime: 30
+audience: "engineers"
+topics: ["ABAC", "Policy-as-Code", "OPA", "Rego"]
+---
+
+import { AccessMatrix } from '../../../components/diagrams/governance';
+
+# ABAC и Policy-as-Code
+
+## Введение
+
+RBAC -- мощный инструмент, но у него есть ограничение: количество ролей растёт экспоненциально при сложных правилах доступа. Когда доступ зависит не только от роли, но и от отдела, уровня допуска, времени суток и типа сети -- нужна более гибкая модель. Эта модель -- **ABAC**.
+
+## Что такое ABAC
+
+**ABAC (Attribute-Based Access Control)** -- модель контроля доступа, основанная на атрибутах субъекта, объекта и среды. В отличие от RBAC, где доступ определяется ролью, ABAC оценивает комбинацию атрибутов при каждом запросе.
+
+### Три категории атрибутов
+
+| Категория | Атрибуты | Примеры |
+|-----------|----------|---------|
+| **Субъект (User)** | Характеристики пользователя | department, clearance_level, location, project |
+| **Объект (Resource)** | Характеристики данных | classification, owner_department, sensitivity |
+| **Среда (Environment)** | Контекст запроса | time_of_day, network_type, device_type |
+
+### ABAC vs RBAC
+
+| Критерий | RBAC | ABAC |
+|----------|------|------|
+| **Основа решения** | Роль пользователя | Комбинация атрибутов |
+| **Гранулярность** | Грубая (per-role) | Тонкая (per-attribute) |
+| **Количество правил** | Растёт с ролями (role explosion) | Фиксированный набор политик |
+| **Когда использовать** | Простые иерархии, стабильные команды | Сложные правила, динамичные контексты |
+| **Пример** | "Аналитик может SELECT на mart" | "Исследователь с clearance >= 3 может читать confidential данные из своего проекта в рабочее время из корпоративной сети" |
+
+> **Сценарий: BioGenesis Lab (БиоГенезис Лаб)**
+>
+> BioGenesis Lab -- биотехнологическая компания с 200 сотрудниками и 25 исследователями, работающими в JupyterHub. Проблема: все исследователи имеют доступ ко всем датасетам -- нет project-based разграничения. Исследователь геномики может видеть клинические данные пациентов, которые не относятся к его проекту.
+>
+> RBAC здесь недостаточен: создавать отдельную роль для каждой комбинации (проект x уровень допуска x тип данных) приведёт к десяткам ролей. ABAC решает это элегантно: доступ зависит от атрибутов исследователя (проект, clearance), данных (classification, project) и среды (сеть, время).
+
+## ABAC-матрица для BioGenesis
+
+<AccessMatrix
+  client:load
+  title="BioGenesis: ABAC-решения по атрибутам"
+  roles={["Genomics Researcher (CL3)", "Clinical Analyst (CL2)", "Junior Researcher (CL1)", "External Collaborator"]}
+  resources={["Геномные данные (restricted)", "Клинические данные (confidential)", "Агрегированные отчёты (internal)", "Публикации (public)"]}
+  permissions={[
+    ["conditional", "deny", "allow", "allow"],
+    ["deny", "conditional", "allow", "allow"],
+    ["deny", "deny", "allow", "allow"],
+    ["deny", "deny", "deny", "allow"]
+  ]}
+  tooltips={{
+    "Genomics Researcher (CL3):Геномные данные (restricted)": "Conditional: clearance >= 3 И project match И corporate network И business hours",
+    "Clinical Analyst (CL2):Клинические данные (confidential)": "Conditional: clearance >= 2 И assigned to clinical project И corporate network",
+    "Junior Researcher (CL1):Агрегированные отчёты (internal)": "Allow: any authenticated user with clearance >= 1",
+    "External Collaborator:Публикации (public)": "Allow: public data accessible by all authenticated users"
+  }}
+/>
+
+## Policy-as-Code с OPA
+
+**Policy-as-Code (политика как код)** -- подход, при котором политики безопасности описываются программным кодом, версионируются в Git и применяются автоматически. Основной инструмент -- **OPA (Open Policy Agent)** с языком **Rego**.
+
+### Почему Policy-as-Code
+
+| Подход | Традиционный | Policy-as-Code |
+|--------|-------------|----------------|
+| **Где хранятся** | PDF-документы, Confluence | Git-репозиторий |
+| **Как обновляются** | Email, совещания | Pull Request + Code Review |
+| **Как тестируются** | Ручной аудит | Автоматические тесты в CI/CD |
+| **Как применяются** | Вручную администраторами | Автоматически через API |
+| **Audit trail** | Отсутствует или фрагментарный | Git history -- каждое изменение зафиксировано |
+
+### OPA Rego: синтаксис ABAC-политик
+
+```rego
+# BioGenesis: ABAC policy для доступа к данным
+package biogenesis.data_access
+
+# Правило 1: Исследователь из того же проекта может читать internal данные
+allow {
+  input.user.authenticated == true
+  input.resource.classification == "internal"
+}
+
+# Правило 2: Clearance >= 3 для restricted данных из своего проекта
+allow {
+  input.user.clearance >= 3
+  input.resource.classification == "restricted"
+  input.user.project == input.resource.project
+  input.environment.network == "corporate"
+  input.environment.time_hour >= 9
+  input.environment.time_hour <= 18
+}
+
+# Правило 3: Clearance >= 2 для confidential данных
+allow {
+  input.user.clearance >= 2
+  input.resource.classification == "confidential"
+  input.user.project == input.resource.project
+  input.environment.network == "corporate"
+}
+
+# Правило 4: Deny override -- публичная сеть + restricted данные
+deny {
+  input.environment.network == "public"
+  input.resource.classification in {"restricted", "confidential"}
+}
+
+# Финальное решение: allow если нет deny override
+decision = "ALLOW" {
+  allow
+  not deny
+}
+
+decision = "DENY" {
+  not allow
+}
+
+decision = "DENY" {
+  deny
+}
+```
+
+### Тестирование политик
+
+```rego
+# test_biogenesis_policy.rego
+package biogenesis.data_access
+
+test_researcher_can_access_own_project_restricted {
+  allow with input as {
+    "user": {"clearance": 3, "project": "genomics-alpha", "authenticated": true},
+    "resource": {"classification": "restricted", "project": "genomics-alpha"},
+    "environment": {"network": "corporate", "time_hour": 14}
+  }
+}
+
+test_researcher_cannot_access_other_project {
+  not allow with input as {
+    "user": {"clearance": 3, "project": "genomics-alpha", "authenticated": true},
+    "resource": {"classification": "restricted", "project": "clinical-beta"},
+    "environment": {"network": "corporate", "time_hour": 14}
+  }
+}
+
+test_deny_from_public_network {
+  deny with input as {
+    "user": {"clearance": 5, "project": "genomics-alpha", "authenticated": true},
+    "resource": {"classification": "restricted", "project": "genomics-alpha"},
+    "environment": {"network": "public", "time_hour": 14}
+  }
+}
+```
+
+<KnowledgeCheck
+  question="Почему тестирование OPA-политик в CI/CD критически важно для BioGenesis, где ошибка в политике может привести к утечке медицинских данных?"
+  answer="Без тестирования политик изменение правила может непреднамеренно открыть доступ к конфиденциальным данным. Например, если кто-то удалит условие project match из правила 2, все исследователи с clearance >= 3 получат доступ ко всем restricted датасетам, включая данные пациентов из чужих проектов. CI/CD тесты автоматически проверяют, что политика работает как ожидается: разрешает правильные запросы и блокирует неправильные. Это особенно критично для медицинских данных, где нарушение 323-ФЗ может привести к юридической ответственности."
+/>
+
+## Комбинирование RBAC и ABAC
+
+На практике RBAC и ABAC не конкурируют, а дополняют друг друга:
+
+1. **RBAC** определяет базовые разрешения (аналитик может SELECT)
+2. **ABAC** добавляет fine-grained условия (только из своего проекта, в рабочее время, из корпоративной сети)
+
+```
+Решение = RBAC(роль) AND ABAC(атрибуты)
+
+Пример: Alice (роль=researcher) хочет SELECT на genomics_data
+  RBAC: researcher имеет SELECT на research_schema -> ALLOW
+  ABAC: clearance=3, project=genomics, network=corporate, time=14:00 -> ALLOW
+  Итого: ALLOW
+```
+
+<KnowledgeCheck
+  question="В BioGenesis исследователь с clearance 4 пытается получить доступ к restricted данным из домашней WiFi-сети в 23:00. RBAC-роль позволяет доступ. Какое решение примет ABAC?"
+  answer="ABAC отклонит запрос (DENY). Даже при высоком clearance, ABAC проверяет атрибуты среды: network=public (домашняя WiFi, не corporate) и time=23:00 (вне рабочих часов 9-18). Два условия нарушены. Кроме того, правило deny override явно блокирует доступ к restricted данным из public network. Это демонстрирует преимущество ABAC перед чистым RBAC: контекстные факторы могут переопределить ролевые разрешения."
+/>
+
+## Итоги
+
+- **ABAC** оценивает атрибуты субъекта, объекта и среды -- более гибкая модель, чем RBAC
+- **Role explosion** -- проблема RBAC при сложных правилах; ABAC решает её фиксированным набором политик
+- **Policy-as-Code** хранит политики в Git, тестирует в CI/CD, применяет автоматически
+- **OPA (Open Policy Agent)** с языком Rego -- стандартный инструмент для policy-as-code
+- На практике RBAC + ABAC комбинируются: RBAC для базовых ролей, ABAC для fine-grained условий
+- В BioGenesis ABAC обеспечивает project-based isolation для 25 исследователей без role explosion
+
+В следующем уроке мы рассмотрим **Audit Logging** -- журналирование всех действий с данными для compliance и расследования инцидентов.

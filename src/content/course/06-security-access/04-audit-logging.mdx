@@ -1,0 +1,167 @@
+---
+title: "Audit Logging и Compliance"
+description: "Проектирование системы аудит-логирования, типы событий, immutable logging, анализ логов для compliance"
+order: 4
+difficulty: "intermediate"
+estimatedTime: 25
+audience: "engineers"
+topics: ["Audit Logging", "Audit Trail", "Compliance Logging"]
+---
+
+# Audit Logging и Compliance
+
+## Введение
+
+RBAC и ABAC определяют, **кто может** получить доступ к данным. Но governance требует также знать, **кто фактически** получил доступ -- когда, откуда и зачем. Эту задачу решает **Audit Logging** -- журналирование всех действий с данными.
+
+**Audit Trail (аудиторский след)** -- хронологическая запись всех действий с данными: кто, когда, что изменил, с какого IP, по какому основанию. Audit Trail обязателен для compliance (GDPR Article 30, 152-ФЗ) и расследования инцидентов безопасности.
+
+## Проектирование Audit Log
+
+**Audit Log (журнал аудита)** -- неизменяемый журнал всех действий с данными и системами. Каждая запись должна содержать 5 элементов:
+
+| Элемент | Поле | Пример |
+|---------|------|--------|
+| **Who** (кто) | user_id, role, ip_address | `alice_analyst`, `dg_analyst`, `10.0.1.45` |
+| **What** (что) | action, resource, query | `SELECT`, `customers`, `SELECT email FROM...` |
+| **When** (когда) | timestamp, session_id | `2025-12-10T14:23:01Z`, `sess_abc123` |
+| **Where** (откуда) | source_system, network | `jupyter-hub`, `corporate` |
+| **Why** (зачем) | justification, ticket_id | `JIRA-1234: churn analysis report` |
+
+### Схема таблицы audit_log
+
+```sql
+CREATE TABLE audit_log (
+  id          BIGSERIAL PRIMARY KEY,
+  timestamp   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  user_id     VARCHAR(100) NOT NULL,
+  user_role   VARCHAR(50) NOT NULL,
+  action      VARCHAR(20) NOT NULL,     -- SELECT, INSERT, UPDATE, DELETE, EXPORT
+  resource    VARCHAR(200) NOT NULL,    -- schema.table или endpoint
+  query_hash  VARCHAR(64),              -- SHA-256 хеш запроса
+  ip_address  INET NOT NULL,
+  source      VARCHAR(100),             -- приложение-источник
+  status      VARCHAR(10) NOT NULL,     -- SUCCESS, DENIED, ERROR
+  details     JSONB,                    -- дополнительные поля
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Индексы для быстрого поиска
+CREATE INDEX idx_audit_user ON audit_log(user_id, timestamp);
+CREATE INDEX idx_audit_resource ON audit_log(resource, timestamp);
+CREATE INDEX idx_audit_status ON audit_log(status, timestamp);
+CREATE INDEX idx_audit_timestamp ON audit_log(timestamp);
+```
+
+## Пайплайн аудит-логирования
+
+<FlowRow>
+  <FlowNode variant="default" label="Приложение" sublabel="SQL запрос / API вызов" />
+  <Arrow />
+  <FlowNode variant="governance" label="Interceptor" sublabel="Перехват и логирование" />
+  <Arrow />
+  <FlowNode variant="success" label="Immutable Log" sublabel="Append-only хранилище" />
+  <Arrow />
+  <FlowNode variant="decision" label="Анализ" sublabel="Alerting / SIEM" />
+</FlowRow>
+
+### Immutable Logging
+
+Audit log должен быть **неизменяемым** (immutable): записи можно добавлять, но нельзя изменять или удалять. Это обеспечивает достоверность для аудиторов и регуляторов.
+
+```sql
+-- PostgreSQL: защита audit_log от изменений
+-- 1. Запрет UPDATE и DELETE через trigger
+CREATE OR REPLACE FUNCTION prevent_audit_modification()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'Audit log is immutable: % operations are not allowed',
+    TG_OP;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER audit_immutable
+  BEFORE UPDATE OR DELETE ON audit_log
+  FOR EACH ROW EXECUTE FUNCTION prevent_audit_modification();
+
+-- 2. Отдельная роль с INSERT-only доступом
+CREATE ROLE audit_writer NOLOGIN;
+GRANT INSERT ON audit_log TO audit_writer;
+-- Нет GRANT UPDATE или DELETE!
+
+-- 3. Отдельная роль для чтения (аудиторы)
+CREATE ROLE audit_reader NOLOGIN;
+GRANT SELECT ON audit_log TO audit_reader;
+```
+
+> **Сценарий: FinSecure Bank (ФинСекьюр Банк)**
+>
+> Регулятор (Центральный Банк России) требует от FinSecure хранить audit trail всех операций с клиентскими данными минимум 5 лет. При последней проверке выяснилось, что audit logging настроен только для core banking (Oracle), но **15 микросервисов на PostgreSQL не логируют операции с данными**. Compliance для core banking -- 85%, для микросервисов -- 0%.
+>
+> Задача: внедрить единый audit logging для всех систем FinSecure.
+
+<KnowledgeCheck
+  question="Почему audit log должен храниться отдельно от основной базы данных, а не в той же PostgreSQL-инстанции?"
+  answer="Если audit log хранится в той же БД, DBA или злоумышленник с admin-доступом может удалить или изменить записи, скрывая свои действия. Отдельное хранилище с ограниченным доступом (only append, no delete) обеспечивает: (1) независимость -- компрометация основной БД не затрагивает логи; (2) производительность -- аналитика по логам не нагружает production; (3) compliance -- аудиторы получают доступ к логам без доступа к production-данным."
+/>
+
+## Типы событий для логирования
+
+Не все события одинаково важны. Классификация по уровню критичности:
+
+| Уровень | Тип события | Примеры | Retention |
+|---------|-------------|---------|-----------|
+| **Critical** | Доступ к restricted/PII данным | SELECT на PII-столбцах, экспорт конфиденциальных данных | 5 лет |
+| **High** | Изменение данных | INSERT/UPDATE/DELETE на production-таблицах | 3 года |
+| **Medium** | Изменение конфигурации | GRANT/REVOKE, ALTER TABLE, CREATE USER | 5 лет |
+| **Low** | Чтение публичных данных | SELECT на агрегированных отчётах | 1 год |
+| **Security** | Отказы доступа | DENIED attempts, failed logins, privilege escalation attempts | 5 лет |
+
+### Анализ логов: выявление аномалий
+
+```sql
+-- Запрос 1: Кто обращался к restricted данным за последние 30 дней?
+SELECT user_id, COUNT(*) AS access_count,
+       array_agg(DISTINCT resource) AS resources
+FROM audit_log
+WHERE resource LIKE '%sensitive%'
+  AND timestamp > NOW() - INTERVAL '30 days'
+  AND status = 'SUCCESS'
+GROUP BY user_id
+ORDER BY access_count DESC;
+
+-- Запрос 2: Топ пользователей по отказам доступа (потенциальные атаки)
+SELECT user_id, COUNT(*) AS denied_count
+FROM audit_log
+WHERE status = 'DENIED'
+  AND timestamp > NOW() - INTERVAL '30 days'
+GROUP BY user_id
+HAVING COUNT(*) > 10
+ORDER BY denied_count DESC;
+
+-- Запрос 3: Потенциальные инциденты -- более 5 отказов за 1 час
+SELECT user_id,
+       date_trunc('hour', timestamp) AS hour_window,
+       COUNT(*) AS denied_in_hour
+FROM audit_log
+WHERE status = 'DENIED'
+GROUP BY user_id, date_trunc('hour', timestamp)
+HAVING COUNT(*) > 5
+ORDER BY denied_in_hour DESC;
+```
+
+<KnowledgeCheck
+  question="В логах FinSecure обнаружено, что один user_id имеет 23 DENIED-запроса за 30 дней, из них 8 за один час. Является ли это инцидентом безопасности?"
+  answer="8 DENIED-запросов за один час -- это потенциальный инцидент, требующий расследования. Возможные причины: (1) Brute-force атака -- злоумышленник подбирает доступ. (2) Misconfiguration -- пользователю недостаёт прав для легитимной работы, и он многократно пытается. (3) Shadow IT -- пользователь пытается обойти governance, обращаясь к запрещённым ресурсам. Правильный подход: классифицировать как Security Alert, провести расследование (IP-адрес, ресурсы, паттерн запросов), определить root cause и принять меры."
+/>
+
+## Итоги
+
+- **Audit Log** записывает who/what/when/where/why для каждого действия с данными
+- **Immutable logging** -- записи нельзя изменять или удалять (append-only)
+- **Классификация событий** по критичности определяет retention policy (1-5 лет)
+- **Анализ аномалий** в логах выявляет потенциальные инциденты: brute-force, privilege escalation, data exfiltration
+- Audit log должен храниться **отдельно** от production-данных с ограниченным доступом
+- FinSecure требует единый audit logging для core banking и 15 микросервисов
+
+В следующем уроке мы рассмотрим **проектирование RBAC-политик** на реальном примере: FinSecure Bank переработает свою модель доступа после обнаружения 47% over-privileged пользователей.

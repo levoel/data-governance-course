@@ -1,0 +1,214 @@
+---
+title: "Стандарты метаданных"
+description: "Фреймворки метаданных (Dublin Core, DCAT, Schema.org), интероперабельность, выбор стандартов"
+order: 5
+difficulty: "advanced"
+estimatedTime: 20
+audience: "engineers"
+topics: ["Metadata Standards", "Dublin Core", "DCAT", "Schema.org"]
+---
+
+# Стандарты метаданных
+
+## Введение
+
+Когда три команды описывают один и тот же датасет тремя разными способами, метаданные превращаются из инструмента управления в источник хаоса. **Metadata Standards (стандарты метаданных)** -- это согласованные правила описания метаданных, обеспечивающие единообразие и интероперабельность между системами и командами.
+
+## Зачем нужны стандарты метаданных
+
+Стандарты метаданных решают три проблемы:
+
+1. **Единообразие**: все описывают данные одинаково (одни и те же обязательные поля)
+2. **Интероперабельность**: метаданные из PostgreSQL совместимы с метаданными из ClickHouse
+3. **Автоматизация**: машина может проверить compliance метаданных по схеме
+
+Без стандартов:
+
+```json
+// Команда A описывает таблицу так:
+{"name": "customers", "desc": "Клиенты", "updated": "вчера"}
+
+// Команда B -- так:
+{"table_name": "orders", "description": "Заказы", "last_refresh": "2026-03-01T03:00:00Z"}
+
+// Команда C -- так:
+{"title": "Products", "owner": "product-team"}
+```
+
+Три формата, три набора полей, ни одного стандарта. Каталог данных не может агрегировать эти метаданные.
+
+## Международные стандарты метаданных
+
+### Dublin Core
+
+**Dublin Core** -- один из старейших стандартов метаданных (1995). Определяет 15 базовых элементов для описания любого ресурса:
+
+| Элемент | Описание | Пример для data asset |
+|---------|----------|----------------------|
+| Title | Название | `Таблица customers` |
+| Creator | Автор/создатель | `customer-domain-team` |
+| Subject | Тема/категория | `customer-data, PII` |
+| Description | Описание | `Мастер-таблица клиентов` |
+| Date | Дата | `2026-01-15` |
+| Type | Тип ресурса | `table` |
+| Format | Формат | `PostgreSQL relation` |
+| Identifier | Уникальный ID | `production.public.customers` |
+| Rights | Права | `confidential, internal-only` |
+
+Dublin Core прост и универсален, но слишком абстрактен для data-специфичных задач.
+
+### DCAT (Data Catalog Vocabulary)
+
+**DCAT** -- стандарт W3C для описания каталогов данных. Расширяет Dublin Core data-специфичными концепциями:
+
+```json
+{
+  "@type": "dcat:Dataset",
+  "dct:title": "Customer Orders",
+  "dct:description": "All customer orders with payment status",
+  "dcat:distribution": [
+    {
+      "@type": "dcat:Distribution",
+      "dcat:mediaType": "application/sql",
+      "dcat:accessURL": "postgresql://prod/public.orders"
+    }
+  ],
+  "dct:publisher": "order-management-team",
+  "dcat:keyword": ["transactional", "customer-facing"],
+  "dct:temporal": "2023-01-01/2026-03-01",
+  "dcat:contactPoint": "data-steward@datatech.local"
+}
+```
+
+DCAT полезен для:
+- Open Data порталов (government data catalogs)
+- Межорганизационного обмена метаданными
+- Интеграции с semantic web (RDF, SPARQL)
+
+### Schema.org
+
+**Schema.org** -- совместный проект Google, Microsoft, Yahoo для структурированных данных в вебе. Тип `Dataset` используется для описания данных:
+
+```json
+{
+  "@type": "Dataset",
+  "name": "Customer Transactions 2025",
+  "description": "Monthly aggregated transaction data",
+  "url": "https://catalog.datatech.local/datasets/transactions",
+  "creator": {
+    "@type": "Organization",
+    "name": "DataTech Analytics Team"
+  },
+  "temporalCoverage": "2025-01-01/2025-12-31",
+  "license": "internal-use-only"
+}
+```
+
+Schema.org полезен для:
+- SEO данных (Google Dataset Search)
+- Публичных datasets
+- Интеграции с внешними потребителями
+
+<KnowledgeCheck
+  question="DataTech выбирает стандарт метаданных для внутреннего каталога. Почему Dublin Core недостаточен, а Schema.org избыточен?"
+  answer="Dublin Core слишком абстрактен: 15 элементов не покрывают data-специфичные потребности (колонки, типы, lineage, PII-маркеры, SLA). Schema.org ориентирован на публичный веб и SEO, а DataTech нужен внутренний каталог. Оптимален DCAT (или его адаптация): data-специфичные поля, поддержка distributions и contact points, расширяемость для custom attributes."
+/>
+
+## Проектирование собственного стандарта
+
+На практике большинство организаций создают **собственный стандарт**, основанный на международных, но адаптированный под нужды:
+
+### Шаг 1: Определить обязательные поля
+
+```json
+{
+  "required": ["table", "owner", "classification", "columns"],
+  "properties": {
+    "table":          {"type": "string"},
+    "owner":          {"type": "string"},
+    "classification": {"type": "string", "enum": ["public", "internal", "confidential", "restricted"]},
+    "columns":        {"type": "array", "minItems": 1}
+  }
+}
+```
+
+### Шаг 2: Определить рекомендуемые поля
+
+```json
+{
+  "recommended": ["description", "tags", "freshness_sla_hours", "quality_score"],
+  "properties": {
+    "description":         {"type": "string", "minLength": 10},
+    "tags":                {"type": "array", "items": {"type": "string"}},
+    "freshness_sla_hours": {"type": "integer", "minimum": 1},
+    "quality_score":       {"type": "number", "minimum": 0, "maximum": 1}
+  }
+}
+```
+
+### Шаг 3: Валидация compliance
+
+Стандарт без enforcement -- декларация. Автоматическая валидация:
+
+```python
+def validate_catalog_entry(entry, schema):
+    """Проверить каталожную запись на соответствие стандарту"""
+    errors = []
+
+    # Проверка обязательных полей
+    for field in schema["required"]:
+        if field not in entry:
+            errors.append(f"missing required field: {field}")
+
+    # Проверка enum
+    if "classification" in entry:
+        allowed = schema["properties"]["classification"]["enum"]
+        if entry["classification"] not in allowed:
+            errors.append(
+                f"classification: '{entry['classification']}' "
+                f"not in enum {allowed}"
+            )
+
+    # Проверка minItems
+    if "columns" in entry:
+        min_items = schema["properties"]["columns"]["minItems"]
+        if len(entry["columns"]) < min_items:
+            errors.append(
+                f"columns: minItems violation "
+                f"({len(entry['columns'])} < {min_items})"
+            )
+
+    return {"status": "valid" if not errors else "invalid", "errors": errors}
+```
+
+## Сценарий: DataTech стандартизирует метаданные
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> DataTech решает стандартизировать метаданные для своих 200+ таблиц в трёх системах: PostgreSQL (production), ClickHouse (analytics) и MinIO (data lake).
+>
+> **Проблема:** каждая система хранит метаданные по-своему:
+> - PostgreSQL: `pg_catalog`, `information_schema` -- технические метаданные
+> - ClickHouse: `system.tables`, `system.columns` -- технические метаданные
+> - MinIO: только имя файла и размер -- минимум метаданных
+>
+> **Решение:** единый стандарт каталожной записи (JSON Schema):
+> - 4 обязательных поля: `table`, `owner`, `classification`, `columns`
+> - 4 рекомендуемых: `description`, `tags`, `freshness_sla_hours`, `quality_score`
+> - Автоматическая валидация: CI/CD check при обновлении каталога
+> - Coverage target: 100% обязательных полей за 3 месяца, 80% рекомендуемых за 6 месяцев
+
+<KnowledgeCheck
+  question="Почему DataTech выделяет 'обязательные' и 'рекомендуемые' поля, а не делает все поля обязательными сразу?"
+  answer="Потому что на Level 1 у DataTech нет бизнес-метаданных ни для одной таблицы. Если сделать все поля обязательными, ни одна запись не пройдёт валидацию, и стандарт будет бесполезен. Разделение позволяет: (1) быстро достичь 100% coverage по базовым полям (table, owner, classification, columns -- автоматически собираемые), (2) постепенно наращивать бизнес-метаданные (description, tags), (3) измерять прогресс: 'compliance rate по обязательным' vs 'compliance rate по рекомендуемым'."
+/>
+
+## Итоги
+
+- **Metadata Standards** обеспечивают единообразие и интероперабельность метаданных
+- Международные стандарты: **Dublin Core** (базовый), **DCAT** (data-каталоги), **Schema.org** (веб/публичные данные)
+- На практике организации создают **собственные стандарты** на основе международных
+- Стандарт = JSON Schema с обязательными и рекомендуемыми полями + автоматическая валидация
+- Разделение на обязательные/рекомендуемые позволяет **постепенно повышать** coverage
+
+В следующем уроке мы рассмотрим **автоматическую классификацию и тегирование** -- как ML и rule-based системы автоматически присваивают теги data assets.

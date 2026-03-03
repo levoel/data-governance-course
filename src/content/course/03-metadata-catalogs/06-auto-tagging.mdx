@@ -1,0 +1,217 @@
+---
+title: "Автоматическая классификация и тегирование"
+description: "Автоматическое тегирование метаданных, rule-based и ML-подходы, governance тегов"
+order: 6
+difficulty: "advanced"
+estimatedTime: 20
+audience: "engineers"
+topics: ["Auto-Tagging", "Classification", "ML Tagging"]
+---
+
+import { AccessMatrix } from '../../../components/diagrams/governance';
+
+# Автоматическая классификация и тегирование
+
+## Введение
+
+Ручное тегирование 200 таблиц -- осуществимо. Ручное тегирование 2,000 колонок -- нет. По мере роста объёма данных ручная классификация становится bottleneck программы governance. Автоматическое тегирование -- решение, позволяющее масштабировать классификацию без пропорционального увеличения штата Data Stewards.
+
+## Зачем автоматизировать тегирование
+
+**Tag/Classification (тег/классификация)** -- это механизм категоризации data assets с помощью меток. Теги бывают пользовательские (проектные, доменные) и системные (PII, Confidential, Tier-1). Классификация обеспечивает автоматическое применение политик: PII-tagged данные автоматически маскируются при экспорте.
+
+Проблема ручного тегирования:
+
+| Метрика | Ручное | Автоматическое |
+|---------|--------|----------------|
+| **Скорость** | 5-10 минут на таблицу | Секунды на таблицу |
+| **Консистентность** | Зависит от человека | Одинаковые правила для всех |
+| **Coverage** | 40% за 6 месяцев (FinSecure) | 90%+ за дни |
+| **Стоимость** | Data Steward hours | Одноразовая настройка правил |
+| **Точность** | Высокая (человек понимает контекст) | Средняя (требует review) |
+
+Оптимальный подход -- **гибридный**: автоматическое тегирование для baseline + ручной review для edge cases.
+
+## Rule-based тегирование
+
+Простейший подход -- правила на основе паттернов в именах колонок и таблиц:
+
+```python
+# Rule-based tag classifier
+TAG_RULES = {
+    "pii-detected": {
+        "column_patterns": ["email", "phone", "inn", "passport", "address",
+                            "name", "surname", "birth_date", "snils"],
+        "table_patterns": ["customers", "users", "employees", "patients"]
+    },
+    "financial-data": {
+        "column_patterns": ["amount", "currency", "balance", "price",
+                            "payment", "transaction", "revenue"],
+        "table_patterns": ["transactions", "payments", "invoices", "ledger"]
+    },
+    "health-data": {
+        "column_patterns": ["diagnosis", "treatment", "blood_type", "icd_code",
+                            "prescription", "medical_record"],
+        "table_patterns": ["patient_records", "clinical_data", "lab_results"]
+    },
+    "audit-required": {
+        "column_patterns": ["user_id", "action", "ip_address", "timestamp"],
+        "table_patterns": ["audit_events", "access_logs", "change_history"]
+    },
+    "gdpr-relevant": {
+        "column_patterns": ["email", "phone", "inn", "address", "name",
+                            "birth_date", "passport"],
+        "table_patterns": ["customers", "users", "patients"]
+    },
+    "retention-critical": {
+        "column_patterns": ["created_at", "transaction_date", "order_date"],
+        "table_patterns": ["customers", "transactions", "patient_records",
+                           "audit_events", "orders"]
+    },
+    "publicly-available": {
+        "table_patterns": ["public_products", "public_categories",
+                           "public_faq", "public_docs"]
+    }
+}
+
+def classify_table(table_name, columns):
+    """Присвоить теги таблице на основе rule-based правил"""
+    tags = set()
+    for tag, rules in TAG_RULES.items():
+        # Проверка по имени таблицы
+        for pattern in rules.get("table_patterns", []):
+            if pattern in table_name.lower():
+                tags.add(tag)
+        # Проверка по именам колонок
+        for col in columns:
+            for pattern in rules.get("column_patterns", []):
+                if pattern in col.lower():
+                    tags.add(tag)
+    return sorted(tags)
+```
+
+### Преимущества rule-based
+
+- **Прозрачность**: каждый тег объясним (колонка `email` -> PII)
+- **Контроль**: правила определяются Data Steward, а не ML-моделью
+- **Предсказуемость**: одинаковый вход -> одинаковый выход
+
+### Ограничения rule-based
+
+- Не распознаёт PII в произвольно названных колонках (`col1`, `field_x`)
+- Не учитывает контекст (колонка `name` в таблице `product_names` -- не PII)
+- Требует ручного обновления правил при появлении новых паттернов
+
+<KnowledgeCheck
+  question="Rule-based классификатор пометил колонку 'name' в таблице 'product_categories' как PII. Это правильно? Как исправить?"
+  answer="Нет, это false positive: 'name' в контексте product_categories -- название категории, а не имя человека. Исправление: добавить исключения (exceptions) в правила -- если table_pattern содержит 'product', не применять PII-тег для колонки 'name'. Или перейти к более точной стратегии: проверять комбинацию table_pattern + column_pattern, а не каждый независимо."
+/>
+
+## ML-based тегирование
+
+Для более точной классификации используются ML-модели:
+
+### Подход 1: NLP на описаниях
+
+Если в каталоге уже есть описания (бизнес-метаданные), NLP-модель классифицирует по тексту:
+
+```python
+# Пример: классификация по описанию колонки
+descriptions = {
+    "customer_id": "Уникальный идентификатор клиента",
+    "diagnosis_code": "Код диагноза по МКБ-10",
+    "product_sku": "Артикул товара в каталоге"
+}
+# NLP -> "diagnosis_code" = health-data (медицинская терминология)
+# NLP -> "customer_id" = pii-detected (связь с клиентом)
+# NLP -> "product_sku" = publicly-available (товарные данные)
+```
+
+### Подход 2: Statistical profiling
+
+Анализ статистического профиля данных для определения типа:
+
+- Колонка с 95% unique значений формата `xxx@xxx.xxx` -> email -> PII
+- Колонка с 11 цифрами, начинающимися на 7 -> phone (RU) -> PII
+- Колонка с значениями из {M, F, Other} -> gender -> PII
+
+### Подход 3: Propagation через lineage
+
+Если upstream-колонка помечена как PII, downstream-колонки наследуют тег (если не было anonymization/masking трансформации).
+
+## Матрица тегов и политик
+
+Теги не самоцель -- они активируют governance-политики:
+
+<AccessMatrix
+  client:visible
+  title="Матрица тегов и автоматических политик"
+  roles={["pii-detected", "financial-data", "health-data", "audit-required", "publicly-available"]}
+  resources={["Маскирование при экспорте", "Шифрование at rest", "Access review ежеквартально", "Retention policy 7 лет", "Audit logging"]}
+  permissions={[
+    ["required", "required", "required", "recommended", "required"],
+    ["n/a", "required", "n/a", "required", "required"],
+    ["required", "required", "required", "required", "required"],
+    ["n/a", "n/a", "required", "required", "required"],
+    ["n/a", "n/a", "n/a", "n/a", "n/a"]
+  ]}
+/>
+
+Каждый тег в матрице автоматически активирует набор governance-действий. PII-detected -> маскирование + шифрование + access review + audit logging. Publicly-available -> никаких ограничений.
+
+## Governance тегов
+
+Теги сами требуют governance:
+
+### Taxonomy управления тегами
+
+1. **Tag taxonomy** -- иерархия допустимых тегов (кто может создавать новые)
+2. **Tag ownership** -- кто отвечает за каждую категорию тегов
+3. **Tag review** -- процесс пересмотра автоматических тегов
+4. **Tag audit** -- проверка accuracy тегирования
+
+### Workflow автоматического тегирования
+
+```
+Новая таблица создана
+  -> Crawler собирает технические метаданные
+    -> Rule-based classifier присваивает теги
+      -> Data Steward получает уведомление
+        -> Review: confirm / reject / modify
+          -> Теги утверждены -> политики активированы
+```
+
+Ключевой принцип: **automate classification, humanize validation**. Машина предлагает теги, человек утверждает.
+
+## Сценарий: DataTech автоматизирует классификацию
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> DataTech выбрала rule-based подход для первой итерации автоматического тегирования. Результаты на 200+ таблицах:
+>
+> - **PII-detected**: 23 таблицы (11.5%) -- customers, users, orders (email, phone, address)
+> - **Financial-data**: 15 таблиц (7.5%) -- transactions, payments, invoices
+> - **Audit-required**: 8 таблиц (4%) -- audit_events, access_logs
+> - **Publicly-available**: 5 таблиц (2.5%) -- product catalog, categories
+> - **Unclassified**: 149 таблиц (74.5%) -- требуют ручной классификации
+>
+> **False positives**: 4 таблицы (2%) -- product_names помечена как PII из-за колонки `name`
+> **False negatives**: 7 таблиц (3.5%) -- содержат PII в колонках с нестандартными именами (`col_3` = phone)
+>
+> **Accuracy**: 94.5% для rule-based на стандартно именованных таблицах. Достаточно для Level 1.
+
+<KnowledgeCheck
+  question="74.5% таблиц DataTech остались без тегов (unclassified). Это провал автоматического тегирования?"
+  answer="Нет. Unclassified -- нормальный результат для rule-based подхода на первой итерации. Правила покрывают только паттерны PII, financial, health, audit, public. Остальные таблицы (служебные, staging, temp) могут не нуждаться в governance-тегах. Следующий шаг: Data Steward review unclassified таблиц для определения, какие из них нуждаются в тегировании, и добавление новых правил."
+/>
+
+## Итоги
+
+- **Автоматическое тегирование** масштабирует классификацию без пропорционального роста штата
+- Два подхода: **rule-based** (прозрачный, контролируемый) и **ML-based** (точный для edge cases)
+- Оптимален **гибридный подход**: автоматическая классификация + ручной review
+- Теги активируют **governance-политики** автоматически (PII -> маскирование, шифрование, audit)
+- Теги сами требуют **governance**: taxonomy, ownership, review process
+- Принцип: **automate classification, humanize validation**
+
+Это завершает модуль **M03: Метаданные и Каталоги Данных**. Вы изучили: типы метаданных, бизнес-глоссарий, архитектуру каталога, Data Lineage, стандарты метаданных и автоматическую классификацию. В следующем модуле мы перейдём к **M04: Качество Данных и Observability**.

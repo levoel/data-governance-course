@@ -1,0 +1,191 @@
+---
+title: "Проектирование RBAC-политик"
+description: "Дизайн production RBAC-политик, валидация, тестирование, предотвращение role explosion"
+order: 5
+difficulty: "advanced"
+estimatedTime: 25
+audience: "engineers"
+topics: ["Policy Design", "RBAC Validation", "Policy Testing"]
+---
+
+import { AccessMatrix, PolicyTemplate } from '../../../components/diagrams/governance';
+
+# Проектирование RBAC-политик
+
+## Введение
+
+Внедрить RBAC технически -- просто: CREATE ROLE, GRANT, REVOKE. Спроектировать **правильную** RBAC-модель -- сложно. Плохо спроектированная модель ведёт к role explosion, over-privileged пользователям и compliance-нарушениям. В этом уроке мы спроектируем production RBAC-политику для FinSecure Bank с нуля.
+
+## Сценарий: аудит FinSecure
+
+> **Сценарий: FinSecure Bank (ФинСекьюр Банк)**
+>
+> Внутренний аудит безопасности выявил критическую проблему: **47% пользователей имеют избыточные привилегии** (over-privileged access). Конкретные находки:
+>
+> - 8 аналитиков имеют запись в production-таблицы (нужен только SELECT)
+> - 3 инженера имеют admin-доступ к Oracle core banking (нужен только staging)
+> - 12 пользователей имеют роли, созданные "временно" 2 года назад, но никогда не отозванные
+> - Существует 34 пользовательских роли, из которых 19 дублируют друг друга
+>
+> Data Council поручил команде безопасности разработать новую RBAC-модель с нуля.
+
+## Шаг 1: инвентаризация ресурсов
+
+Первый шаг -- каталогизация всех ресурсов, к которым нужен доступ:
+
+| Ресурс | Тип | Классификация | Владелец |
+|--------|-----|---------------|----------|
+| `core_banking.transactions` | Oracle таблица | Restricted | Core Banking Team |
+| `core_banking.customers` | Oracle таблица | Confidential (PII) | Core Banking Team |
+| `analytics.reports` | Snowflake view | Internal | BI Team |
+| `staging.etl_temp` | PostgreSQL схема | Internal | Data Engineering |
+| `audit.access_log` | Отдельная БД | Restricted | Security Team |
+| `ml.credit_scoring` | Модель + данные | Confidential | ML Team |
+
+## Шаг 2: определение ролей по функциям
+
+Роли определяются по **функциям**, а не по отделам или проектам:
+
+```sql
+-- Базовые роли (leaf roles)
+CREATE ROLE fs_viewer NOLOGIN;       -- только чтение агрегатов
+CREATE ROLE fs_analyst NOLOGIN;      -- чтение + аналитика
+CREATE ROLE fs_engineer NOLOGIN;     -- чтение + запись staging
+CREATE ROLE fs_steward NOLOGIN;      -- чтение + маскированные PII
+CREATE ROLE fs_auditor NOLOGIN;      -- только audit log
+CREATE ROLE fs_dba NOLOGIN;          -- администрирование БД
+
+-- Иерархия
+GRANT fs_viewer TO fs_analyst;       -- analyst включает viewer
+GRANT fs_viewer TO fs_engineer;      -- engineer включает viewer
+```
+
+## Шаг 3: матрица разрешений
+
+<AccessMatrix
+  client:load
+  title="FinSecure: новая RBAC-матрица (после аудита)"
+  roles={["fs_viewer", "fs_analyst", "fs_engineer", "fs_steward", "fs_auditor", "fs_dba"]}
+  resources={["Транзакции (aggr)", "Клиенты PII", "Staging", "Audit Log", "ML Models", "System Config"]}
+  permissions={[
+    ["allow", "deny", "deny", "deny", "deny", "deny"],
+    ["allow", "deny", "deny", "deny", "deny", "deny"],
+    ["allow", "deny", "allow", "deny", "deny", "deny"],
+    ["allow", "conditional", "deny", "deny", "deny", "deny"],
+    ["deny", "deny", "deny", "allow", "deny", "deny"],
+    ["allow", "allow", "allow", "allow", "deny", "allow"]
+  ]}
+  tooltips={{
+    "fs_viewer:Транзакции (aggr)": "SELECT на агрегированных view (без raw данных)",
+    "fs_analyst:Клиенты PII": "DENY: аналитики работают с маскированными view в mart-схеме",
+    "fs_engineer:Staging": "INSERT, UPDATE на staging-схеме для ETL-пайплайнов",
+    "fs_steward:Клиенты PII": "Conditional: SELECT через маскированные view для quality-проверок",
+    "fs_auditor:Audit Log": "SELECT-only на audit_log -- read-only для compliance-проверок",
+    "fs_dba:System Config": "ALTER SYSTEM, CREATE/DROP -- ограничен двойным одобрением"
+  }}
+/>
+
+## Шаг 4: документирование политики
+
+<PolicyTemplate
+  client:load
+  title="FinSecure RBAC Policy v2.0"
+  metadata={{
+    "Version": "2.0",
+    "Owner": "CISO + CDO",
+    "Status": "Approved by Data Council",
+    "Effective": "2025-01-15",
+    "Review": "Quarterly"
+  }}
+  sections={[
+    {
+      heading: "1. Принцип наименьших привилегий",
+      content: "Каждый пользователь получает минимальный набор прав, необходимый для выполнения функций. Избыточные права должны быть отозваны в течение 24 часов после обнаружения."
+    },
+    {
+      heading: "2. Разделение обязанностей",
+      content: "Один пользователь не может совмещать роли fs_engineer и fs_auditor. DBA-операции на production требуют двойного одобрения (CISO + CDO)."
+    },
+    {
+      heading: "3. Ротация доступа",
+      content: "Временные роли автоматически отзываются через 30 дней. Все роли пересматриваются ежеквартально. Неиспользуемые роли (0 запросов за 90 дней) деактивируются."
+    },
+    {
+      heading: "4. Логирование",
+      content: "Все операции GRANT/REVOKE логируются в audit_log. Доступ к PII-столбцам логируется на уровне запроса (query-level audit)."
+    }
+  ]}
+/>
+
+<KnowledgeCheck
+  question="Почему в политике FinSecure указано, что один пользователь не может совмещать роли fs_engineer и fs_auditor?"
+  answer="Это принцип separation of duties (разделение обязанностей). Если инженер одновременно является аудитором, он может: (1) изменить данные (как engineer) и (2) проверить свои же изменения (как auditor) -- конфликт интересов. В банковской сфере это критически важно: человек, создающий транзакцию, не может её подтверждать. Аналогично, человек, изменяющий данные, не может аудировать свои изменения. PCI DSS и регулятор ЦБ РФ требуют separation of duties."
+/>
+
+## Шаг 5: валидация и тестирование
+
+### Автоматическая валидация политики
+
+```python
+def validate_rbac_policy(roles, permissions, constraints):
+    """Валидация RBAC-политики на типичные проблемы."""
+    issues = []
+
+    # Проверка 1: Role explosion (больше 2x пользователей)
+    if len(roles) > len(set(r['function'] for r in roles)) * 2:
+        issues.append("WARNING: Potential role explosion detected")
+
+    # Проверка 2: Over-privileged roles
+    for role in roles:
+        if role.get('all_schemas_access'):
+            issues.append(f"CRITICAL: {role['name']} has ALL SCHEMAS access")
+
+    # Проверка 3: Separation of duties violations
+    for constraint in constraints.get('incompatible_roles', []):
+        role_a, role_b = constraint
+        for user in get_users():
+            if has_role(user, role_a) and has_role(user, role_b):
+                issues.append(
+                    f"VIOLATION: {user} has incompatible roles "
+                    f"{role_a} and {role_b}"
+                )
+
+    # Проверка 4: Stale roles (не использовались > 90 дней)
+    for role in roles:
+        if role.get('last_used_days_ago', 0) > 90:
+            issues.append(
+                f"STALE: {role['name']} not used in "
+                f"{role['last_used_days_ago']} days"
+            )
+
+    return issues
+```
+
+### Предотвращение role explosion
+
+Role explosion -- ситуация, когда количество ролей растёт неконтролируемо. Признаки:
+
+| Индикатор | Порог | Действие |
+|-----------|-------|----------|
+| Количество ролей > 2x пользователей | > 60 ролей для 30 пользователей | Аудит и консолидация |
+| > 50% ролей назначены одному пользователю | Роль = пользователь | Пересмотр модели |
+| Дублирующиеся permissions | > 30% overlap | Объединение ролей |
+| Роли с одинаковыми permissions | 100% overlap | Удаление дубликата |
+
+В FinSecure до аудита было 34 роли для 30 пользователей -- типичный role explosion. После редизайна: 6 базовых ролей + 2 составные = 8 ролей. Сокращение на 76%.
+
+<KnowledgeCheck
+  question="FinSecure сократила количество ролей с 34 до 8. Какие риски возникают при таком резком сокращении?"
+  answer="Три основных риска: (1) Потеря fine-grained контроля -- если 34 роли были созданы для реальных бизнес-потребностей, 8 ролей могут быть слишком грубыми, вынуждая давать избыточные права. (2) Resistance to change -- пользователи привыкли к определённому уровню доступа, сокращение вызовет жалобы. (3) Operational disruption -- ETL-пайплайны и сервисы могут сломаться, если их service accounts потеряют нужные permissions. Решение: поэтапный rollout с мониторингом DENIED-запросов в audit log, period of grace для выявления проблем."
+/>
+
+## Итоги
+
+- Проектирование RBAC начинается с **инвентаризации ресурсов** и **определения ролей по функциям**
+- **Матрица разрешений** визуализирует связь ролей и ресурсов -- базовый артефакт policy review
+- **Документирование политики** включает: принцип least privilege, separation of duties, ротацию, логирование
+- **Валидация** автоматизирует проверку: role explosion, over-privileged, stale roles, SoD violations
+- **Role explosion** -- основная проблема RBAC; предотвращается мониторингом метрик и периодической консолидацией
+- FinSecure сократила 34 роли до 8 после аудита, обнаружившего 47% over-privileged пользователей
+
+В следующем уроке мы рассмотрим **реагирование на инциденты безопасности** -- что делать, когда защита не сработала и произошла утечка данных.

@@ -1,0 +1,107 @@
+{
+  "lessonSlug": "03-metadata-catalogs/06-auto-tagging",
+  "moduleId": "03-metadata-catalogs",
+  "_meta": {
+    "idPrefix": "dg-m03-06",
+    "description": "Use IDs: dg-m03-06-q1 through dg-m03-06-q4, dg-m03-06-code-1 (CC-12)"
+  },
+  "questions": [
+    {
+      "id": "dg-m03-06-q1",
+      "type": "multiple-choice",
+      "question": "DataTech запустила rule-based тегирование для 200+ таблиц. Результат: 25.5% таблиц получили теги, 74.5% -- unclassified. Data Council спрашивает: это провал? Какой ответ правильный?",
+      "options": [
+        { "id": "a", "text": "Да, это провал -- автоматическая классификация должна покрывать 100% таблиц" },
+        { "id": "b", "text": "Нет, rule-based покрыл PII, financial и audit-таблицы (критичные для governance). Unclassified таблицы -- staging, temp, служебные -- могут не нуждаться в governance-тегах" },
+        { "id": "c", "text": "Нет, но нужно немедленно переключиться на ML-based подход" },
+        { "id": "d", "text": "Да, Data Steward должен вручную классифицировать все 200 таблиц" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "25.5% coverage звучит мало, но rule-based целенаправленно покрывает governance-критичные категории: PII (23 таблицы), financial (15), audit (8), public (5). Остальные 149 таблиц -- staging, temp, internal -- для многих governance-теги не применимы. Следующий шаг: Data Steward review unclassified для определения, какие нуждаются в тегировании. ML-based (C) -- следующая итерация, не немедленная замена.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m03-06-q2",
+      "type": "multiple-choice",
+      "question": "Rule-based классификатор DataTech пометил таблицу product_names как PII (колонка 'name' сработала как паттерн). Это false positive. Какое архитектурное решение предотвратит подобные ошибки?",
+      "options": [
+        { "id": "a", "text": "Удалить паттерн 'name' из PII-правил полностью" },
+        { "id": "b", "text": "Добавить контекстные исключения: если table_pattern содержит 'product', не применять PII-тег для колонки 'name'" },
+        { "id": "c", "text": "Переключиться на ML-based подход, который не делает ошибок" },
+        { "id": "d", "text": "Принять false positives как неизбежность и не исправлять" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Контекстные исключения -- стандартный подход: правило 'name -> PII' корректно для таблиц customers, employees, но не для product_names. Исключение 'если таблица содержит product -> не PII для name' решает проблему без потери покрытия. Удаление паттерна (A) создаст false negatives: customers.name не будет помечен. ML-подход (C) тоже делает ошибки. Игнорирование (D) подрывает доверие к классификации.",
+      "hint": "Подумайте: паттерн 'name' правильный для customers.name, но неправильный для product_names.name. Как сохранить правило для первого случая и исключить второй?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m03-06-q3",
+      "type": "multiple-choice",
+      "question": "Какой принцип governance автоматического тегирования выражается формулой 'automate classification, humanize validation'?",
+      "options": [
+        { "id": "a", "text": "Машина классифицирует, человек не участвует в процессе" },
+        { "id": "b", "text": "Человек классифицирует, машина валидирует результат" },
+        { "id": "c", "text": "Машина предлагает теги (автоматическая классификация), Data Steward утверждает или корректирует (ручная валидация)" },
+        { "id": "d", "text": "Классификация и валидация полностью автоматизированы" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Workflow: новая таблица -> crawler собирает метаданные -> rule-based/ML предлагает теги -> Data Steward получает уведомление -> review: confirm/reject/modify -> теги утверждены -> политики активированы. Автоматизация обеспечивает скорость и coverage, человеческий review -- точность и контекст. Полная автоматизация (D) рискует false positives/negatives. Полная ручная работа (B) не масштабируется.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m03-06-q4",
+      "type": "true-false",
+      "question": "Если upstream-колонка в lineage-графе помечена как PII, все downstream-колонки автоматически наследуют PII-тег без исключений.",
+      "correctAnswer": false,
+      "explanation": "PII-тег наследуется downstream только если не было anonymization или masking трансформации. Если dbt-модель применяет SHA256(email) или заменяет email на masked_email (маскирование), downstream-колонка больше не содержит PII в исходном виде. Lineage-based propagation должен учитывать трансформации: если между upstream PII и downstream есть masking/anonymization шаг, downstream не наследует PII-тег.",
+      "hint": "Представьте: raw_customers.email (PII) -> stg_customers.email_hash (SHA256 хеш). Является ли email_hash всё ещё PII? Зависит от того, обратима ли трансформация.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m03-06-code-1",
+      "type": "code-challenge",
+      "question": "Напишите Python-функцию classify_tables(tables), которая принимает список таблиц (каждая с name и columns) и возвращает словарь: ключ -- имя таблицы, значение -- отсортированный список тегов. Теги определяются по keyword-matching: email/phone/inn/address -> pii-detected + gdpr-relevant; amount/currency/merchant -> financial-data; diagnosis/treatment/blood_type -> health-data; action/ip_address + таблица audit_ -> audit-required; таблица public_ -> publicly-available. Добавьте retention-critical для таблиц с PII, financial или audit тегами.",
+      "language": "python",
+      "starterCode": "import json\nimport sys\n\ndef classify_tables(tables):\n    # tables: list of {\"name\": str, \"columns\": list[str]}\n    # Return: dict of {table_name: sorted list of tags}\n    result = {}\n    # Your code here\n    return result\n\n# Read input\ndata = json.loads(sys.stdin.read())\ntables = data[\"tables\"]\nresult = classify_tables(tables)\nprint(json.dumps(result, indent=2))",
+      "solutionCode": "import json\nimport sys\n\ndef classify_tables(tables):\n    result = {}\n    \n    pii_keywords = {\"email\", \"phone\", \"inn\", \"address\"}\n    financial_keywords = {\"amount\", \"currency\", \"merchant\"}\n    health_keywords = {\"diagnosis_code\", \"treatment\", \"blood_type\", \"diagnosis\"}\n    audit_keywords = {\"action\", \"ip_address\"}\n    \n    for table in tables:\n        name = table[\"name\"]\n        columns = [c.lower() for c in table[\"columns\"]]\n        tags = set()\n        \n        # PII detection\n        if any(kw in col for col in columns for kw in pii_keywords):\n            tags.add(\"pii-detected\")\n            tags.add(\"gdpr-relevant\")\n        \n        # Financial data\n        if any(kw in col for col in columns for kw in financial_keywords):\n            tags.add(\"financial-data\")\n        \n        # Health data\n        if any(kw in col for col in columns for kw in health_keywords):\n            tags.add(\"pii-detected\")\n            tags.add(\"health-data\")\n            tags.add(\"gdpr-relevant\")\n        \n        # Audit required\n        if name.startswith(\"audit\") and any(kw in col for col in columns for kw in audit_keywords):\n            tags.add(\"audit-required\")\n        elif any(kw in col for col in columns for kw in audit_keywords):\n            tags.add(\"audit-required\")\n        \n        # Publicly available\n        if name.startswith(\"public_\"):\n            tags.add(\"publicly-available\")\n        \n        # Retention critical\n        if tags & {\"pii-detected\", \"financial-data\", \"audit-required\"}:\n            tags.add(\"retention-critical\")\n        \n        result[name] = sorted(tags)\n    \n    return result\n\ndata = json.loads(sys.stdin.read())\ntables = data[\"tables\"]\nresult = classify_tables(tables)\nprint(json.dumps(result, indent=2))",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "customers table: has email, phone, inn, address -> pii-detected, gdpr-relevant, retention-critical",
+          "input": "{\"tables\":[{\"name\":\"customers\",\"columns\":[\"id\",\"email\",\"phone\",\"inn\",\"address\",\"created_at\"]}]}",
+          "expectedOutput": "{\"customers\":[\"gdpr-relevant\",\"pii-detected\",\"retention-critical\"]}"
+        },
+        {
+          "id": "tc2",
+          "description": "transactions table: has amount, currency, merchant -> financial-data, audit-required, retention-critical",
+          "input": "{\"tables\":[{\"name\":\"transactions\",\"columns\":[\"id\",\"customer_id\",\"amount\",\"currency\",\"merchant\",\"timestamp\"]}]}",
+          "expectedOutput": "{\"transactions\":[\"audit-required\",\"financial-data\",\"retention-critical\"]}"
+        },
+        {
+          "id": "tc3",
+          "description": "patient_records: has diagnosis_code, treatment, blood_type -> pii-detected, health-data, gdpr-relevant, retention-critical",
+          "input": "{\"tables\":[{\"name\":\"patient_records\",\"columns\":[\"id\",\"diagnosis_code\",\"treatment\",\"doctor_id\",\"blood_type\"]}]}",
+          "expectedOutput": "{\"patient_records\":[\"gdpr-relevant\",\"health-data\",\"pii-detected\",\"retention-critical\"]}",
+          "hidden": true
+        },
+        {
+          "id": "tc4",
+          "description": "public_products: starts with public_ -> publicly-available only",
+          "input": "{\"tables\":[{\"name\":\"public_products\",\"columns\":[\"id\",\"name\",\"price\",\"category\",\"description\"]}]}",
+          "expectedOutput": "{\"public_products\":[\"publicly-available\"]}",
+          "hidden": true
+        },
+        {
+          "id": "tc5",
+          "description": "audit_events: has action, ip_address -> pii-detected, audit-required, retention-critical",
+          "input": "{\"tables\":[{\"name\":\"audit_events\",\"columns\":[\"id\",\"user_id\",\"action\",\"resource\",\"timestamp\",\"ip_address\"]}]}",
+          "expectedOutput": "{\"audit_events\":[\"audit-required\",\"pii-detected\",\"retention-critical\"]}"
+        }
+      ],
+      "explanation": "Rule-based tag classifier -- первый шаг к автоматической классификации data assets. Ключевые паттерны: email/phone/inn -> PII, amount/currency -> financial, diagnosis/blood_type -> health. Retention-critical добавляется автоматически для таблиц с PII, financial или audit тегами, так как они подпадают под регуляторные требования хранения данных.",
+      "hint": "Используйте множества (set) для тегов, чтобы избежать дубликатов. Проверяйте column patterns через 'in' (подстрока). Не забудьте, что health-data также подразумевает pii-detected и gdpr-relevant. В конце отсортируйте теги для детерминированного вывода.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

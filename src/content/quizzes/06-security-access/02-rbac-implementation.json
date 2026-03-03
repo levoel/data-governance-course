@@ -1,0 +1,101 @@
+{
+  "lessonSlug": "06-security-access/02-rbac-implementation",
+  "moduleId": "06-security-access",
+  "_meta": {
+    "idPrefix": "dg-m06-02",
+    "description": "Use IDs: dg-m06-02-q1 through dg-m06-02-q4, dg-m06-02-code-1 (CC-25)"
+  },
+  "questions": [
+    {
+      "id": "dg-m06-02-q1",
+      "type": "multiple-choice",
+      "question": "В RBAC-модели FinSecure аналитик Мария просит доступ к PII клиентов для отчёта о churn. Какое решение соблюдает принцип наименьших привилегий?",
+      "options": [
+        { "id": "a", "text": "Выдать аналитику роль dg_admin на время подготовки отчёта" },
+        { "id": "b", "text": "Создать маскированную view в mart-схеме и предоставить доступ через роль dg_analyst" },
+        { "id": "c", "text": "Дать прямой SELECT на таблицу customers с PII-столбцами" },
+        { "id": "d", "text": "Скопировать данные клиентов в CSV и отправить по email" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Маскированная view предоставляет необходимые данные (поведенческие паттерны для churn-анализа) без раскрытия PII (email, phone замаскированы). Мария работает через свою существующую роль dg_analyst, не получая дополнительных привилегий. Вариант A нарушает least privilege (admin -- максимальные права). Вариант C раскрывает PII. Вариант D создаёт неконтролируемую копию данных вне governance-периметра.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m06-02-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure использует Row-Level Security (RLS) для изоляции данных по регионам. Аналитик из московского офиса выполняет SELECT * FROM customers, но видит только клиентов из региона 'msk'. Что произойдёт, если аналитик добавит WHERE region = 'eu'?",
+      "options": [
+        { "id": "a", "text": "Запрос вернёт EU-клиентов, потому что WHERE переопределяет RLS" },
+        { "id": "b", "text": "Запрос вернёт пустой результат: RLS фильтрует до применения WHERE, а EU-записи уже исключены" },
+        { "id": "c", "text": "Запрос вызовет ошибку прав доступа" },
+        { "id": "d", "text": "RLS отключится для этого запроса, показав все регионы" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Row-Level Security в PostgreSQL применяется прозрачно: USING-условие (region = current_setting('app.user_region')) добавляется к каждому запросу как дополнительный AND-фильтр. Для московского аналитика это эквивалентно SELECT * FROM customers WHERE region = 'msk' AND region = 'eu' -- условия взаимоисключающие, результат пустой. RLS нельзя обойти через WHERE: это механизм на уровне СУБД, а не приложения.",
+      "hint": "Подумайте: RLS добавляет USING-условие к каждому запросу. Как два условия region = 'msk' AND region = 'eu' взаимодействуют?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m06-02-q3",
+      "type": "multiple-choice",
+      "question": "В иерархии ролей PostgreSQL: viewer -> editor -> admin. Инженеру Борису назначена роль editor. Какие операции он может выполнять?",
+      "options": [
+        { "id": "a", "text": "Только операции editor (INSERT, UPDATE)" },
+        { "id": "b", "text": "Операции editor (INSERT, UPDATE) и унаследованные от viewer (SELECT)" },
+        { "id": "c", "text": "Операции editor, viewer и admin (все)" },
+        { "id": "d", "text": "Только SELECT -- editor не наследует permissions в PostgreSQL" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "В PostgreSQL GRANT viewer TO editor означает, что editor наследует все permissions роли viewer. Борис как editor может: SELECT (от viewer) + INSERT, UPDATE (от editor). Он НЕ получает права admin, потому что наследование идёт вверх по цепочке: editor наследует viewer, но НЕ admin. Иерархия однонаправленная: admin наследует editor, но не наоборот.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m06-02-q4",
+      "type": "true-false",
+      "question": "Separation of duties в RBAC означает, что один пользователь может совмещать роли аналитика и аудитора, если эти роли не конфликтуют.",
+      "correctAnswer": false,
+      "explanation": "Separation of duties (SoD) именно ограничивает совмещение ролей, которые могут создать конфликт интересов. В банковской сфере аналитик (работает с данными) и аудитор (проверяет работу с данными) -- это потенциально конфликтующие роли: аналитик может изменить данные и затем 'проверить' свои изменения как аудитор. SoD требует, чтобы такие роли были назначены разным людям. В FinSecure это реализовано как constraint: incompatible_roles = [('fs_engineer', 'fs_auditor')].",
+      "hint": "Подумайте: может ли аналитик, имеющий также роль аудитора, объективно проверить свою собственную работу?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m06-02-code-1",
+      "type": "code-challenge",
+      "question": "Напишите Python-функцию, которая реализует RBAC access decision engine. Функция получает иерархию ролей (какие роли наследуют другие), permissions по ролям, и список запросов доступа. Для каждого запроса определите: ALLOW или DENY, с указанием причины. Учитывайте наследование ролей (admin наследует editor, editor наследует viewer).",
+      "language": "python",
+      "starterCode": "import json\nimport sys\n\ndef resolve_roles(user_roles, hierarchy):\n    \"\"\"Resolve all effective roles including inherited ones.\"\"\"\n    # TODO: resolve role inheritance\n    pass\n\ndef check_permission(effective_roles, role_permissions, resource, action):\n    \"\"\"Check if any effective role grants the requested permission.\"\"\"\n    # TODO: check permissions across all effective roles\n    pass\n\ndef access_decision_engine(data):\n    \"\"\"Process access requests and return decisions.\"\"\"\n    hierarchy = data['roles_hierarchy']\n    role_permissions = data['role_permissions']\n    requests = data['access_requests']\n    \n    decisions = []\n    for req in requests:\n        # TODO: resolve roles, check permission, build decision\n        pass\n    \n    allowed = sum(1 for d in decisions if d['decision'] == 'ALLOW')\n    denied = sum(1 for d in decisions if d['decision'] == 'DENY')\n    \n    return json.dumps({\n        'decisions': decisions,\n        'summary': {'total_requests': len(requests), 'allowed': allowed, 'denied': denied}\n    }, indent=2)\n\ndata = json.loads(sys.stdin.read())\nprint(access_decision_engine(data))",
+      "solutionCode": "import json\nimport sys\n\ndef resolve_roles(user_roles, hierarchy):\n    \"\"\"Resolve all effective roles including inherited ones.\"\"\"\n    effective = set(user_roles)\n    queue = list(user_roles)\n    while queue:\n        role = queue.pop(0)\n        for inherited in hierarchy.get(role, []):\n            if inherited not in effective:\n                effective.add(inherited)\n                queue.append(inherited)\n    return effective\n\ndef check_permission(effective_roles, role_permissions, resource, action):\n    \"\"\"Check if any effective role grants the requested permission.\"\"\"\n    for role in effective_roles:\n        for perm in role_permissions.get(role, []):\n            if perm['resource'] == resource and action in perm['actions']:\n                return True, role\n    return False, None\n\ndef find_inheritance_path(user_roles, hierarchy, target_role):\n    \"\"\"Find the inheritance path to the target role.\"\"\"\n    if target_role in user_roles:\n        return f\"direct permission on {target_role} role\"\n    for role in user_roles:\n        path = [role]\n        queue = [(role, path)]\n        visited = set()\n        while queue:\n            current, current_path = queue.pop(0)\n            if current in visited:\n                continue\n            visited.add(current)\n            for inherited in hierarchy.get(current, []):\n                new_path = current_path + [inherited]\n                if inherited == target_role:\n                    return f\"inherited from {target_role} via {' via '.join(reversed(current_path))}\"\n                queue.append((inherited, new_path))\n    return f\"direct permission on {target_role} role\"\n\ndef access_decision_engine(data):\n    \"\"\"Process access requests and return decisions.\"\"\"\n    hierarchy = data['roles_hierarchy']\n    role_permissions = data['role_permissions']\n    requests = data['access_requests']\n    \n    decisions = []\n    for req in requests:\n        user = req['user']\n        user_roles = req['roles']\n        resource = req['resource']\n        action = req['action']\n        \n        effective_roles = resolve_roles(user_roles, hierarchy)\n        granted, granting_role = check_permission(effective_roles, role_permissions, resource, action)\n        \n        if granted:\n            reason = find_inheritance_path(user_roles, hierarchy, granting_role)\n            decisions.append({\n                'user': user, 'resource': resource, 'action': action,\n                'decision': 'ALLOW', 'reason': reason\n            })\n        else:\n            role_str = '/'.join(user_roles)\n            decisions.append({\n                'user': user, 'resource': resource, 'action': action,\n                'decision': 'DENY',\n                'reason': f\"{role_str} role has no {action} permission on {resource}\"\n            })\n    \n    allowed = sum(1 for d in decisions if d['decision'] == 'ALLOW')\n    denied = sum(1 for d in decisions if d['decision'] == 'DENY')\n    \n    return json.dumps({\n        'decisions': decisions,\n        'summary': {'total_requests': len(requests), 'allowed': allowed, 'denied': denied}\n    }, indent=2)\n\ndata = json.loads(sys.stdin.read())\nprint(access_decision_engine(data))",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Standard RBAC decisions with role inheritance",
+          "input": "{\"roles_hierarchy\":{\"admin\":[\"editor\"],\"editor\":[\"viewer\"],\"viewer\":[],\"auditor\":[]},\"role_permissions\":{\"viewer\":[{\"resource\":\"reports\",\"actions\":[\"read\"]},{\"resource\":\"dashboards\",\"actions\":[\"read\"]}],\"editor\":[{\"resource\":\"reports\",\"actions\":[\"write\",\"delete\"]},{\"resource\":\"datasets\",\"actions\":[\"read\",\"write\"]}],\"admin\":[{\"resource\":\"users\",\"actions\":[\"read\",\"write\",\"delete\"]},{\"resource\":\"settings\",\"actions\":[\"read\",\"write\"]}],\"auditor\":[{\"resource\":\"audit_log\",\"actions\":[\"read\"]},{\"resource\":\"reports\",\"actions\":[\"read\"]}]},\"access_requests\":[{\"user\":\"alice\",\"roles\":[\"editor\"],\"resource\":\"reports\",\"action\":\"read\"},{\"user\":\"alice\",\"roles\":[\"editor\"],\"resource\":\"reports\",\"action\":\"delete\"},{\"user\":\"bob\",\"roles\":[\"viewer\"],\"resource\":\"datasets\",\"action\":\"write\"},{\"user\":\"charlie\",\"roles\":[\"admin\"],\"resource\":\"dashboards\",\"action\":\"read\"},{\"user\":\"dave\",\"roles\":[\"auditor\"],\"resource\":\"users\",\"action\":\"read\"},{\"user\":\"eve\",\"roles\":[\"editor\",\"auditor\"],\"resource\":\"audit_log\",\"action\":\"read\"}]}",
+          "expectedOutput": "\"total_requests\": 6"
+        },
+        {
+          "id": "tc2",
+          "description": "Verify correct ALLOW/DENY counts",
+          "input": "{\"roles_hierarchy\":{\"admin\":[\"editor\"],\"editor\":[\"viewer\"],\"viewer\":[],\"auditor\":[]},\"role_permissions\":{\"viewer\":[{\"resource\":\"reports\",\"actions\":[\"read\"]},{\"resource\":\"dashboards\",\"actions\":[\"read\"]}],\"editor\":[{\"resource\":\"reports\",\"actions\":[\"write\",\"delete\"]},{\"resource\":\"datasets\",\"actions\":[\"read\",\"write\"]}],\"admin\":[{\"resource\":\"users\",\"actions\":[\"read\",\"write\",\"delete\"]},{\"resource\":\"settings\",\"actions\":[\"read\",\"write\"]}],\"auditor\":[{\"resource\":\"audit_log\",\"actions\":[\"read\"]},{\"resource\":\"reports\",\"actions\":[\"read\"]}]},\"access_requests\":[{\"user\":\"alice\",\"roles\":[\"editor\"],\"resource\":\"reports\",\"action\":\"read\"},{\"user\":\"alice\",\"roles\":[\"editor\"],\"resource\":\"reports\",\"action\":\"delete\"},{\"user\":\"bob\",\"roles\":[\"viewer\"],\"resource\":\"datasets\",\"action\":\"write\"},{\"user\":\"charlie\",\"roles\":[\"admin\"],\"resource\":\"dashboards\",\"action\":\"read\"},{\"user\":\"dave\",\"roles\":[\"auditor\"],\"resource\":\"users\",\"action\":\"read\"},{\"user\":\"eve\",\"roles\":[\"editor\",\"auditor\"],\"resource\":\"audit_log\",\"action\":\"read\"}]}",
+          "expectedOutput": "\"allowed\": 4"
+        },
+        {
+          "id": "tc3",
+          "description": "Viewer cannot write to datasets",
+          "input": "{\"roles_hierarchy\":{\"admin\":[\"editor\"],\"editor\":[\"viewer\"],\"viewer\":[],\"auditor\":[]},\"role_permissions\":{\"viewer\":[{\"resource\":\"reports\",\"actions\":[\"read\"]},{\"resource\":\"dashboards\",\"actions\":[\"read\"]}],\"editor\":[{\"resource\":\"reports\",\"actions\":[\"write\",\"delete\"]},{\"resource\":\"datasets\",\"actions\":[\"read\",\"write\"]}],\"admin\":[{\"resource\":\"users\",\"actions\":[\"read\",\"write\",\"delete\"]},{\"resource\":\"settings\",\"actions\":[\"read\",\"write\"]}],\"auditor\":[{\"resource\":\"audit_log\",\"actions\":[\"read\"]},{\"resource\":\"reports\",\"actions\":[\"read\"]}]},\"access_requests\":[{\"user\":\"bob\",\"roles\":[\"viewer\"],\"resource\":\"datasets\",\"action\":\"write\"}]}",
+          "expectedOutput": "\"denied\": 1",
+          "hidden": true
+        },
+        {
+          "id": "tc4",
+          "description": "Admin inherits viewer permissions through editor",
+          "input": "{\"roles_hierarchy\":{\"admin\":[\"editor\"],\"editor\":[\"viewer\"],\"viewer\":[],\"auditor\":[]},\"role_permissions\":{\"viewer\":[{\"resource\":\"reports\",\"actions\":[\"read\"]},{\"resource\":\"dashboards\",\"actions\":[\"read\"]}],\"editor\":[{\"resource\":\"reports\",\"actions\":[\"write\",\"delete\"]},{\"resource\":\"datasets\",\"actions\":[\"read\",\"write\"]}],\"admin\":[{\"resource\":\"users\",\"actions\":[\"read\",\"write\",\"delete\"]},{\"resource\":\"settings\",\"actions\":[\"read\",\"write\"]}],\"auditor\":[{\"resource\":\"audit_log\",\"actions\":[\"read\"]},{\"resource\":\"reports\",\"actions\":[\"read\"]}]},\"access_requests\":[{\"user\":\"charlie\",\"roles\":[\"admin\"],\"resource\":\"dashboards\",\"action\":\"read\"}]}",
+          "expectedOutput": "\"allowed\": 1",
+          "hidden": true
+        }
+      ],
+      "explanation": "RBAC access decision engine разрешает роли с учётом наследования (admin -> editor -> viewer), затем проверяет, есть ли у любой из эффективных ролей нужное разрешение на запрошенный ресурс и действие. Ключевой алгоритм -- BFS по графу иерархии для разрешения всех унаследованных ролей.",
+      "hint": "Начните с функции resolve_roles: используйте BFS для обхода графа наследования. Затем для каждого запроса проверьте, есть ли у любой эффективной роли нужное permission.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

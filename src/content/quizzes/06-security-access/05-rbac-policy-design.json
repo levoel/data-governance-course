@@ -1,0 +1,91 @@
+{
+  "lessonSlug": "06-security-access/05-rbac-policy-design",
+  "moduleId": "06-security-access",
+  "_meta": {
+    "idPrefix": "dg-m06-05",
+    "description": "Use IDs: dg-m06-05-q1 through dg-m06-05-q4, dg-m06-05-code-1 (CC-27 JSON)"
+  },
+  "questions": [
+    {
+      "id": "dg-m06-05-q1",
+      "type": "multiple-choice",
+      "question": "Аудит FinSecure выявил 34 роли для 30 пользователей, из которых 19 дублируют друг друга. Какой индикатор role explosion это демонстрирует?",
+      "options": [
+        { "id": "a", "text": "Количество ролей > 2x количества пользователей" },
+        { "id": "b", "text": "Более 50% ролей дублируют permissions" },
+        { "id": "c", "text": "Оба индикатора: количество ролей > пользователей И > 50% дубликатов" },
+        { "id": "d", "text": "34 роли -- это нормальное количество для банка" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Два индикатора role explosion сработали: (1) 34 роли > 2 * 30 пользователей -- нет, 34 > 30, но < 60. Однако 34/30 = 1.13 -- пограничное значение. (2) 19/34 = 56% дублирующих ролей -- явный индикатор. В совокупности оба признака подтверждают role explosion. После редизайна FinSecure сократила роли до 8, что показывает: 34 роли были избыточны. Для банка с 30 пользователями 6-10 базовых ролей -- оптимальное количество.",
+      "hint": "Проверьте два порога: ratio ролей к пользователям (34/30) и процент дубликатов (19/34).",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m06-05-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure сократила роли с 34 до 8. Какой главный риск при резком сокращении ролей?",
+      "options": [
+        { "id": "a", "text": "Сокращение вызовет перегрузку PostgreSQL" },
+        { "id": "b", "text": "ETL-пайплайны и сервисные аккаунты могут потерять необходимые permissions, вызвав operational disruption" },
+        { "id": "c", "text": "Пользователи забудут свои новые пароли" },
+        { "id": "d", "text": "Audit log перестанет записывать действия" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "При сокращении с 34 до 8 ролей сервисные аккаунты ETL-пайплайнов, которые использовали специализированные роли (etl_core_banking_writer, etl_staging_reader), могут потерять нужные permissions. Это приведёт к сбоям пайплайнов и остановке бизнес-процессов. Решение: поэтапный rollout с мониторингом DENIED-запросов в audit log и period of grace (2-4 недели), когда старые и новые роли работают параллельно.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m06-05-q3",
+      "type": "multiple-choice",
+      "question": "В политике FinSecure указано: 'Временные роли автоматически отзываются через 30 дней.' Какой механизм enforcement наиболее эффективен?",
+      "options": [
+        { "id": "a", "text": "Ежегодный ручной аудит всех ролей" },
+        { "id": "b", "text": "Автоматический cron-job, который проверяет GRANT-дату и выполняет REVOKE для ролей старше 30 дней" },
+        { "id": "c", "text": "Email-напоминание администратору каждые 30 дней" },
+        { "id": "d", "text": "Документирование в Confluence с пометкой 'временная роль'" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Автоматический enforcement -- единственный надёжный способ. Cron-job проверяет метаданные ролей (дату создания + пометку 'temporary') и выполняет REVOKE автоматически. Ежегодный аудит (A) обнаружит проблему через 12 месяцев -- 12 месяцев over-privileged доступа. Email (C) зависит от человеческого фактора: администратор может пропустить или отложить. Документация (D) -- это только запись, не enforcement.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m06-05-q4",
+      "type": "true-false",
+      "question": "При проектировании RBAC-политики роли должны определяться по отделам (finance_role, engineering_role), а не по функциям (analyst_role, engineer_role).",
+      "correctAnswer": false,
+      "explanation": "Роли по отделам ведут к role explosion: в каждом отделе появляются аналогичные функции (analyst в finance, analyst в engineering), создавая дублирующие роли. Функциональные роли (analyst, engineer, auditor) отражают набор permissions, одинаковый независимо от отдела. Если аналитик из finance и аналитик из engineering имеют одинаковые permissions на mart-схему, им нужна одна роль dg_analyst, а не две (finance_analyst, engineering_analyst). Разграничение по отделам реализуется через ABAC (user.department) или RLS, а не через дублирование ролей.",
+      "hint": "Подумайте: если аналитик из finance и аналитик из engineering имеют одинаковые permissions, нужны ли им разные роли?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m06-05-code-1",
+      "type": "code-challenge",
+      "question": "Создайте валидный JSON-документ RBAC-политики для data warehouse. Определите роли (data_analyst, data_engineer, data_steward, admin), permissions для каждой роли по схемам (raw, staging, mart, sensitive), и constraints, валидирующие принцип наименьших привилегий: аналитики не могут писать в raw/staging, инженеры не могут обращаться к sensitive без одобрения steward.",
+      "language": "json",
+      "starterCode": "{\n  \"rbac_policy\": {\n    \"name\": \"\",\n    \"version\": \"\",\n    \"schemas\": [],\n    \"roles\": [],\n    \"constraints\": []\n  }\n}",
+      "solutionCode": "{\n  \"rbac_policy\": {\n    \"name\": \"Data Warehouse Access Policy\",\n    \"version\": \"1.0\",\n    \"schemas\": [\"raw\", \"staging\", \"mart\", \"sensitive\"],\n    \"roles\": [\n      {\n        \"name\": \"data_analyst\",\n        \"permissions\": [\n          {\"schema\": \"mart\", \"actions\": [\"SELECT\"]},\n          {\"schema\": \"staging\", \"actions\": [\"SELECT\"]},\n          {\"schema\": \"raw\", \"actions\": []},\n          {\"schema\": \"sensitive\", \"actions\": []}\n        ]\n      },\n      {\n        \"name\": \"data_engineer\",\n        \"permissions\": [\n          {\"schema\": \"raw\", \"actions\": [\"SELECT\", \"INSERT\", \"UPDATE\"]},\n          {\"schema\": \"staging\", \"actions\": [\"SELECT\", \"INSERT\", \"UPDATE\", \"DELETE\"]},\n          {\"schema\": \"mart\", \"actions\": [\"SELECT\", \"INSERT\", \"UPDATE\"]},\n          {\"schema\": \"sensitive\", \"actions\": []}\n        ]\n      },\n      {\n        \"name\": \"data_steward\",\n        \"permissions\": [\n          {\"schema\": \"raw\", \"actions\": [\"SELECT\"]},\n          {\"schema\": \"staging\", \"actions\": [\"SELECT\"]},\n          {\"schema\": \"mart\", \"actions\": [\"SELECT\"]},\n          {\"schema\": \"sensitive\", \"actions\": [\"SELECT\", \"UPDATE\"]}\n        ]\n      },\n      {\n        \"name\": \"admin\",\n        \"permissions\": [\n          {\"schema\": \"raw\", \"actions\": [\"SELECT\", \"INSERT\", \"UPDATE\", \"DELETE\"]},\n          {\"schema\": \"staging\", \"actions\": [\"SELECT\", \"INSERT\", \"UPDATE\", \"DELETE\"]},\n          {\"schema\": \"mart\", \"actions\": [\"SELECT\", \"INSERT\", \"UPDATE\", \"DELETE\"]},\n          {\"schema\": \"sensitive\", \"actions\": [\"SELECT\", \"INSERT\", \"UPDATE\", \"DELETE\"]}\n        ]\n      }\n    ],\n    \"constraints\": [\n      {\"rule\": \"data_analyst cannot write to raw or staging\", \"enforced\": true},\n      {\"rule\": \"data_engineer cannot access sensitive schema\", \"enforced\": true},\n      {\"rule\": \"only admin and data_steward can access sensitive schema\", \"enforced\": true}\n    ]\n  }\n}",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Policy defines 4 roles with permissions covering 4 schemas",
+          "expectedOutput": "{\"valid\":true,\"roles_count\":4,\"schemas_count\":4}"
+        },
+        {
+          "id": "tc2",
+          "description": "Constraints enforce least-privilege: analyst no write, engineer no sensitive",
+          "expectedOutput": "{\"valid\":true,\"constraints_count\":\">=3\",\"enforced\":true}"
+        },
+        {
+          "id": "tc3",
+          "description": "data_analyst has empty actions for raw and sensitive schemas",
+          "expectedOutput": "{\"valid\":true,\"analyst_raw_actions\":[],\"analyst_sensitive_actions\":[]}",
+          "hidden": true
+        }
+      ],
+      "explanation": "RBAC-политика для data warehouse определяет четыре роли с разграничением по схемам (raw -> staging -> mart -> sensitive). Принцип наименьших привилегий: аналитики видят только mart (готовые данные), инженеры работают с raw/staging/mart (pipeline), stewards контролируют sensitive (PII), admin имеет полный доступ. Constraints формализуют ограничения для валидации.",
+      "hint": "Определите permissions для каждой роли по каждой схеме. Аналитик: SELECT на mart/staging, ничего на raw/sensitive. Инженер: read/write на raw/staging/mart, ничего на sensitive. Steward: SELECT всюду + UPDATE на sensitive. Admin: всё.",
+      "bloomLevel": "applied"
+    }
+  ]
+}

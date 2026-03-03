@@ -1,0 +1,218 @@
+---
+title: "Основы каталога данных"
+description: "Концепции каталога данных, архитектура, OpenMetadata обзор и структура каталожной записи"
+order: 3
+difficulty: "intermediate"
+estimatedTime: 25
+audience: "engineers"
+topics: ["Data Catalog", "Catalog Architecture", "OpenMetadata"]
+---
+
+import { ToolDeepDive } from '../../../components/diagrams/governance';
+
+# Основы каталога данных
+
+## Введение
+
+Метаданные без каталога -- это как книги без библиотеки: они существуют, но найти нужное невозможно. **Каталог данных** -- это централизованная система, объединяющая технические, бизнес и операционные метаданные в единый поисковый интерфейс. В этом уроке мы разберём архитектуру каталога и создадим каталожную запись.
+
+## Что такое каталог данных
+
+**Каталог данных (Data Catalog)** -- это централизованный реестр метаданных организации с поиском, классификацией и социальными функциями. Каталог объединяет технические метаданные (схемы, lineage), бизнес-метаданные (описания, владельцы, теги) и операционные метаданные (свежесть, качество).
+
+Каталог данных решает три задачи:
+
+1. **Data Discovery** -- найти нужные данные за минуты, а не недели
+2. **Data Understanding** -- понять контекст, владельца, качество, связи
+3. **Data Governance** -- контролировать классификацию, доступ, compliance
+
+## Архитектура каталога данных
+
+Современный каталог данных состоит из четырёх слоёв:
+
+<FlowRow>
+  <FlowNode
+    label="Источники данных"
+    description="PostgreSQL, ClickHouse, Airflow, dbt, Metabase"
+    variant="source"
+    tooltip="Системы, из которых каталог автоматически собирает метаданные"
+  />
+  <Arrow />
+  <FlowNode
+    label="Ingestion Layer"
+    description="Crawlers, API-коннекторы, webhook-слушатели"
+    variant="process"
+    tooltip="Автоматический сбор технических и операционных метаданных"
+  />
+  <Arrow />
+  <FlowNode
+    label="Metadata Store"
+    description="Граф метаданных, поисковый индекс, хранилище"
+    variant="storage"
+    tooltip="Централизованное хранилище всех типов метаданных с графовыми связями"
+  />
+  <Arrow />
+  <FlowNode
+    label="UI + API"
+    description="Поиск, каталог, lineage, collaboration"
+    variant="target"
+    tooltip="Интерфейс для Data Discovery, курирования и governance"
+  />
+</FlowRow>
+
+### Ingestion: автоматический сбор метаданных
+
+Каталог подключается к источникам данных через **коннекторы (connectors)**:
+
+```yaml
+# Пример: конфигурация коннектора для PostgreSQL
+source:
+  type: postgres
+  config:
+    host: "postgres.datatech.local"
+    port: 5432
+    database: "production"
+    schema_filter: "public|analytics"
+    include_views: true
+    include_stored_procs: false
+    profile_sample: 10   # профилирование 10% данных
+schedule:
+  cron: "0 3 * * *"      # ежедневно в 03:00
+```
+
+Коннектор собирает:
+- **Технические метаданные**: таблицы, колонки, типы, индексы, foreign keys
+- **Операционные метаданные**: row count, размер таблицы, статистика колонок
+- **Lineage** (если доступен): зависимости между таблицами и моделями
+
+### Metadata Store: граф метаданных
+
+Каталог хранит метаданные как **граф**: узлы (таблицы, колонки, дашборды, пользователи) и связи (owns, depends_on, derived_from, tagged_with). Графовая модель позволяет:
+
+- Traversal: "покажи все таблицы, зависимые от `raw_customers`"
+- Impact Analysis: "что сломается, если я изменю колонку `email`?"
+- Discovery: "найди все PII-таблицы, которыми владеет customer-team"
+
+## Структура каталожной записи
+
+Каждый data asset в каталоге описывается стандартной записью:
+
+```json
+{
+  "table": "orders",
+  "schema": "public",
+  "database": "production_postgresql",
+  "description": "Customer orders with payment and shipping status",
+  "owner": "order_management_team",
+  "tags": ["transactional", "customer-facing", "pci-relevant"],
+  "classification": "confidential",
+  "columns": [
+    {"name": "order_id", "type": "bigint", "description": "Unique order identifier", "pii": false},
+    {"name": "customer_id", "type": "bigint", "description": "Reference to customer", "pii": false},
+    {"name": "email", "type": "varchar", "description": "Customer email for order", "pii": true},
+    {"name": "total_amount", "type": "decimal", "description": "Order total in RUB", "pii": false},
+    {"name": "status", "type": "varchar", "description": "Order status", "pii": false},
+    {"name": "created_at", "type": "timestamp", "description": "Order creation time", "pii": false}
+  ],
+  "freshness_sla_hours": 1,
+  "quality_score": 0.94
+}
+```
+
+Ключевые элементы записи:
+
+- **owner** -- команда или человек, ответственный за данные
+- **tags** -- классификационные метки для governance-политик
+- **classification** -- уровень конфиденциальности (public, internal, confidential, restricted)
+- **columns.pii** -- маркер персональных данных на уровне колонок
+- **freshness_sla_hours** -- SLA обновления для мониторинга
+- **quality_score** -- агрегированная оценка качества
+
+<KnowledgeCheck
+  question="Почему каталожная запись содержит PII-маркеры на уровне отдельных колонок, а не только на уровне таблицы?"
+  answer="Потому что в одной таблице могут быть и PII, и не-PII колонки. Таблица orders содержит email (PII) и total_amount (не PII). Гранулярная маркировка позволяет: (1) маскировать только PII-колонки при экспорте, (2) предоставлять аналитикам доступ к non-PII данным без прохождения полной privacy-процедуры, (3) автоматически применять политики на уровне колонок (column-level security)."
+/>
+
+## OpenMetadata: каталог для DataTech
+
+<ToolDeepDive tool="OpenMetadata" version="1.3.x" lastVerified="2026-03">
+
+### Почему OpenMetadata
+
+**OpenMetadata** -- open-source платформа для Data Discovery, Governance, Quality и Collaboration. Для DataTech на Level 1 это оптимальный выбор:
+
+- **Open-source**: нет лицензионных затрат (критично для бюджета DataTech)
+- **Низкие требования**: 4-6 GB RAM для развёртывания
+- **Встроенный glossary**: не нужен отдельный инструмент для бизнес-глоссария
+- **20+ коннекторов**: PostgreSQL, ClickHouse, Airflow, dbt, Metabase -- весь стек DataTech
+
+### Архитектура OpenMetadata
+
+OpenMetadata использует **server + ingestion + UI** архитектуру:
+
+- **Server**: Java-приложение, хранит metadata graph в MySQL/PostgreSQL
+- **Ingestion**: Python-фреймворк для сбора метаданных из источников
+- **Search**: Elasticsearch для полнотекстового поиска по каталогу
+- **UI**: React-приложение для Data Discovery и collaboration
+
+### Быстрый старт
+
+```yaml
+# docker-compose.yml (OpenMetadata 1.3.x)
+services:
+  openmetadata-server:
+    image: openmetadata/server:1.3.4
+    ports:
+      - "8585:8585"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+    depends_on:
+      - mysql
+      - elasticsearch
+
+  openmetadata-ingestion:
+    image: openmetadata/ingestion:1.3.4
+    depends_on:
+      - openmetadata-server
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: openmetadata_password
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+```
+
+</ToolDeepDive>
+
+## Сценарий: DataTech vs FinSecure
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> DataTech оценивает каталоги данных для своих 200+ таблиц в PostgreSQL и ClickHouse. Критерии:
+> - Бюджет: минимальный (нет отдельной статьи на governance-инструменты)
+> - Стек: PostgreSQL 15, ClickHouse 23.8, Airflow 2.7, dbt Core 1.7, Metabase 0.47
+> - Команда: 7 человек, нет выделенного администратора каталога
+>
+> OpenMetadata выбран как оптимальный: open-source, поддерживает весь стек DataTech, развёрнется за 1 день.
+
+> **Для сравнения: ФинСекьюр Банк**
+>
+> FinSecure (ФинСекьюр Банк) уже использует OpenMetadata 1.2, но каталогизировано только 40% датасетов. Основная проблема -- Oracle 19c с 800+ таблицами: коннектор есть, но без бизнес-метаданных запись бесполезна. FinSecure выделяет 2 Data Stewards на курирование, но при 800 таблицах каждый должен описать 400 таблиц. Без приоритизации (Tier-1 таблицы первыми) процесс займёт годы.
+
+<KnowledgeCheck
+  question="FinSecure каталогизировал 40% датасетов за 6 месяцев. Почему техническая каталогизация (crawl) быстра, а полная (с бизнес-метаданными) -- медленна?"
+  answer="Техническая каталогизация автоматическая: crawler подключается к базе и за минуты извлекает схемы всех таблиц. Полная каталогизация требует ручного курирования: Data Steward должен написать описание, назначить владельца, проставить теги и классификацию для каждой таблицы. Это человеко-часы, и при 800+ таблицах Oracle с 15-летней историей -- месяцы работы. Решение: приоритизация по Tier (критичные таблицы первыми)."
+/>
+
+## Итоги
+
+- **Каталог данных** объединяет технические, бизнес и операционные метаданные в единый поисковый интерфейс
+- Архитектура: **Sources -> Ingestion -> Metadata Store (graph) -> UI/API**
+- Каталожная запись включает: owner, tags, classification, PII-маркеры, SLA, quality score
+- **OpenMetadata** -- open-source каталог с встроенным glossary и 20+ коннекторами
+- Техническая каталогизация -- автоматическая, бизнес-метаданные -- ручное курирование (bottleneck)
+
+В следующем уроке мы рассмотрим **Data Lineage (происхождение данных)** -- как отслеживать путь данных от источника до потребителя.

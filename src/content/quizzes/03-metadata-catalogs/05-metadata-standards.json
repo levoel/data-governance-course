@@ -1,0 +1,96 @@
+{
+  "lessonSlug": "03-metadata-catalogs/05-metadata-standards",
+  "moduleId": "03-metadata-catalogs",
+  "_meta": {
+    "idPrefix": "dg-m03-05",
+    "description": "Use IDs: dg-m03-05-q1 through dg-m03-05-q4, dg-m03-05-code-1 (CC-11)"
+  },
+  "questions": [
+    {
+      "id": "dg-m03-05-q1",
+      "type": "multiple-choice",
+      "question": "DataTech стандартизирует метаданные для 3 систем (PostgreSQL, ClickHouse, MinIO). Три команды описывают таблицы по-разному: разные имена полей, разные форматы дат, разные наборы обязательных атрибутов. Какой подход решает проблему?",
+      "options": [
+        { "id": "a", "text": "Назначить одну команду ответственной за описание всех таблиц во всех системах" },
+        { "id": "b", "text": "Определить единый metadata schema (JSON Schema) с обязательными и рекомендуемыми полями, валидировать автоматически" },
+        { "id": "c", "text": "Использовать Dublin Core для всех систем без адаптации" },
+        { "id": "d", "text": "Импортировать метаданные из каждой системы в формате этой системы" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Единый JSON Schema стандартизирует обязательные поля (table, owner, classification, columns) и рекомендуемые (description, tags). Автоматическая валидация через CI/CD предотвращает расхождения. Вариант A -- bottleneck: одна команда не знает бизнес-контекст всех систем. Dublin Core (C) слишком абстрактен: нет полей для колонок, PII, SLA. Вариант D сохраняет проблему несовместимости.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m03-05-q2",
+      "type": "multiple-choice",
+      "question": "DataTech определяет metadata schema. Почему поля разделены на 'обязательные' (table, owner, classification, columns) и 'рекомендуемые' (description, tags, freshness_sla, quality_score)?",
+      "options": [
+        { "id": "a", "text": "Обязательные поля дешевле, рекомендуемые -- дороже" },
+        { "id": "b", "text": "На Level 1 у DataTech нет бизнес-метаданных: 100% coverage по обязательным полям достижимо быстро (автоматический сбор), рекомендуемые требуют ручного курирования и наращиваются постепенно" },
+        { "id": "c", "text": "Рекомендуемые поля не нужны для Data Governance" },
+        { "id": "d", "text": "JSON Schema не поддерживает обязательные поля для вложенных объектов" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Разделение позволяет быстро достичь baseline compliance. Обязательные поля (table, owner, classification, columns) автоматически собираются crawlers или определяются при создании таблицы. Если сделать все поля обязательными на Level 1, ни одна запись не пройдёт валидацию (нет description, нет tags), и стандарт станет бесполезным. Постепенное наращивание coverage: 100% обязательных за 3 месяца, 80% рекомендуемых за 6 месяцев.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m03-05-q3",
+      "type": "multiple-choice",
+      "question": "Какой международный стандарт метаданных лучше подходит для внутреннего каталога данных DataTech и почему?",
+      "options": [
+        { "id": "a", "text": "Dublin Core -- универсальный и простой в реализации" },
+        { "id": "b", "text": "Schema.org Dataset -- поддерживается Google и Microsoft" },
+        { "id": "c", "text": "DCAT (Data Catalog Vocabulary) -- спроектирован для каталогов данных, расширяемый, с поддержкой distributions и contact points" },
+        { "id": "d", "text": "Ни один -- международные стандарты не подходят для российских компаний" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "DCAT (W3C) спроектирован для описания каталогов данных: Dataset, Distribution, DataService. Он расширяет Dublin Core data-специфичными концепциями и поддерживает custom properties для адаптации под внутренние нужды. Dublin Core (A) слишком абстрактен (нет columns, PII, SLA). Schema.org (B) ориентирован на публичный веб и SEO. Вариант D -- стандарты универсальны по дизайну.",
+      "bloomLevel": "conceptual"
+    },
+    {
+      "id": "dg-m03-05-q4",
+      "type": "true-false",
+      "question": "Стандарт метаданных без автоматической валидации (CI/CD check) обеспечивает такой же уровень compliance, как стандарт с валидацией.",
+      "correctAnswer": false,
+      "explanation": "Стандарт без автоматической валидации -- декларация, не enforcement. FinSecure имеет 47 governance-политик, но compliance для микросервисов составляет 45% -- именно потому, что enforcement проверяется только на годовом аудите. Автоматическая валидация (CI/CD check при обновлении каталога) обеспечивает постоянный compliance: каждая новая запись проверяется на обязательные поля, типы, enum-значения. Без автоматизации нарушения накапливаются между аудитами.",
+      "hint": "Вспомните FinSecure: 47 политик, но 45% compliance для микросервисов. Что различается между core banking (85%) и микросервисами? Наличие автоматизированных проверок.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m03-05-code-1",
+      "type": "code-challenge",
+      "question": "Дан metadata schema (JSON Schema формат) и набор каталожных записей. Провалидируйте каждую запись и создайте compliance report: для каждой записи определите status (valid/invalid), список ошибок (missing required fields, type mismatches, enum violations), общую compliance_rate.",
+      "language": "json",
+      "starterCode": "// Input:\n// schema.required: [\"table\", \"owner\", \"classification\", \"columns\"]\n// schema.properties.classification.enum: [\"public\", \"internal\", \"confidential\", \"restricted\"]\n// schema.properties.columns.minItems: 1\n//\n// entries:\n//   1. {table: \"users\", owner: \"identity_team\", classification: \"confidential\", columns: [{name: \"id\"}]}\n//   2. {table: \"logs\", classification: \"internal\", columns: []}\n//   3. {table: \"payments\", owner: \"finance\", classification: \"secret\", columns: [{name: \"id\"}]}\n//   4. {owner: \"hr_team\", classification: \"restricted\", columns: [{name: \"id\"}]}\n\n{\n  \"total_entries\": 0,\n  \"valid\": 0,\n  \"invalid\": 0,\n  \"results\": [],\n  \"compliance_rate\": 0\n}",
+      "solutionCode": "{\n  \"total_entries\": 4,\n  \"valid\": 1,\n  \"invalid\": 3,\n  \"results\": [\n    {\"entry\": \"users\", \"status\": \"valid\", \"errors\": []},\n    {\"entry\": \"logs\", \"status\": \"invalid\", \"errors\": [\"missing required field: owner\", \"columns: minItems violation (0 < 1)\"]},\n    {\"entry\": \"payments\", \"status\": \"invalid\", \"errors\": [\"classification: 'secret' not in enum [public, internal, confidential, restricted]\"]},\n    {\"entry\": \"entry_4\", \"status\": \"invalid\", \"errors\": [\"missing required field: table\"]}\n  ],\n  \"compliance_rate\": 0.25\n}",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Report identifies 1 valid entry (users) and 3 invalid entries",
+          "expectedOutput": "{\"valid\":true,\"total_entries\":4,\"valid_count\":1,\"invalid_count\":3}"
+        },
+        {
+          "id": "tc2",
+          "description": "Entry 'logs' has 2 errors: missing owner and empty columns array",
+          "expectedOutput": "{\"valid\":true,\"logs_errors\":2,\"logs_status\":\"invalid\"}"
+        },
+        {
+          "id": "tc3",
+          "description": "Entry 'payments' has enum violation: 'secret' is not in allowed classification values",
+          "expectedOutput": "{\"valid\":true,\"payments_error_type\":\"enum_violation\"}",
+          "hidden": true
+        },
+        {
+          "id": "tc4",
+          "description": "Compliance rate is 0.25 (1 valid out of 4 total)",
+          "expectedOutput": "{\"valid\":true,\"compliance_rate\":0.25}",
+          "hidden": true
+        }
+      ],
+      "explanation": "Валидация метаданных по схеме -- ключевой механизм enforcement стандартов. Compliance report показывает: какие записи соответствуют стандарту, какие нет, и какие конкретные ошибки нужно исправить. Compliance_rate (доля валидных записей) -- метрика для Data Council: например, target 100% обязательных за 3 месяца.",
+      "hint": "Проверьте каждую запись по трём критериям: (1) все required поля присутствуют? (2) classification в списке допустимых значений? (3) columns содержит хотя бы 1 элемент? Entry без table используйте entry_4 как идентификатор.",
+      "bloomLevel": "evaluated"
+    }
+  ]
+}

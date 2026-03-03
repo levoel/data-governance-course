@@ -1,0 +1,91 @@
+{
+  "lessonSlug": "03-metadata-catalogs/03-catalog-fundamentals",
+  "moduleId": "03-metadata-catalogs",
+  "_meta": {
+    "idPrefix": "dg-m03-03",
+    "description": "Use IDs: dg-m03-03-q1 through dg-m03-03-q4, dg-m03-03-code-1 (CC-09)"
+  },
+  "questions": [
+    {
+      "id": "dg-m03-03-q1",
+      "type": "multiple-choice",
+      "question": "DataTech развернула OpenMetadata и подключила PostgreSQL-коннектор. Через день в каталоге 200+ таблиц с техническими метаданными. Но бизнес-пользователи жалуются, что каталог 'бесполезен'. Какова причина?",
+      "options": [
+        { "id": "a", "text": "OpenMetadata не подходит для PostgreSQL" },
+        { "id": "b", "text": "Технические метаданные (схемы, типы) собраны, но бизнес-метаданные (описания, владельцы, теги) отсутствуют -- каталог не даёт бизнес-контекста" },
+        { "id": "c", "text": "200 таблиц -- слишком мало для каталога данных" },
+        { "id": "d", "text": "Бизнес-пользователи не должны использовать каталог данных" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Crawler автоматически собирает технические метаданные, но бизнес-метаданные (описания, владельцы, теги, классификация) требуют ручного курирования Data Stewards. Без бизнес-контекста каталог -- набор DDL-схем, бесполезный для аналитика, который ищет 'таблицу с данными клиентов для отчёта retention'. Это bottleneck каталогизации: техническая часть мгновенна, бизнес-часть требует месяцев.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m03-03-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure каталогизировал 40% датасетов за 6 месяцев. При 800+ таблицах Oracle и 2 Data Stewards полная каталогизация займёт ещё 9 месяцев. Какая стратегия ускорит достижение бизнес-ценности?",
+      "options": [
+        { "id": "a", "text": "Нанять ещё 4 Data Stewards для параллельной каталогизации" },
+        { "id": "b", "text": "Приоритизировать по Tier: каталогизировать Tier-1 таблицы (критичные для бизнеса) первыми, остальные -- по мере ресурсов" },
+        { "id": "c", "text": "Автоматически сгенерировать описания для всех таблиц с помощью AI" },
+        { "id": "d", "text": "Подождать полной каталогизации перед запуском каталога для пользователей" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Tier-based приоритизация -- стандартная стратегия: 20% таблиц покрывают 80% бизнес-запросов. Каталогизация Tier-1 (core banking таблицы, regulatory reporting) первыми обеспечивает бизнес-ценность за недели. Вариант A дорог и не масштабируется бесконечно. Вариант C -- AI-описания требуют review и могут содержать ошибки. Вариант D -- ждать 15 месяцев неприемлемо для бизнеса.",
+      "hint": "Подумайте о принципе Парето: какой процент таблиц покрывает основные бизнес-потребности? Нужно ли каталогизировать все 800 таблиц одинаково?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m03-03-q3",
+      "type": "multiple-choice",
+      "question": "Почему каталог данных хранит метаданные как граф (узлы и рёбра), а не как реляционную таблицу?",
+      "options": [
+        { "id": "a", "text": "Графовые базы данных быстрее реляционных для всех типов запросов" },
+        { "id": "b", "text": "Метаданные имеют естественную графовую структуру: таблицы связаны с колонками, владельцами, дашбордами, пайплайнами -- traversal по связям эффективнее JOIN-ов" },
+        { "id": "c", "text": "Реляционные базы не поддерживают хранение метаданных" },
+        { "id": "d", "text": "Графовая модель -- маркетинговое преимущество OpenMetadata" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Метаданные -- сеть связей: таблица -> колонки, таблица -> владелец, таблица -> downstream дашборды, колонка -> glossary термин. Типичные запросы к каталогу -- traversal: 'покажи все PII-таблицы и их downstream потребителей'. В графовой модели это обход по рёбрам (O(edges)), в реляционной -- множественные JOIN-ы. Вариант A неверен: графы не быстрее для аналитических запросов (aggregations).",
+      "bloomLevel": "conceptual"
+    },
+    {
+      "id": "dg-m03-03-q4",
+      "type": "true-false",
+      "question": "PII-маркеры в каталожной записи необходимо ставить только на уровне таблицы, так как все колонки таблицы имеют одинаковый уровень конфиденциальности.",
+      "correctAnswer": false,
+      "explanation": "PII-маркеры необходимы на уровне колонок, а не только таблиц. Таблица orders содержит email (PII) и total_amount (не PII). Гранулярная маркировка позволяет: (1) маскировать только PII-колонки при экспорте, (2) предоставлять аналитикам доступ к non-PII данным без полной privacy-процедуры, (3) автоматически применять column-level security. Маркировка только на уровне таблицы приведёт к over-restriction (вся таблица 'конфиденциальна') или under-protection (таблица 'не PII', хотя 1 колонка -- PII).",
+      "hint": "Подумайте: таблица orders содержит order_id (не PII) и email (PII). Если пометить всю таблицу как PII, аналитик не сможет получить доступ даже к order_id. Если не пометить -- email не будет защищён.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m03-03-code-1",
+      "type": "code-challenge",
+      "question": "Создайте валидный JSON -- каталожную запись для таблицы orders, которая включает все обязательные поля: table, schema, database, description, owner, tags (массив строк), classification (одно из: public, internal, confidential, restricted), columns (массив объектов с name, type, description, pii), freshness_sla_hours и quality_score.",
+      "language": "json",
+      "starterCode": "{\n  \"table\": \"\",\n  \"schema\": \"\",\n  \"database\": \"\",\n  \"description\": \"\",\n  \"owner\": \"\",\n  \"tags\": [],\n  \"classification\": \"\",\n  \"columns\": [],\n  \"freshness_sla_hours\": 0,\n  \"quality_score\": 0\n}",
+      "solutionCode": "{\n  \"table\": \"orders\",\n  \"schema\": \"public\",\n  \"database\": \"production_postgresql\",\n  \"description\": \"Customer orders with payment and shipping status\",\n  \"owner\": \"order_management_team\",\n  \"tags\": [\"transactional\", \"customer-facing\", \"pci-relevant\"],\n  \"classification\": \"confidential\",\n  \"columns\": [\n    {\"name\": \"order_id\", \"type\": \"bigint\", \"description\": \"Unique order identifier\", \"pii\": false},\n    {\"name\": \"customer_id\", \"type\": \"bigint\", \"description\": \"Reference to customer\", \"pii\": false},\n    {\"name\": \"email\", \"type\": \"varchar\", \"description\": \"Customer email for order\", \"pii\": true},\n    {\"name\": \"total_amount\", \"type\": \"decimal\", \"description\": \"Order total in RUB\", \"pii\": false},\n    {\"name\": \"status\", \"type\": \"varchar\", \"description\": \"Order status\", \"pii\": false},\n    {\"name\": \"created_at\", \"type\": \"timestamp\", \"description\": \"Order creation time\", \"pii\": false}\n  ],\n  \"freshness_sla_hours\": 1,\n  \"quality_score\": 0.94\n}",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "JSON contains all required top-level keys: table, schema, database, description, owner, tags, classification, columns, freshness_sla_hours, quality_score",
+          "expectedOutput": "{\"valid\":true,\"required_keys\":[\"table\",\"schema\",\"database\",\"description\",\"owner\",\"tags\",\"classification\",\"columns\",\"freshness_sla_hours\",\"quality_score\"]}"
+        },
+        {
+          "id": "tc2",
+          "description": "Classification is one of the allowed values and columns array has at least 1 item with name, type, description, pii fields",
+          "expectedOutput": "{\"valid\":true,\"classification_enum\":[\"public\",\"internal\",\"confidential\",\"restricted\"],\"column_keys\":[\"name\",\"type\",\"description\",\"pii\"]}"
+        },
+        {
+          "id": "tc3",
+          "description": "Tags is a non-empty array and quality_score is between 0 and 1",
+          "expectedOutput": "{\"valid\":true,\"tags_non_empty\":true,\"quality_score_range\":[0,1]}",
+          "hidden": true
+        }
+      ],
+      "explanation": "Каталожная запись -- стандартизированное описание data asset в каталоге данных. Обязательные поля обеспечивают полноту: table/schema/database для идентификации, owner для accountability, classification для governance-политик, columns с PII-маркерами для column-level security, freshness_sla и quality_score для мониторинга.",
+      "hint": "Заполните все поля конкретными значениями. Classification должен быть одним из: public, internal, confidential, restricted. Каждая колонка -- объект с полями name, type, description, pii (boolean).",
+      "bloomLevel": "applied"
+    }
+  ]
+}

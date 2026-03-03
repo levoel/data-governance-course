@@ -1,0 +1,97 @@
+{
+  "lessonSlug": "03-metadata-catalogs/04-data-lineage",
+  "moduleId": "03-metadata-catalogs",
+  "_meta": {
+    "idPrefix": "dg-m03-04",
+    "description": "Use IDs: dg-m03-04-q1 through dg-m03-04-q4, dg-m03-04-code-1 (CC-10)"
+  },
+  "questions": [
+    {
+      "id": "dg-m03-04-q1",
+      "type": "multiple-choice",
+      "question": "DataTech планирует изменить тип колонки raw_customers.email с VARCHAR(100) на VARCHAR(255). Какой тип lineage необходим для полного impact analysis?",
+      "options": [
+        { "id": "a", "text": "Table-level lineage -- покажет все связанные таблицы" },
+        { "id": "b", "text": "Column-level lineage -- покажет все downstream модели, использующие именно колонку email" },
+        { "id": "c", "text": "Pipeline-level lineage -- покажет порядок обновления DAGs" },
+        { "id": "d", "text": "Достаточно проверить только таблицу stg_customers" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Column-level lineage отслеживает трансформации конкретной колонки: raw_customers.email -> stg_customers.email_clean -> mart_customers.email -> Revenue Report. Table-level lineage (A) покажет связанные таблицы, но не скажет, затронута ли колонка email или другие колонки. Pipeline-level (C) показывает scheduling, не data dependencies. Проверка только stg_customers (D) пропустит дальнейшие downstream зависимости.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m03-04-q2",
+      "type": "multiple-choice",
+      "question": "В lineage-графе DataTech таблица raw_orders имеет fan_out = 12 (12 downstream зависимостей). Таблица raw_payments имеет fan_out = 2. При ограниченном бюджете на мониторинг, какую таблицу приоритизировать?",
+      "options": [
+        { "id": "a", "text": "raw_payments -- меньше зависимостей проще мониторить" },
+        { "id": "b", "text": "raw_orders -- высокий fan_out означает высокий risk: ошибка затронет 12 downstream потребителей" },
+        { "id": "c", "text": "Обе одинаково важны -- мониторить по алфавиту" },
+        { "id": "d", "text": "Приоритизировать leaf nodes, а не source nodes" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Fan_out -- метрика критичности узла в lineage-графе. Таблица с fan_out=12 при ошибке (schema change, data corruption, SLA violation) затронет 12 downstream потребителей: dbt-модели, дашборды, API. Raw_payments (fan_out=2) затронет только 2 потребителя. При ограниченном бюджете приоритизируются узлы с максимальным impact -- это стандартная стратегия risk-based мониторинга.",
+      "hint": "Подумайте об impact analysis: если таблица 'сломается', сколько downstream систем это затронет? Fan_out напрямую коррелирует с потенциальным ущербом.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m03-04-q3",
+      "type": "multiple-choice",
+      "question": "FinSecure использует Kafka (200+ топиков) для real-time обработки транзакций. Lineage собирается только для batch-процессов (Spark -> Snowflake). Какой тип данных остаётся невидимым?",
+      "options": [
+        { "id": "a", "text": "Данные в Snowflake -- они уже покрыты Spark lineage" },
+        { "id": "b", "text": "Real-time транзакционные потоки: Oracle -> Kafka -> Microservices -> PostgreSQL" },
+        { "id": "c", "text": "Metabase-дашборды -- они не связаны с Kafka" },
+        { "id": "d", "text": "Данные в Tableau -- они читают из Snowflake" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Batch-lineage (парсинг Spark/dbt SQL) покрывает ETL-процессы: Oracle -> Spark -> Snowflake -> Tableau. Но транзакционные данные проходят через CDC-пайплайн: Oracle -> Kafka -> 15 Microservices -> PostgreSQL. Без CDC-based lineage этот real-time путь невидим. При изменении схемы Oracle impact analysis покажет только batch downstream (Snowflake), пропустив 15 микросервисов. Это critical gap для банка с real-time транзакциями.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m03-04-q4",
+      "type": "true-false",
+      "question": "Impact analysis необходимо проводить только перед изменениями схемы (ALTER TABLE), но не перед изменениями ETL-логики.",
+      "correctAnswer": false,
+      "explanation": "Impact analysis обязателен перед любыми изменениями, затрагивающими данные: изменения схемы (ALTER TABLE, DROP COLUMN), изменения ETL-логики (новый WHERE-фильтр, изменение JOIN-условия), миграции баз данных, вывод источников из эксплуатации. Изменение ETL-логики может изменить семантику downstream данных: например, добавление WHERE status='active' в dbt-модель изменит row count во всех downstream отчётах.",
+      "hint": "Представьте: Data Engineer добавляет WHERE status != 'cancelled' в dbt-модель stg_orders. Revenue Report покажет другую сумму. Это не schema change, но impact analysis необходим.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m03-04-code-1",
+      "type": "code-challenge",
+      "question": "Дан набор dbt-моделей с зависимостями (sources и models). Постройте JSON lineage-граф: nodes (с id, type и depth), edges (from/to), root_nodes, leaf_nodes, max_depth, total_nodes, total_edges. Type определяется по prefix: raw_ = source, stg_ = staging, int_ = intermediate, mart_ = mart, report_ = report.",
+      "language": "json",
+      "starterCode": "// Input:\n// sources: [\"raw_customers\", \"raw_orders\", \"raw_payments\"]\n// models:\n//   stg_customers: [\"raw_customers\"]\n//   stg_orders: [\"raw_orders\"]\n//   stg_payments: [\"raw_payments\"]\n//   int_orders_enriched: [\"stg_orders\", \"stg_payments\"]\n//   mart_customer_orders: [\"stg_customers\", \"int_orders_enriched\"]\n//   report_revenue: [\"mart_customer_orders\"]\n\n{\n  \"nodes\": [],\n  \"edges\": [],\n  \"root_nodes\": [],\n  \"leaf_nodes\": [],\n  \"max_depth\": 0,\n  \"total_nodes\": 0,\n  \"total_edges\": 0\n}",
+      "solutionCode": "{\n  \"nodes\": [\n    {\"id\": \"raw_customers\", \"type\": \"source\", \"depth\": 0},\n    {\"id\": \"raw_orders\", \"type\": \"source\", \"depth\": 0},\n    {\"id\": \"raw_payments\", \"type\": \"source\", \"depth\": 0},\n    {\"id\": \"stg_customers\", \"type\": \"staging\", \"depth\": 1},\n    {\"id\": \"stg_orders\", \"type\": \"staging\", \"depth\": 1},\n    {\"id\": \"stg_payments\", \"type\": \"staging\", \"depth\": 1},\n    {\"id\": \"int_orders_enriched\", \"type\": \"intermediate\", \"depth\": 2},\n    {\"id\": \"mart_customer_orders\", \"type\": \"mart\", \"depth\": 3},\n    {\"id\": \"report_revenue\", \"type\": \"report\", \"depth\": 4}\n  ],\n  \"edges\": [\n    {\"from\": \"raw_customers\", \"to\": \"stg_customers\"},\n    {\"from\": \"raw_orders\", \"to\": \"stg_orders\"},\n    {\"from\": \"raw_payments\", \"to\": \"stg_payments\"},\n    {\"from\": \"stg_orders\", \"to\": \"int_orders_enriched\"},\n    {\"from\": \"stg_payments\", \"to\": \"int_orders_enriched\"},\n    {\"from\": \"stg_customers\", \"to\": \"mart_customer_orders\"},\n    {\"from\": \"int_orders_enriched\", \"to\": \"mart_customer_orders\"},\n    {\"from\": \"mart_customer_orders\", \"to\": \"report_revenue\"}\n  ],\n  \"root_nodes\": [\"raw_customers\", \"raw_orders\", \"raw_payments\"],\n  \"leaf_nodes\": [\"report_revenue\"],\n  \"max_depth\": 4,\n  \"total_nodes\": 9,\n  \"total_edges\": 8\n}",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Graph has 9 nodes with correct types and depths, 8 edges, max_depth=4",
+          "expectedOutput": "{\"valid\":true,\"total_nodes\":9,\"total_edges\":8,\"max_depth\":4}"
+        },
+        {
+          "id": "tc2",
+          "description": "Root nodes are the 3 sources (depth 0), leaf node is report_revenue (no downstream)",
+          "expectedOutput": "{\"valid\":true,\"root_nodes\":[\"raw_customers\",\"raw_orders\",\"raw_payments\"],\"leaf_nodes\":[\"report_revenue\"]}"
+        },
+        {
+          "id": "tc3",
+          "description": "Intermediate node int_orders_enriched has depth 2 and 2 incoming edges",
+          "expectedOutput": "{\"valid\":true,\"int_orders_enriched_depth\":2,\"int_orders_enriched_incoming\":2}",
+          "hidden": true
+        },
+        {
+          "id": "tc4",
+          "description": "mart_customer_orders has depth 3 (max of stg_customers depth 1, int_orders_enriched depth 2) + 1",
+          "expectedOutput": "{\"valid\":true,\"mart_customer_orders_depth\":3}",
+          "hidden": true
+        }
+      ],
+      "explanation": "Lineage-граф -- DAG (directed acyclic graph), где depth вычисляется как max(depth всех upstream узлов) + 1. Root nodes (depth=0) -- источники без upstream. Leaf nodes -- потребители без downstream. Эти метрики позволяют: max_depth оценивает сложность пайплайна, root_nodes -- точки входа для мониторинга, leaf_nodes -- конечные потребители для impact analysis.",
+      "hint": "Depth каждого узла = max(depth всех его upstream зависимостей) + 1. Sources (raw_) имеют depth=0. Для mart_customer_orders: зависит от stg_customers (depth=1) и int_orders_enriched (depth=2), значит depth = max(1,2) + 1 = 3.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

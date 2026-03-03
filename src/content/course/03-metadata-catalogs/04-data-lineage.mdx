@@ -1,0 +1,189 @@
+---
+title: "Data Lineage и Impact Analysis"
+description: "Типы lineage (column, table, pipeline), построение графа lineage, impact analysis и CDC-based lineage"
+order: 4
+difficulty: "intermediate"
+estimatedTime: 25
+audience: "engineers"
+topics: ["Data Lineage", "Impact Analysis", "Debezium"]
+---
+
+# Data Lineage и Impact Analysis
+
+## Введение
+
+Аналитик обнаруживает аномалию в отчёте Revenue. Откуда пришли эти данные? Какие трансформации они прошли? Какие другие отчёты используют тот же источник? Без **Data Lineage (происхождение данных)** ответ на эти вопросы -- часы ручного исследования SQL-запросов, dbt-моделей и Airflow DAGs. С lineage -- один клик в каталоге данных.
+
+## Что такое Data Lineage
+
+**Data Lineage (происхождение данных)** -- это визуализация и отслеживание пути данных от источника до потребителя через все трансформации. Lineage отвечает на три вопроса:
+
+1. **Upstream**: откуда пришли данные? (источники)
+2. **Transformations**: как они трансформировались? (модели, ETL)
+3. **Downstream**: кто их использует? (отчёты, модели, потребители)
+
+## Типы lineage
+
+### Table-level lineage
+
+Показывает зависимости между таблицами и моделями:
+
+<FlowRow>
+  <FlowNode
+    label="raw_customers"
+    description="PostgreSQL source"
+    variant="source"
+    tooltip="Исходная таблица клиентов из production PostgreSQL"
+  />
+  <Arrow />
+  <FlowNode
+    label="stg_customers"
+    description="dbt staging model"
+    variant="process"
+    tooltip="Стейджинг: очистка, приведение типов, дедупликация"
+  />
+  <Arrow />
+  <FlowNode
+    label="mart_customers"
+    description="dbt mart model"
+    variant="process"
+    tooltip="Бизнес-модель: агрегация, расчёт метрик клиентов"
+  />
+  <Arrow />
+  <FlowNode
+    label="Revenue Report"
+    description="Metabase dashboard"
+    variant="target"
+    tooltip="Дашборд CEO с метриками выручки по клиентам"
+  />
+</FlowRow>
+
+Table-level lineage отвечает на вопрос: "какие таблицы/модели участвуют в цепочке от источника до отчёта?"
+
+### Column-level lineage
+
+Более гранулярный уровень -- отслеживает, как конкретная колонка трансформируется:
+
+```
+raw_customers.email
+  -> stg_customers.email_clean (LOWER(TRIM(email)))
+    -> mart_customers.email (без изменений)
+      -> Revenue Report: "Email" column
+```
+
+Column-level lineage критичен для:
+- **PII tracking**: отследить, куда распространяется персональная колонка
+- **Impact Analysis**: при изменении типа колонки -- какие downstream модели сломаются
+- **Compliance**: доказать аудитору, что PII-колонка не попадает в незащищённые системы
+
+### Pipeline-level lineage
+
+Отслеживает зависимости между ETL/ELT процессами:
+
+```
+Airflow DAG: load_customers (03:00 UTC)
+  -> dbt run: stg_customers (03:15 UTC)
+    -> dbt run: mart_customers (03:30 UTC)
+      -> Metabase refresh: Revenue Report (04:00 UTC)
+```
+
+Pipeline-level lineage отвечает на вопрос: "в каком порядке и когда данные обновляются?"
+
+<KnowledgeCheck
+  question="DataTech изменяет тип колонки raw_customers.email с VARCHAR(100) на VARCHAR(255). Какой тип lineage нужен для анализа последствий?"
+  answer="Column-level lineage. Он покажет все downstream модели, где используется эта колонка: stg_customers.email_clean, mart_customers.email, и все отчёты. Table-level lineage покажет связанные таблицы, но не скажет, затронута ли конкретная колонка. Для этого изменения (расширение типа) column-level lineage покажет, что downstream модели не сломаются (VARCHAR(255) совместим с VARCHAR(100))."
+/>
+
+## Построение графа lineage
+
+Граф lineage -- это направленный ациклический граф (DAG), где:
+- **Узлы** -- data assets (таблицы, модели, отчёты)
+- **Рёбра** -- зависимости (derived_from, feeds_into)
+
+Для каждого узла вычисляется **depth** -- расстояние от ближайшего source-узла:
+
+```python
+# Пример: вычисление depth для lineage-графа
+lineage = {
+    "raw_customers": [],           # source, depth=0
+    "raw_orders": [],              # source, depth=0
+    "stg_customers": ["raw_customers"],    # depth=1
+    "stg_orders": ["raw_orders"],          # depth=1
+    "mart_customer_orders": ["stg_customers", "stg_orders"],  # depth=2
+    "report_revenue": ["mart_customer_orders"]                 # depth=3
+}
+# max_depth = 3 -- глубина пайплайна
+# root_nodes (depth=0): raw_customers, raw_orders
+# leaf_nodes (нет downstream): report_revenue
+```
+
+**Метрики lineage-графа:**
+
+| Метрика | Описание | Зачем нужна |
+|---------|----------|-------------|
+| **max_depth** | Максимальная глубина пайплайна | Оценка сложности и времени обновления |
+| **root_nodes** | Узлы без upstream | Источники данных -- точки входа |
+| **leaf_nodes** | Узлы без downstream | Конечные потребители -- дашборды, API |
+| **fan_out** | Количество downstream у узла | Критичность: высокий fan_out = высокий risk |
+
+## Impact Analysis
+
+**Impact Analysis (анализ влияния)** -- процесс оценки последствий изменений с использованием lineage. Обязателен перед:
+
+- Изменениями схемы (ALTER TABLE, DROP COLUMN)
+- Миграциями баз данных
+- Выводом источников из эксплуатации
+- Обновлением ETL-логики
+
+Алгоритм impact analysis:
+
+1. **Определить точку изменения** (таблица, колонка, пайплайн)
+2. **Traversal downstream** -- пройти по графу lineage все зависимые узлы
+3. **Оценить severity** для каждого затронутого узла
+4. **Уведомить владельцев** затронутых data assets
+
+## CDC-based lineage: автоматический сбор через Change Data Capture
+
+Традиционные способы сбора lineage (парсинг SQL, анализ dbt DAG) покрывают batch-процессы. Но в real-time архитектурах данные перемещаются через **Change Data Capture (CDC)** потоки, и lineage нужно собирать из event streams.
+
+**Change Data Capture** перехватывает изменения в базе данных (INSERT, UPDATE, DELETE) и транслирует их в event stream. CDC-пайплайн создаёт неявный lineage: PostgreSQL -> Kafka topic -> Consumer -> Target table.
+
+> Подробнее о CDC и Data Lineage: [CDC и Data Lineage](/debezium/06-module-6/03-data-pipeline-patterns/)
+>
+> Курс Debezium CDC Mastery подробно рассматривает, как Change Data Capture на основе Debezium обеспечивает автоматическое отслеживание lineage между source-базами и downstream-системами. CDC-based lineage особенно ценен для real-time архитектур, где batch-парсинг SQL не применим.
+
+CDC-based lineage важен для организаций вроде FinSecure, где Kafka (200+ топиков) является ключевым звеном в цепочке данных. Без отслеживания lineage через CDC-потоки граф остаётся неполным.
+
+<KnowledgeCheck
+  question="Почему CDC-based lineage важнее batch-lineage для FinSecure Bank с его Kafka-архитектурой?"
+  answer="Потому что FinSecure использует Kafka (200+ топиков) для real-time обработки транзакций. Batch-lineage (парсинг dbt/SQL) покрывает только ночные ETL-процессы (Spark -> Snowflake). Но транзакционные данные проходят через CDC-пайплайн: Oracle -> Kafka -> Microservices -> PostgreSQL. Без CDC-based lineage этот real-time путь данных невидим, и impact analysis будет неполным."
+/>
+
+## Сценарий: DataTech -- ручной lineage
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> У DataTech 120 dbt-моделей, 45 Airflow DAGs и 80+ Metabase-дашбордов. Lineage не отслеживается. Когда бизнес обнаруживает ошибку в отчёте:
+>
+> 1. Аналитик смотрит SQL дашборда в Metabase (20 минут)
+> 2. Находит dbt-модель, ищет upstream зависимости вручную (40 минут)
+> 3. Проверяет Airflow DAG, чтобы понять порядок обновления (30 минут)
+> 4. Обнаруживает, что источник -- PostgreSQL-таблица, ETL сломался 2 дня назад
+>
+> **Итого:** 1.5 часа на Root Cause Analysis. С lineage в каталоге -- 5 минут.
+>
+> **План DataTech:** развернуть lineage в три этапа:
+> 1. **dbt lineage** -- автоматический через dbt integration (бесплатно, покрывает 120 моделей)
+> 2. **Airflow lineage** -- через OpenLineage integration (покрывает 45 DAGs)
+> 3. **Metabase lineage** -- через OpenMetadata connector (покрывает 80+ дашбордов)
+
+## Итоги
+
+- **Data Lineage** отслеживает путь данных: upstream (источники) -> transformations -> downstream (потребители)
+- Три уровня: **table-level**, **column-level** (для PII tracking), **pipeline-level** (для scheduling)
+- Lineage-граф -- DAG с метриками: depth, root/leaf nodes, fan_out
+- **Impact Analysis** использует lineage для оценки последствий изменений
+- **CDC-based lineage** (Debezium) покрывает real-time потоки, где batch-парсинг не работает
+- Без lineage Root Cause Analysis занимает часы; с lineage -- минуты
+
+В следующем уроке мы рассмотрим **Metadata Standards (стандарты метаданных)** -- как обеспечить единообразие метаданных между системами.

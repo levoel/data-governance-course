@@ -3,34 +3,152 @@
   "moduleId": "03-metadata-catalogs",
   "_meta": {
     "idPrefix": "dg-exam-m03",
-    "description": "Use IDs: dg-exam-m03-q1, dg-exam-m03-q2, ... (8-12 analytical questions)"
+    "description": "Use IDs: dg-exam-m03-q1 through dg-exam-m03-q10 (10 analytical questions)"
   },
   "questions": [
     {
-      "id": "dg-exam-03-metadata-catalogs-placeholder",
+      "id": "dg-exam-m03-q1",
       "type": "multiple-choice",
-      "question": "Placeholder -- будет заменён в следующих фазах",
+      "question": "DataTech развернула OpenMetadata и собрала технические метаданные для 200+ таблиц. Через месяц Data Council оценивает результат: каталог используют 2 из 7 инженеров, бизнес-пользователи его не открывают. Какова корневая причина низкого adoption?",
       "options": [
-        {
-          "id": "a",
-          "text": "Вариант A"
-        },
-        {
-          "id": "b",
-          "text": "Вариант B"
-        },
-        {
-          "id": "c",
-          "text": "Вариант C"
-        },
-        {
-          "id": "d",
-          "text": "Вариант D"
-        }
+        { "id": "a", "text": "OpenMetadata не подходит для PostgreSQL + ClickHouse стека" },
+        { "id": "b", "text": "Каталог содержит только технические метаданные (DDL): без бизнес-описаний, тегов и владельцев он бесполезен для аналитиков и бизнеса. Нужен sprint на курирование бизнес-метаданных для Tier-1 таблиц" },
+        { "id": "c", "text": "7 человек -- слишком маленькая команда для каталога данных" },
+        { "id": "d", "text": "Каталог данных нужен только организациям Level 3+" }
       ],
-      "correctAnswer": "a",
-      "explanation": "Placeholder question -- будет заменён полноценным содержанием.",
-      "bloomLevel": "conceptual"
+      "correctAnswer": "b",
+      "explanation": "Это классический gap: технические метаданные собираются автоматически за часы, но без бизнес-контекста каталог -- набор DDL-схем. Аналитик ищет 'данные о клиентах для отчёта retention', а видит 'public.customers: id bigint, email varchar'. Решение: (1) определить Tier-1 таблицы (20% покрывают 80% запросов), (2) провести sprint на курирование описаний и тегов для Tier-1, (3) привлечь Data Stewards к заполнению. Для подготовки повторите уроки 1 (типы метаданных) и 3 (каталог) этого модуля.",
+      "hint": "Вспомните bottleneck каталогизации из урока 3: какой тип метаданных автоматический, а какой требует человеческого курирования?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m03-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure планирует миграцию 50 таблиц Oracle в PostgreSQL. Impact analysis через lineage показывает 120 downstream зависимостей. Однако lineage покрывает только batch-процессы (Spark). Какой risk не учтён?",
+      "options": [
+        { "id": "a", "text": "Risk учтён полностью -- batch lineage достаточен для миграции" },
+        { "id": "b", "text": "Real-time CDC-потоки Oracle -> Kafka -> Microservices не покрыты batch lineage. Миграция может сломать 15 микросервисов, получающих данные через Kafka CDC (Debezium)" },
+        { "id": "c", "text": "Tableau-дашборды не покрыты lineage" },
+        { "id": "d", "text": "Snowflake-запросы не покрыты lineage" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "FinSecure использует Kafka (200+ топиков) для CDC: Oracle -> Kafka -> 15 Microservices -> PostgreSQL. Batch lineage (Spark -> Snowflake) не видит этот real-time путь. При миграции Oracle -> PostgreSQL CDC-коннекторы (Debezium) нужно переконфигурировать, Kafka-топики могут измениться, микросервисы-потребители нужно обновить. Без CDC-based lineage impact analysis пропускает 15+ downstream систем. Для подготовки повторите урок 4 (lineage и CDC) этого модуля.",
+      "hint": "Вспомните: FinSecure имеет Kafka с 200+ топиками для real-time обработки. Batch lineage покрывает Spark -> Snowflake, но не Oracle -> Kafka -> Microservices.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m03-q3",
+      "type": "multiple-choice",
+      "question": "DataTech стандартизирует метаданные (JSON Schema). Compliance report показывает: 100% по обязательным полям и 15% по рекомендуемым. Data Council требует 80% по рекомендуемым за 6 месяцев. Какая стратегия реалистична?",
+      "options": [
+        { "id": "a", "text": "Нанять 3 Data Stewards для ручного заполнения description и tags" },
+        { "id": "b", "text": "Приоритизировать по Tier: автоматически предложить tags через rule-based классификацию + курировать descriptions для Tier-1 таблиц + постепенно расширять coverage" },
+        { "id": "c", "text": "Сделать рекомендуемые поля обязательными -- тогда compliance будет 100%" },
+        { "id": "d", "text": "80% за 6 месяцев нереалистично -- переговорить target с Data Council" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Комбинация автоматизации и приоритизации: (1) rule-based тегирование автоматически покроет 25%+ таблиц tags за дни (урок 6), (2) ручное курирование descriptions для 50 Tier-1 таблиц реалистично для 1-2 Data Stewards за 2 месяца, (3) AI-suggested descriptions для остальных с ручным review. Если сделать обязательными (C), старые записи сломают валидацию. Для подготовки повторите уроки 5 (стандарты) и 6 (auto-tagging) этого модуля.",
+      "hint": "Какие из рекомендуемых полей можно заполнить автоматически (tags через rule-based), а какие требуют ручного курирования (description)?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m03-q4",
+      "type": "multiple-choice",
+      "question": "Бизнес-глоссарий DataTech содержит 50 терминов. Маркетинг изменил определение 'активного клиента' (30 -> 90 дней), но в глоссарии осталось старое. 3 дашборда показывают разные числа. Какая комбинация governance-процессов предотвратила бы проблему?",
+      "options": [
+        { "id": "a", "text": "Запретить маркетингу менять определения без согласования" },
+        { "id": "b", "text": "Ежеквартальный review терминов + интеграция глоссария с каталогом (связь термина с SQL-формулой) + алерт при изменении dbt-модели, привязанной к термину" },
+        { "id": "c", "text": "Удалить глоссарий и использовать только каталог данных" },
+        { "id": "d", "text": "Добавить footnotes к каждому дашборду с определением термина" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Три уровня защиты: (1) ежеквартальный review -- Data Steward проверяет актуальность определений (урок 2), (2) интеграция с каталогом -- термин связан с dbt-моделью и SQL-формулой, (3) алерт при изменении -- когда маркетинг меняет WHERE условие в dbt, алертится Data Steward. Для подготовки повторите уроки 2 (глоссарий) и 4 (lineage) этого модуля.",
+      "hint": "Подумайте о трёх уровнях: регулярный процесс review, техническая связь термина с данными, автоматический алерт при изменениях.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m03-q5",
+      "type": "multiple-choice",
+      "question": "Rule-based тегирование DataTech показало 94.5% accuracy, 4 false positives (2%), 7 false negatives (3.5%). Когда оправдан переход на ML-based подход?",
+      "options": [
+        { "id": "a", "text": "Немедленно -- ML всегда точнее rule-based" },
+        { "id": "b", "text": "Когда false negatives связаны с нестандартными именами колонок, которые rule-based не покрывает, и когда есть достаточно размеченных данных для обучения" },
+        { "id": "c", "text": "Никогда -- ML непрозрачен и не подходит для governance" },
+        { "id": "d", "text": "Только после достижения Level 5 зрелости" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "ML-based подход оправдан для edge cases: колонки с нестандартными именами (col_3 = phone), данные без паттернов. Но ML требует размеченных данных, инфраструктуры для inference и процесса review предсказаний. На Level 1 rule-based с 94.5% -- достаточный baseline. Для подготовки повторите урок 6 (auto-tagging: rule-based vs ML) этого модуля.",
+      "hint": "Какие конкретные проблемы ML решает лучше rule-based? И какие ресурсы нужны для ML-подхода?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m03-q6",
+      "type": "multiple-choice",
+      "question": "DataTech создаёт lineage-граф для 120 dbt-моделей. Таблица raw_orders имеет fan_out=12, raw_products -- fan_out=2. Как приоритизировать мониторинг при ограниченном бюджете?",
+      "options": [
+        { "id": "a", "text": "Мониторить все 120 моделей одинаково" },
+        { "id": "b", "text": "Мониторить только leaf nodes (конечные дашборды)" },
+        { "id": "c", "text": "Приоритизировать по fan_out: raw_orders (fan_out=12) -- критичный мониторинг (алерт за 15 мин), raw_products -- стандартный мониторинг (алерт за 1 час)" },
+        { "id": "d", "text": "Мониторить только root nodes" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Fan_out -- метрика критичности в lineage-графе. Ошибка в raw_orders затронет 12 downstream систем. Risk-based мониторинг: узлы с высоким fan_out получают более строгий SLA. Мониторинг всех моделей одинаково (A) размывает внимание. Только leaf nodes (B) -- позднее обнаружение. Для подготовки повторите урок 4 (lineage метрики) этого модуля.",
+      "hint": "Fan_out = количество downstream зависимостей. При сбое какой узел нанесёт больший ущерб?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m03-q7",
+      "type": "multiple-choice",
+      "question": "FinSecure расширяет OpenMetadata coverage с 40% до 80%. Oracle (800 таблиц) -- основной gap. Какая стратегия каталогизации Oracle наиболее эффективна?",
+      "options": [
+        { "id": "a", "text": "Нанять внешних консультантов для описания всех 800 таблиц" },
+        { "id": "b", "text": "Tier-based: определить 80 Tier-1 таблиц, провести workshop с Oracle DBA, rule-based тегирование для PII/financial, остальные -- по запросу" },
+        { "id": "c", "text": "Подождать миграции Oracle -> PostgreSQL" },
+        { "id": "d", "text": "Импортировать Oracle data dictionary comments как описания" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "10% таблиц (80 Tier-1) покрывают 80%+ бизнес-запросов. Workshop с Oracle DBA -- единственные люди, знающие бизнес-контекст 15-летних таблиц. Rule-based тегирование автоматизирует PII/financial классификацию. Консультанты (A) дороги и не знают контекста. Oracle comments (D) обычно пустые или устаревшие. Для подготовки повторите уроки 3 (каталог, Tier-based) и 6 (auto-tagging) этого модуля.",
+      "hint": "Кто лучше всех знает бизнес-контекст 800 Oracle-таблиц? Какой процент из них реально используется?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m03-q8",
+      "type": "true-false",
+      "question": "Для корректного impact analysis достаточно table-level lineage: column-level lineage -- избыточная детализация, не влияющая на результат анализа влияния.",
+      "correctAnswer": false,
+      "explanation": "Column-level lineage критичен для точного impact analysis. Изменение orders.email затрагивает только модели, использующие эту колонку (3 из 12 downstream). Table-level покажет все 12 зависимостей. Без column-level команда анализирует 9 незатронутых моделей. Также column-level критичен для PII tracking. Для подготовки повторите урок 4 (типы lineage) этого модуля.",
+      "hint": "При изменении одной колонки в таблице с 20 колонками -- все ли downstream модели затронуты?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m03-q9",
+      "type": "multiple-choice",
+      "question": "Автоматический тег 'pii-detected' был присвоен 40 таблицам DataTech и никогда не проверен Data Steward. Через 3 месяца обнаружено, что 15 таблиц -- false positives. Политики маскирования блокировали аналитикам доступ к не-PII данным. Какой governance-принцип нарушен?",
+      "options": [
+        { "id": "a", "text": "Принцип минимальных привилегий" },
+        { "id": "b", "text": "Принцип 'automate classification, humanize validation': классификация автоматизирована, но ручная валидация (review) пропущена" },
+        { "id": "c", "text": "Принцип Data Ownership" },
+        { "id": "d", "text": "Принцип разделения обязанностей (SoD)" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Workflow тегирования: машина предлагает теги -> Data Steward review -> confirm/reject/modify -> теги утверждены -> политики активированы. Пропуск review (validation) привёл к 15 false positives с активированными policy restrictions. Over-restriction = аналитики не могут работать, доверие к каталогу падает. Для подготовки повторите урок 6 (governance тегов, workflow) этого модуля.",
+      "hint": "Вспомните workflow из урока 6: какой шаг между 'автоматическое присвоение тегов' и 'политики активированы' был пропущен?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m03-q10",
+      "type": "multiple-choice",
+      "question": "DataTech завершила программу metadata management. Через 3 месяца Data Council оценивает KPI. Какой набор метрик показывает реальную бизнес-ценность?",
+      "options": [
+        { "id": "a", "text": "Количество записей в каталоге (200+) и количество терминов в глоссарии (50+)" },
+        { "id": "b", "text": "Time to Data Discovery (3 недели -> 2 часа), Metadata Coverage (Tier-1: 100%, all: 60%), Lineage Completeness (80% paths), Tag Accuracy (94%+)" },
+        { "id": "c", "text": "Количество дашбордов, подключённых к каталогу" },
+        { "id": "d", "text": "NPS каталога данных среди пользователей" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Outcome-метрики: Time to Data Discovery привязан к исходной проблеме (3 недели onboarding). Metadata Coverage по Tier показывает приоритизированный прогресс. Lineage Completeness -- готовность к impact analysis. Tag Accuracy -- доверие к классификации. Вариант A -- input-метрики (что вложили). Для подготовки повторите все 6 уроков модуля, обращая внимание на метрики.",
+      "hint": "Вспомните исходные проблемы DataTech: 3 недели onboarding, противоречивые отчёты, отсутствие классификации. Какие метрики показывают прогресс?",
+      "bloomLevel": "analytical"
     }
   ]
 }

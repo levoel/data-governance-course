@@ -1,0 +1,91 @@
+{
+  "lessonSlug": "06-security-access/04-audit-logging",
+  "moduleId": "06-security-access",
+  "_meta": {
+    "idPrefix": "dg-m06-04",
+    "description": "Use IDs: dg-m06-04-q1 through dg-m06-04-q4, dg-m06-04-code-1 (CC-26 SQL)"
+  },
+  "questions": [
+    {
+      "id": "dg-m06-04-q1",
+      "type": "multiple-choice",
+      "question": "FinSecure обнаружила, что audit logging настроен для core banking (Oracle), но 15 микросервисов на PostgreSQL не логируют операции. Каков основной compliance-риск?",
+      "options": [
+        { "id": "a", "text": "Микросервисы работают медленнее без логирования" },
+        { "id": "b", "text": "Невозможно расследовать инциденты безопасности и доказать compliance регулятору ЦБ РФ для операций через микросервисы" },
+        { "id": "c", "text": "Audit log core banking становится недействительным без логов микросервисов" },
+        { "id": "d", "text": "Пользователи микросервисов не могут получить доступ к core banking" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Регулятор ЦБ РФ требует полный audit trail всех операций с клиентскими данными. Если клиент переводит деньги через мобильное приложение (микросервис) и возникает инцидент, FinSecure не сможет предоставить audit trail: кто инициировал операцию, через какой сервис, в какое время. Это нарушение compliance-требований: при проверке регулятор обнаружит gap в покрытии. Для FinSecure с 15 микросервисами это означает 0% audit coverage для значительной части операций.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m06-04-q2",
+      "type": "multiple-choice",
+      "question": "Audit log FinSecure показывает 8 DENIED-запросов от одного user_id за один час. Какой первый шаг при расследовании?",
+      "options": [
+        { "id": "a", "text": "Немедленно заблокировать аккаунт пользователя" },
+        { "id": "b", "text": "Проанализировать паттерн: какие ресурсы запрашивались, с каких IP, в какое время -- определить, это атака или misconfiguration" },
+        { "id": "c", "text": "Удалить записи из audit log, чтобы не паниковать команду" },
+        { "id": "d", "text": "Подождать 24 часа и проверить, повторится ли паттерн" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Прежде чем принимать меры (блокировка аккаунта может нарушить работу легитимного пользователя), необходимо понять контекст. 8 denied за час может быть: (1) brute-force атака -- нужна блокировка, (2) misconfiguration -- пользователю не хватает прав для легитимной работы, нужно обновить permissions, (3) изменение ролей -- RBAC-модель обновлена, но пользователь ещё не получил новые права. Вариант A преждевременен без контекста. Вариант C нарушает immutability audit log. Вариант D опасен при реальной атаке.",
+      "hint": "Подумайте: какие три причины могут вызвать множественные DENIED-запросы? Как их различить по паттерну в логах?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m06-04-q3",
+      "type": "multiple-choice",
+      "question": "Почему audit log должен быть immutable (append-only)?",
+      "options": [
+        { "id": "a", "text": "Чтобы уменьшить объём хранилища -- append-only занимает меньше места" },
+        { "id": "b", "text": "Чтобы предотвратить подделку: злоумышленник или администратор не может удалить следы своих действий" },
+        { "id": "c", "text": "PostgreSQL не поддерживает UPDATE на таблицах с индексами" },
+        { "id": "d", "text": "Потому что GDPR запрещает изменение любых данных после записи" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Если audit log можно изменять, злоумышленник (или администратор с привилегиями) может удалить записи о несанкционированном доступе, делая инцидент невидимым. Immutability гарантирует, что каждое действие записано навсегда: trigger prevent_audit_modification() блокирует UPDATE и DELETE. Хранение в отдельной системе с ограниченным доступом (только INSERT для писателей, только SELECT для аудиторов) добавляет дополнительную защиту.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m06-04-q4",
+      "type": "true-false",
+      "question": "Все события в audit log должны иметь одинаковый срок хранения (retention period), потому что невозможно предсказать, какие записи понадобятся при расследовании.",
+      "correctAnswer": false,
+      "explanation": "Различные типы событий имеют разные retention requirements. Critical-события (доступ к PII, изменение конфигурации) хранятся 5 лет по требованиям регуляторов (152-ФЗ, ЦБ РФ). Low-события (чтение публичных данных) -- 1 год. Хранить ВСЕ события 5 лет дорого и неэффективно: audit log FinSecure с 200+ микросервисами генерирует миллионы записей в день. Классификация по severity определяет retention: critical/security = 5 лет, high = 3 года, medium/low = 1 год.",
+      "hint": "Подумайте о стоимости хранения: если FinSecure логирует каждый SELECT на публичных отчётах, нужно ли хранить эти записи 5 лет?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m06-04-code-1",
+      "type": "code-challenge",
+      "question": "Напишите SQL-запросы для анализа таблицы audit_log и ответа на compliance-вопросы: (1) кто обращался к restricted данным за последние 30 дней, (2) топ пользователей по DENIED-запросам, (3) самые запрашиваемые ресурсы, (4) потенциальные инциденты (более 5 DENIED за час от одного пользователя).",
+      "language": "sql",
+      "starterCode": "-- Таблица audit_log:\n-- id, timestamp, user_id, action, resource, status (SUCCESS/DENIED), ip_address\n\n-- Запрос 1: Кто обращался к restricted данным за последние 30 дней?\nSELECT user_id, COUNT(*) AS access_count\nFROM audit_log\nWHERE -- TODO: filter restricted resources and last 30 days\nGROUP BY user_id\nORDER BY access_count DESC;\n\n-- Запрос 2: Топ пользователей по DENIED-запросам\nSELECT user_id, COUNT(*) AS denied_count\nFROM audit_log\nWHERE -- TODO: filter denied status\nGROUP BY user_id\nORDER BY denied_count DESC\nLIMIT 3;\n\n-- Запрос 3: Самые запрашиваемые ресурсы\nSELECT resource, COUNT(*) AS total_accesses\nFROM audit_log\n-- TODO: group and order\nLIMIT 3;\n\n-- Запрос 4: Потенциальные инциденты (>5 DENIED за час)\nSELECT user_id,\n       strftime('%Y-%m-%d %H:00', timestamp) AS hour_window,\n       COUNT(*) AS denied_in_hour\nFROM audit_log\nWHERE -- TODO: filter and group\nGROUP BY user_id, hour_window\nHAVING -- TODO: threshold\nORDER BY denied_in_hour DESC;",
+      "solutionCode": "-- Запрос 1: Кто обращался к restricted данным за последние 30 дней?\nSELECT user_id, COUNT(*) AS access_count\nFROM audit_log\nWHERE resource LIKE '%restricted%'\n  AND timestamp >= date('now', '-30 days')\n  AND status = 'SUCCESS'\nGROUP BY user_id\nORDER BY access_count DESC;\n\n-- Запрос 2: Топ пользователей по DENIED-запросам\nSELECT user_id, COUNT(*) AS denied_count\nFROM audit_log\nWHERE status = 'DENIED'\nGROUP BY user_id\nORDER BY denied_count DESC\nLIMIT 3;\n\n-- Запрос 3: Самые запрашиваемые ресурсы\nSELECT resource, COUNT(*) AS total_accesses\nFROM audit_log\nGROUP BY resource\nORDER BY total_accesses DESC\nLIMIT 3;\n\n-- Запрос 4: Потенциальные инциденты (>5 DENIED за час)\nSELECT user_id,\n       strftime('%Y-%m-%d %H:00', timestamp) AS hour_window,\n       COUNT(*) AS denied_in_hour\nFROM audit_log\nWHERE status = 'DENIED'\nGROUP BY user_id, hour_window\nHAVING COUNT(*) > 5\nORDER BY denied_in_hour DESC;",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Query 1 filters restricted resources with SUCCESS status",
+          "expectedOutput": "restricted"
+        },
+        {
+          "id": "tc2",
+          "description": "Query 4 identifies potential security incidents with >5 denials per hour",
+          "expectedOutput": "denied_in_hour"
+        },
+        {
+          "id": "tc3",
+          "description": "Query 2 returns top 3 users by denied count",
+          "expectedOutput": "denied_count",
+          "hidden": true
+        }
+      ],
+      "explanation": "Анализ audit log -- ключевая задача security-команды. Запрос 1 выявляет пользователей с доступом к restricted данным (потенциальная утечка). Запрос 2 находит пользователей с аномальным количеством отказов (brute-force или misconfiguration). Запрос 4 -- самый важный: кластеризация DENIED по часу выявляет атаки, где пользователь многократно пытается получить доступ за короткий период.",
+      "hint": "Для SQLite используйте strftime('%Y-%m-%d %H:00', timestamp) для группировки по часу. Для фильтра 30 дней: date('now', '-30 days'). HAVING COUNT(*) > 5 для порога инцидента.",
+      "bloomLevel": "applied"
+    }
+  ]
+}

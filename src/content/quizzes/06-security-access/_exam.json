@@ -3,34 +3,149 @@
   "moduleId": "06-security-access",
   "_meta": {
     "idPrefix": "dg-exam-m06",
-    "description": "Use IDs: dg-exam-m06-q1, dg-exam-m06-q2, ... (8-12 analytical questions)"
+    "description": "Use IDs: dg-exam-m06-q1 through dg-exam-m06-q10 (10 analytical questions)"
   },
   "questions": [
     {
-      "id": "dg-exam-06-security-access-placeholder",
+      "id": "dg-exam-m06-q1",
       "type": "multiple-choice",
-      "question": "Placeholder -- будет заменён в следующих фазах",
+      "question": "FinSecure Bank проводит RBAC-аудит и обнаруживает: 47% пользователей over-privileged, 34 роли для 30 пользователей, 19 ролей дублируют permissions. Data Council принимает решение о редизайне. Какая последовательность действий минимизирует risk при переходе к новой модели?",
       "options": [
-        {
-          "id": "a",
-          "text": "Вариант A"
-        },
-        {
-          "id": "b",
-          "text": "Вариант B"
-        },
-        {
-          "id": "c",
-          "text": "Вариант C"
-        },
-        {
-          "id": "d",
-          "text": "Вариант D"
-        }
+        { "id": "a", "text": "Немедленно отозвать все роли и назначить новые 8 ролей" },
+        { "id": "b", "text": "Инвентаризация ресурсов -> определение функциональных ролей -> матрица permissions -> параллельный запуск старых и новых ролей -> мониторинг DENIED в audit log -> поэтапная миграция" },
+        { "id": "c", "text": "Добавить новые 8 ролей к существующим 34 и постепенно удалять старые" },
+        { "id": "d", "text": "Нанять внешнего аудитора для проектирования новой модели" }
       ],
-      "correctAnswer": "a",
-      "explanation": "Placeholder question -- будет заменён полноценным содержанием.",
-      "bloomLevel": "conceptual"
+      "correctAnswer": "b",
+      "explanation": "Правильная последовательность минимизирует operational risk: (1) инвентаризация определяет все ресурсы и текущий доступ (урок 5), (2) функциональные роли заменяют ad-hoc роли (урок 2), (3) матрица визуализирует permissions для review Data Council, (4) параллельный запуск позволяет обнаружить проблемы без прерывания работы, (5) мониторинг DENIED-запросов в audit log (урок 4) выявляет случаи, когда новые роли недостаточны. Вариант A создаёт operational disruption. C ведёт к ещё большему role explosion (42 роли).",
+      "hint": "Подумайте: что произойдёт с ETL-пайплайнами FinSecure, если немедленно заменить все роли? Как audit log поможет при поэтапной миграции?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m06-q2",
+      "type": "multiple-choice",
+      "question": "BioGenesis использует ABAC для разграничения доступа исследователей. Исследователь с clearance 3, проект genomics-alpha, подключён из корпоративной сети в 14:00. Он запрашивает restricted данные проекта clinical-beta. OPA-политика содержит условия: clearance >= 3 AND project match AND corporate network AND business hours. Каков результат и почему?",
+      "options": [
+        { "id": "a", "text": "ALLOW -- clearance 3 >= 3, корпоративная сеть, рабочие часы -- все условия выполнены" },
+        { "id": "b", "text": "DENY -- project mismatch: genomics-alpha != clinical-beta, условие project match не выполнено" },
+        { "id": "c", "text": "CONDITIONAL -- OPA запросит одобрение Data Steward" },
+        { "id": "d", "text": "ERROR -- OPA не может сравнивать строковые атрибуты проектов" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "В ABAC все условия объединяются через AND. Три из четырёх условий выполнены, но project match нарушен: user.project (genomics-alpha) != resource.project (clinical-beta). Это та ситуация, которую ABAC проектировался предотвращать в BioGenesis (урок 3): исследователи не должны видеть данные чужих проектов. Без ABAC исследователь получил бы доступ -- именно так произошёл инцидент с Олегом.",
+      "hint": "Перечислите все 4 условия и проверьте каждое: clearance >= 3 (true), project match (false?), network == corporate (true), business hours (true).",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m06-q3",
+      "type": "multiple-choice",
+      "question": "DataTech Solutions решила заменить общий аккаунт datauser на индивидуальные аккаунты PostgreSQL. Какие три слоя defence in depth улучшаются этим одним изменением?",
+      "options": [
+        { "id": "a", "text": "Сетевой, данные, мониторинг" },
+        { "id": "b", "text": "Идентификация, авторизация, мониторинг" },
+        { "id": "c", "text": "Идентификация, данные, сетевой" },
+        { "id": "d", "text": "Авторизация, данные, сетевой" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Индивидуальные аккаунты улучшают: (1) Идентификация -- каждый пользователь аутентифицируется уникальными credentials. (2) Авторизация -- можно назначить RBAC-роли (analyst: SELECT, engineer: INSERT/UPDATE). (3) Мониторинг -- audit log записывает действия конкретного пользователя, устраняя Repudiation. Сетевой и data-слои не затрагиваются сменой аккаунтов. Повторите урок 1 (defence in depth) этого модуля.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m06-q4",
+      "type": "multiple-choice",
+      "question": "В audit log FinSecure обнаружена аномалия: user_id 15 имеет 23 DENIED-запроса за 30 дней, из них 8 за один час. Все запросы к ресурсу 'sensitive.credit_scores'. Какова наиболее вероятная интерпретация?",
+      "options": [
+        { "id": "a", "text": "Обычная рабочая нагрузка -- игнорировать" },
+        { "id": "b", "text": "Потенциальная атака: кластеризация 8 DENIED за час на sensitive ресурс требует расследования (P2)" },
+        { "id": "c", "text": "Ошибка в RBAC-конфигурации -- выдать пользователю доступ" },
+        { "id": "d", "text": "Баг в audit log -- DENIED записались ошибочно" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "8 DENIED за час к sensitive.credit_scores -- аномалия: кластеризация типична для направленной попытки доступа. Правильные шаги: P2 (High), расследование (IP, паттерн, предыстория), containment если аккаунт скомпрометирован. Выдать доступ (C) без расследования -- опасно. Повторите уроки 4 (audit logging) и 6 (incident response) этого модуля.",
+      "hint": "Сравните: 23 DENIED за 30 дней (фон) vs 8 DENIED за 1 час на sensitive ресурс (кластеризация).",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m06-q5",
+      "type": "multiple-choice",
+      "question": "FinSecure комбинирует RBAC и ABAC со стратегией AND. Инженер (fs_engineer) запрашивает staging. RBAC: ALLOW (engineer имеет доступ). ABAC: network=corporate (true), time=14:00 (true), department=marketing (не data engineering). Итог?",
+      "options": [
+        { "id": "a", "text": "ALLOW -- RBAC достаточно" },
+        { "id": "b", "text": "DENY -- при стратегии AND обе модели должны разрешить; ABAC отклонил по department" },
+        { "id": "c", "text": "ALLOW -- department не является ABAC-атрибутом" },
+        { "id": "d", "text": "ERROR -- конфликт между моделями" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "При стратегии RBAC AND ABAC оба слоя должны разрешить доступ. RBAC разрешает (engineer может писать в staging), но ABAC содержит условие department match, которое не выполнено (marketing != data engineering). Итог: DENY. Это defence in depth для авторизации: RBAC определяет функциональные роли, ABAC добавляет контекстные ограничения. Повторите уроки 2 (RBAC) и 3 (комбинирование) этого модуля.",
+      "hint": "AND означает: оба RBAC и ABAC должны вернуть ALLOW. Если один DENY -- итог DENY.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m06-q6",
+      "type": "multiple-choice",
+      "question": "После инцидента BioGenesis (утечка 50K patient records), 5 Whys выявил root cause: 'отсутствие системной governance-программы'. Какие меры адресуют root cause?",
+      "options": [
+        { "id": "a", "text": "Заблокировать Олега и удалить shared password из Slack" },
+        { "id": "b", "text": "Назначить DPO, создать Data Governance Office, внедрить ABAC, автоматизировать credential rotation, развернуть DLP" },
+        { "id": "c", "text": "Перенести данные в зашифрованное облачное хранилище" },
+        { "id": "d", "text": "Провести тренинг по безопасности для исследователей" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Root cause -- отсутствие governance, поэтому решение создаёт governance-инфраструктуру: DPO + Governance Office (организация), ABAC (технический контроль), credential rotation (устранение shared passwords), DLP (предотвращение bulk export). Вариант A устраняет симптомы одного инцидента. C не решает проблему доступа. D полезен, но без технических контролей недостаточен. Повторите все 6 уроков модуля.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m06-q7",
+      "type": "multiple-choice",
+      "question": "FinSecure внедряет Policy-as-Code. Разработчик удаляет условие network == 'corporate' из правила доступа к PII. CI/CD pipeline содержит тест test_deny_from_public_network. Что произойдёт?",
+      "options": [
+        { "id": "a", "text": "Изменение применится к production" },
+        { "id": "b", "text": "Тест обнаружит, что PII доступны из public network, PR будет заблокирован" },
+        { "id": "c", "text": "OPA не позволяет удалять условия" },
+        { "id": "d", "text": "Изменение зафиксируется в Git, но не повлияет на runtime" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Policy-as-Code с CI/CD -- ключевое преимущество: тест проверяет, что PII недоступны из public сети. Удаление network-условия нарушит тест, PR будет заблокирован. Это автоматический enforcement, которого не хватает PDF-политикам. Повторите урок 3 (policy-as-code, OPA тесты) этого модуля.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m06-q8",
+      "type": "true-false",
+      "question": "Row-Level Security (RLS) в PostgreSQL можно обойти, добавив WHERE-условие, переопределяющее USING-политику.",
+      "correctAnswer": false,
+      "explanation": "RLS реализован на уровне СУБД: USING-условие добавляется как AND-фильтр к каждому запросу. WHERE пользователя комбинируется с USING через AND. Для московского аналитика (region = 'msk'): SELECT * WHERE region = 'eu' становится WHERE region = 'msk' AND region = 'eu' -- пустой результат. Единственный способ обойти RLS -- BYPASSRLS privilege (superuser). Повторите урок 2 (RLS) этого модуля.",
+      "hint": "USING добавляется как AND. Может ли WHERE переопределить AND?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m06-q9",
+      "type": "multiple-choice",
+      "question": "DataTech (L1), BioGenesis (L2), FinSecure (L3). Какая организация имеет наивысший RISK утечки данных?",
+      "options": [
+        { "id": "a", "text": "FinSecure -- наибольший объём данных" },
+        { "id": "b", "text": "BioGenesis -- наиболее чувствительные данные + слабый контроль доступа" },
+        { "id": "c", "text": "DataTech -- полное отсутствие governance" },
+        { "id": "d", "text": "Все три имеют одинаковый risk" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Risk = Probability x Impact. BioGenesis: высокая probability (shared passwords, нет project isolation, нет audit logging) + highest impact (медицинские данные, 323-ФЗ + 152-ФЗ + IRB). DataTech: высокая probability, но ниже impact (e-commerce, не медицинские). FinSecure: большой объём, но governance L3 снижает probability (RBAC, Vault, audit). Повторите все уроки в контексте трёх компаний.",
+      "hint": "Risk = Probability x Impact. Какая компания имеет и высокую вероятность утечки, и самые серьёзные последствия?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m06-q10",
+      "type": "multiple-choice",
+      "question": "FinSecure переводит 47 PDF-политик в OPA Rego и обнаруживает 12 противоречий. Какая evaluation strategy решит конфликты в security-critical системе?",
+      "options": [
+        { "id": "a", "text": "first-applicable: применять первую подходящую политику" },
+        { "id": "b", "text": "deny-overrides: deny-правила имеют приоритет над allow" },
+        { "id": "c", "text": "allow-overrides: allow-правила имеют приоритет над deny" },
+        { "id": "d", "text": "majority-vote: решение большинства правил" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "deny-overrides -- стандарт для security-critical систем: при конфликте deny побеждает (fail-secure). Если одна политика разрешает доступ к PII, а другая запрещает из public network, deny-override гарантирует запрет из public network. first-applicable (A) зависит от порядка -- хрупко. allow-overrides (C) -- fail-open, небезопасен. Повторите уроки 3 (deny-overrides) и 5 (policy design) этого модуля.",
+      "hint": "В security: при конфликте 'разрешить vs запретить', что безопаснее -- fail-open или fail-secure?",
+      "bloomLevel": "analytical"
     }
   ]
 }

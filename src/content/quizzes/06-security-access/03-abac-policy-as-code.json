@@ -1,0 +1,130 @@
+{
+  "lessonSlug": "06-security-access/03-abac-policy-as-code",
+  "moduleId": "06-security-access",
+  "_meta": {
+    "idPrefix": "dg-m06-03",
+    "description": "Use IDs: dg-m06-03-q1 through dg-m06-03-q4, dg-m06-03-code-1 (CC-28), dg-m06-03-code-2 (CC-29 JS)"
+  },
+  "questions": [
+    {
+      "id": "dg-m06-03-q1",
+      "type": "multiple-choice",
+      "question": "В BioGenesis 25 исследователей работают в JupyterHub. При использовании RBAC для разграничения доступа по проектам потребовалось бы создать отдельную роль для каждой комбинации (проект x clearance x тип данных). Почему ABAC предпочтительнее в этом случае?",
+      "options": [
+        { "id": "a", "text": "ABAC быстрее работает, чем RBAC на уровне СУБД" },
+        { "id": "b", "text": "ABAC оценивает комбинацию атрибутов при каждом запросе, избегая комбинаторного взрыва ролей (role explosion)" },
+        { "id": "c", "text": "ABAC не требует определения политик, доступ определяется автоматически" },
+        { "id": "d", "text": "ABAC позволяет пользователям самостоятельно выбирать уровень доступа" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "RBAC с 3 проектами x 4 clearance levels x 3 типа данных потребовал бы 36 ролей для 25 человек -- role explosion. При добавлении нового проекта нужно создавать ещё 12 ролей. ABAC использует фиксированный набор политик (5-10 правил), которые оценивают атрибуты динамически: user.project == resource.project AND user.clearance >= resource.classification_level. Добавление нового проекта не требует изменения политик.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m06-03-q2",
+      "type": "multiple-choice",
+      "question": "OPA Rego-политика BioGenesis содержит правило: allow если user.clearance >= 3 И resource.classification == 'restricted' И user.project == resource.project И environment.network == 'corporate'. Исследователь с clearance 4 из проекта genomics пытается получить доступ к restricted данным проекта genomics из домашней сети. Каков результат?",
+      "options": [
+        { "id": "a", "text": "ALLOW -- clearance 4 > 3, все остальные условия выполнены" },
+        { "id": "b", "text": "DENY -- environment.network не равен 'corporate', поэтому правило не срабатывает" },
+        { "id": "c", "text": "CONDITIONAL -- OPA запросит дополнительную аутентификацию" },
+        { "id": "d", "text": "ERROR -- OPA не может обработать запрос из нестандартной сети" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "В Rego все условия в блоке allow объединяются логическим AND. Четыре условия: clearance >= 3 (true, 4 >= 3), classification == 'restricted' (true), project match (true, оба genomics), network == 'corporate' (false, домашняя сеть). Один false делает весь блок false -- правило не срабатывает. Кроме того, deny-override правило явно блокирует доступ к restricted данным из public network. Результат: DENY.",
+      "hint": "В Rego блоке allow все условия связаны через AND. Если хотя бы одно условие false, весь блок false.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m06-03-q3",
+      "type": "multiple-choice",
+      "question": "Какое преимущество Policy-as-Code (OPA Rego) перед традиционными PDF-политиками для управления доступом?",
+      "options": [
+        { "id": "a", "text": "PDF-политики не могут описывать ABAC-правила" },
+        { "id": "b", "text": "Policy-as-Code позволяет тестировать политики в CI/CD, версионировать в Git и автоматически применять" },
+        { "id": "c", "text": "Policy-as-Code дешевле в реализации, чем PDF-документы" },
+        { "id": "d", "text": "OPA Rego заменяет RBAC на уровне СУБД" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Policy-as-Code превращает политики из декларативных документов в исполняемый код. Три ключевых преимущества: (1) Тестирование -- юнит-тесты проверяют, что политика работает как ожидается (нет случайных разрешений). (2) Версионирование -- каждое изменение зафиксировано в Git с автором и причиной (audit trail). (3) Автоматическое применение -- CI/CD деплоит новые политики без ручного вмешательства. PDF-политики (A) могут описывать ABAC, но не могут быть автоматически протестированы и применены.",
+      "bloomLevel": "conceptual"
+    },
+    {
+      "id": "dg-m06-03-q4",
+      "type": "true-false",
+      "question": "ABAC и RBAC являются взаимоисключающими моделями: организация должна выбрать одну из них.",
+      "correctAnswer": false,
+      "explanation": "ABAC и RBAC дополняют друг друга. На практике: RBAC определяет базовые разрешения (аналитик может SELECT), а ABAC добавляет fine-grained условия (только из своего проекта, в рабочее время, из корпоративной сети). Решение: ALLOW если RBAC(роль) AND ABAC(атрибуты). Большинство enterprise-систем используют комбинацию: RBAC на уровне СУБД (PostgreSQL roles) + ABAC на уровне приложения или API gateway (OPA).",
+      "hint": "Подумайте: может ли RBAC определять базовые роли, а ABAC -- дополнительные условия на основе контекста?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m06-03-code-1",
+      "type": "code-challenge",
+      "question": "Создайте JSON ABAC-политику, определяющую правила доступа на основе атрибутов пользователя (department, clearance_level, location), ресурса (classification, owner_department) и среды (time_of_day, network_type). Включите минимум 5 правил с условиями, используя как allow, так и deny эффекты. Укажите default_effect и evaluation_order.",
+      "language": "json",
+      "starterCode": "{\n  \"abac_policy\": {\n    \"name\": \"\",\n    \"version\": \"\",\n    \"rules\": [],\n    \"default_effect\": \"\",\n    \"evaluation_order\": \"\"\n  }\n}",
+      "solutionCode": "{\n  \"abac_policy\": {\n    \"name\": \"Attribute-Based Access Control Policy\",\n    \"version\": \"1.0\",\n    \"rules\": [\n      {\n        \"id\": \"ABAC-01\",\n        \"description\": \"Same department can access internal data\",\n        \"effect\": \"allow\",\n        \"conditions\": {\n          \"user.department\": {\"equals\": \"resource.owner_department\"},\n          \"resource.classification\": {\"in\": [\"public\", \"internal\"]}\n        }\n      },\n      {\n        \"id\": \"ABAC-02\",\n        \"description\": \"High clearance can access confidential data\",\n        \"effect\": \"allow\",\n        \"conditions\": {\n          \"user.clearance_level\": {\"gte\": 3},\n          \"resource.classification\": {\"in\": [\"public\", \"internal\", \"confidential\"]}\n        }\n      },\n      {\n        \"id\": \"ABAC-03\",\n        \"description\": \"Restricted data only from corporate network during business hours\",\n        \"effect\": \"allow\",\n        \"conditions\": {\n          \"user.clearance_level\": {\"gte\": 4},\n          \"resource.classification\": {\"equals\": \"restricted\"},\n          \"environment.network_type\": {\"equals\": \"corporate\"},\n          \"environment.time_of_day\": {\"between\": [9, 18]}\n        }\n      },\n      {\n        \"id\": \"ABAC-04\",\n        \"description\": \"Deny access from public networks to confidential+ data\",\n        \"effect\": \"deny\",\n        \"conditions\": {\n          \"environment.network_type\": {\"equals\": \"public\"},\n          \"resource.classification\": {\"in\": [\"confidential\", \"restricted\"]}\n        }\n      },\n      {\n        \"id\": \"ABAC-05\",\n        \"description\": \"Public data accessible by all authenticated users\",\n        \"effect\": \"allow\",\n        \"conditions\": {\n          \"user.authenticated\": {\"equals\": true},\n          \"resource.classification\": {\"equals\": \"public\"}\n        }\n      }\n    ],\n    \"default_effect\": \"deny\",\n    \"evaluation_order\": \"deny-overrides\"\n  }\n}",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Policy has at least 5 rules with conditions and effects",
+          "expectedOutput": "{\"valid\":true,\"rules_count\":\">=5\",\"required_fields\":[\"id\",\"description\",\"effect\",\"conditions\"]}"
+        },
+        {
+          "id": "tc2",
+          "description": "Policy has both allow and deny effects and default_effect",
+          "expectedOutput": "{\"valid\":true,\"effects\":[\"allow\",\"deny\"],\"has_default\":true}"
+        },
+        {
+          "id": "tc3",
+          "description": "Rules reference user, resource, and environment attributes",
+          "expectedOutput": "{\"valid\":true,\"attribute_categories\":[\"user\",\"resource\",\"environment\"]}",
+          "hidden": true
+        }
+      ],
+      "explanation": "ABAC-политика определяет правила доступа на основе комбинации атрибутов: кто запрашивает (department, clearance), что запрашивается (classification), при каких условиях (network, time). deny-overrides стратегия означает, что deny-правила имеют приоритет: даже если allow-правило срабатывает, deny-правило его переопределяет.",
+      "hint": "Создайте минимум 5 правил. Каждое правило должно иметь id, description, effect (allow/deny) и conditions. Включите хотя бы одно deny-правило. Используйте атрибуты из трёх категорий: user, resource, environment.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m06-03-code-2",
+      "type": "code-challenge",
+      "question": "Напишите JavaScript-функцию evaluatePolicy, которая оценивает ABAC-политику против запросов доступа. Функция получает политику (массив правил с conditions и effect), и массив запросов (user attributes, resource attributes, environment attributes). Для каждого запроса определите решение (ALLOW/DENY) с указанием сработавшего правила. Используйте стратегию deny-overrides: deny-правила имеют приоритет над allow.",
+      "language": "javascript",
+      "starterCode": "function evaluateCondition(condition, value) {\n  // TODO: evaluate a single condition against a value\n  // Support: equals, gte, in, between\n}\n\nfunction matchesRule(rule, request) {\n  // TODO: check if all conditions in a rule match the request\n}\n\nfunction evaluatePolicy(policyData) {\n  const { policy, requests } = policyData;\n  const decisions = [];\n  \n  for (let i = 0; i < requests.length; i++) {\n    // TODO: evaluate each request against policy rules\n    // Use deny-overrides strategy\n  }\n  \n  return JSON.stringify({ decisions }, null, 2);\n}\n\nconst input = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));\nconsole.log(evaluatePolicy(input));",
+      "solutionCode": "function evaluateCondition(condition, userVal, resourceVal, envVal) {\n  const [condKey, condSpec] = Object.entries(condition)[0];\n  let actualValue;\n  if (condKey.startsWith('user.')) actualValue = userVal[condKey.split('.')[1]];\n  else if (condKey.startsWith('resource.')) actualValue = resourceVal[condKey.split('.')[1]];\n  else if (condKey.startsWith('env.')) actualValue = envVal[condKey.split('.')[1]];\n  \n  const [op, expected] = Object.entries(condSpec)[0];\n  \n  if (op === 'equals') {\n    if (typeof expected === 'string' && expected.startsWith('resource.')) {\n      return actualValue === resourceVal[expected.split('.')[1]];\n    }\n    return actualValue === expected;\n  }\n  if (op === 'gte') return typeof actualValue === 'string' ? parseInt(actualValue.replace('>=','')) <= parseInt(expected) : actualValue >= expected;\n  if (op === 'in') return expected.includes(actualValue);\n  if (op === 'between') return actualValue >= expected[0] && actualValue <= expected[1];\n  return false;\n}\n\nfunction matchesRule(rule, request) {\n  for (const [key, spec] of Object.entries(rule.conditions)) {\n    const condition = { [key]: spec };\n    let actualValue;\n    if (key.startsWith('user.')) actualValue = request.user[key.split('.')[1]];\n    else if (key.startsWith('resource.')) actualValue = request.resource[key.split('.')[1]];\n    else if (key.startsWith('env.')) actualValue = request.env[key.split('.')[1]];\n    \n    const [op, expected] = Object.entries(spec)[0];\n    \n    if (op === 'equals') {\n      if (typeof expected === 'string' && expected.includes('.')) {\n        const [cat, field] = expected.split('.');\n        const refVal = cat === 'resource' ? request.resource[field] : request.user[field];\n        if (actualValue !== refVal) return false;\n      } else {\n        if (actualValue !== expected) return false;\n      }\n    } else if (op === 'gte') {\n      if (typeof expected === 'string' && expected.startsWith('>=')) {\n        if (actualValue < parseInt(expected.substring(2))) return false;\n      } else {\n        if (actualValue < expected) return false;\n      }\n    } else if (op === 'in') {\n      if (!expected.includes(actualValue)) return false;\n    } else if (op === 'between') {\n      if (actualValue < expected[0] || actualValue > expected[1]) return false;\n    }\n  }\n  return true;\n}\n\nfunction evaluatePolicy(policyData) {\n  const { policy, requests } = policyData;\n  const decisions = [];\n  \n  for (let i = 0; i < requests.length; i++) {\n    const request = requests[i];\n    let matchedDeny = null;\n    let matchedAllow = null;\n    \n    for (const rule of policy.rules) {\n      if (matchesRule(rule, request)) {\n        if (rule.effect === 'deny' && !matchedDeny) {\n          matchedDeny = rule;\n        } else if (rule.effect === 'allow' && !matchedAllow) {\n          matchedAllow = rule;\n        }\n      }\n    }\n    \n    if (matchedDeny) {\n      decisions.push({\n        request: i + 1,\n        decision: 'DENY',\n        matched_rule: matchedDeny.id,\n        reason: `Deny override: ${matchedDeny.id} matched`\n      });\n    } else if (matchedAllow) {\n      decisions.push({\n        request: i + 1,\n        decision: 'ALLOW',\n        matched_rule: matchedAllow.id,\n        reason: `${matchedAllow.id} matched`\n      });\n    } else {\n      decisions.push({\n        request: i + 1,\n        decision: 'DENY',\n        matched_rule: 'default',\n        reason: 'No matching allow rule; default deny'\n      });\n    }\n  }\n  \n  return JSON.stringify({ decisions }, null, 2);\n}\n\nconst input = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));\nconsole.log(evaluatePolicy(input));",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "High clearance user from corporate network gets ALLOW",
+          "input": "{\"policy\":{\"rules\":[{\"id\":\"R1\",\"effect\":\"deny\",\"conditions\":{\"env.network\":{\"equals\":\"public\"},\"resource.classification\":{\"equals\":\"restricted\"}}},{\"id\":\"R2\",\"effect\":\"allow\",\"conditions\":{\"user.clearance\":{\"gte\":4},\"resource.classification\":{\"equals\":\"restricted\"}}},{\"id\":\"R3\",\"effect\":\"allow\",\"conditions\":{\"user.department\":{\"equals\":\"resource.owner\"},\"resource.classification\":{\"equals\":\"internal\"}}},{\"id\":\"R4\",\"effect\":\"allow\",\"conditions\":{\"resource.classification\":{\"equals\":\"public\"}}}],\"default\":\"deny\",\"strategy\":\"deny-overrides\"},\"requests\":[{\"user\":{\"clearance\":5,\"department\":\"finance\"},\"resource\":{\"classification\":\"restricted\",\"owner\":\"finance\"},\"env\":{\"network\":\"corporate\"}}]}",
+          "expectedOutput": "\"decision\": \"ALLOW\""
+        },
+        {
+          "id": "tc2",
+          "description": "High clearance user from public network gets DENY (deny-overrides)",
+          "input": "{\"policy\":{\"rules\":[{\"id\":\"R1\",\"effect\":\"deny\",\"conditions\":{\"env.network\":{\"equals\":\"public\"},\"resource.classification\":{\"equals\":\"restricted\"}}},{\"id\":\"R2\",\"effect\":\"allow\",\"conditions\":{\"user.clearance\":{\"gte\":4},\"resource.classification\":{\"equals\":\"restricted\"}}},{\"id\":\"R3\",\"effect\":\"allow\",\"conditions\":{\"user.department\":{\"equals\":\"resource.owner\"},\"resource.classification\":{\"equals\":\"internal\"}}},{\"id\":\"R4\",\"effect\":\"allow\",\"conditions\":{\"resource.classification\":{\"equals\":\"public\"}}}],\"default\":\"deny\",\"strategy\":\"deny-overrides\"},\"requests\":[{\"user\":{\"clearance\":5,\"department\":\"finance\"},\"resource\":{\"classification\":\"restricted\",\"owner\":\"finance\"},\"env\":{\"network\":\"public\"}}]}",
+          "expectedOutput": "\"decision\": \"DENY\""
+        },
+        {
+          "id": "tc3",
+          "description": "Department match for internal data",
+          "input": "{\"policy\":{\"rules\":[{\"id\":\"R1\",\"effect\":\"deny\",\"conditions\":{\"env.network\":{\"equals\":\"public\"},\"resource.classification\":{\"equals\":\"restricted\"}}},{\"id\":\"R2\",\"effect\":\"allow\",\"conditions\":{\"user.clearance\":{\"gte\":4},\"resource.classification\":{\"equals\":\"restricted\"}}},{\"id\":\"R3\",\"effect\":\"allow\",\"conditions\":{\"user.department\":{\"equals\":\"resource.owner\"},\"resource.classification\":{\"equals\":\"internal\"}}},{\"id\":\"R4\",\"effect\":\"allow\",\"conditions\":{\"resource.classification\":{\"equals\":\"public\"}}}],\"default\":\"deny\",\"strategy\":\"deny-overrides\"},\"requests\":[{\"user\":{\"clearance\":2,\"department\":\"engineering\"},\"resource\":{\"classification\":\"internal\",\"owner\":\"engineering\"},\"env\":{\"network\":\"corporate\"}}]}",
+          "expectedOutput": "\"decision\": \"ALLOW\"",
+          "hidden": true
+        },
+        {
+          "id": "tc4",
+          "description": "No matching rule defaults to DENY",
+          "input": "{\"policy\":{\"rules\":[{\"id\":\"R1\",\"effect\":\"deny\",\"conditions\":{\"env.network\":{\"equals\":\"public\"},\"resource.classification\":{\"equals\":\"restricted\"}}},{\"id\":\"R2\",\"effect\":\"allow\",\"conditions\":{\"user.clearance\":{\"gte\":4},\"resource.classification\":{\"equals\":\"restricted\"}}},{\"id\":\"R3\",\"effect\":\"allow\",\"conditions\":{\"user.department\":{\"equals\":\"resource.owner\"},\"resource.classification\":{\"equals\":\"internal\"}}},{\"id\":\"R4\",\"effect\":\"allow\",\"conditions\":{\"resource.classification\":{\"equals\":\"public\"}}}],\"default\":\"deny\",\"strategy\":\"deny-overrides\"},\"requests\":[{\"user\":{\"clearance\":1,\"department\":\"marketing\"},\"resource\":{\"classification\":\"internal\",\"owner\":\"engineering\"},\"env\":{\"network\":\"corporate\"}}]}",
+          "expectedOutput": "\"decision\": \"DENY\"",
+          "hidden": true
+        }
+      ],
+      "explanation": "ABAC policy evaluation с deny-overrides стратегией: для каждого запроса проверяются все правила, deny-правила имеют приоритет. Если сработало deny-правило, результат DENY независимо от allow-правил. Если сработало только allow -- ALLOW. Если ни одно правило не сработало -- default deny.",
+      "hint": "Реализуйте matchesRule: проверьте все conditions правила против атрибутов запроса. Для deny-overrides: сначала соберите все matching rules, затем если есть deny -- DENY, иначе если есть allow -- ALLOW, иначе default DENY.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}
