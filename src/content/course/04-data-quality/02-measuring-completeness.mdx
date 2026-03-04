@@ -79,15 +79,8 @@ def overall_completeness(data):
 
 <QualityGauge
   client:load
-  title="DataTech: Completeness таблицы customers"
-  value={0.72}
-  target={0.95}
-  thresholds={[
-    { value: 0.5, label: "Critical", color: "red" },
-    { value: 0.8, label: "Warning", color: "orange" },
-    { value: 0.95, label: "OK", color: "green" }
-  ]}
-  tooltip="Overall completeness 72%: 4 из 20 ячеек на каждые 5 записей пусты. Целевой порог 95%."
+  score={72}
+  label="DataTech: Completeness таблицы customers"
 />
 
 Gauge показывает, что DataTech далеко от целевого порога (95%). Красная зона (менее 50%) означает критическую проблему, оранжевая (50-80%) -- требует внимания, зелёная (более 95%) -- в норме.

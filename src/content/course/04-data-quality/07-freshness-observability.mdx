@@ -47,15 +47,8 @@ def check_freshness(table_name, last_updated, sla_hours, reference_time):
 
 <QualityGauge
   client:load
-  title="DataTech: Freshness SLA для analytics_daily"
-  value={0.40}
-  target={0.95}
-  thresholds={[
-    { value: 0.3, label: "Critical (>2x SLA)", color: "red" },
-    { value: 0.7, label: "Stale (>1x SLA)", color: "orange" },
-    { value: 0.95, label: "Fresh", color: "green" }
-  ]}
-  tooltip="analytics_daily: обновлено 60 часов назад, SLA = 24 часа. Ratio 2.5x -- статус Critical."
+  score={40}
+  label="DataTech: Freshness SLA для analytics_daily"
 />
 
 ## Пять столпов Data Observability
@@ -153,7 +146,7 @@ def check_volume(table_name, current_count, expected_range):
 
 Традиционный ETL обновляет данные батчами (раз в сутки), что создаёт inherent freshness lag. **CDC (Change Data Capture)** решает эту проблему, доставляя изменения в near-real-time.
 
-> Debezium CDC позволяет мониторить freshness в реальном времени: каждое изменение в PostgreSQL мгновенно отправляется в Kafka, и downstream системы обновляются в течение секунд, а не часов. Подробнее о streaming data quality patterns: [Мониторинг качества потоковых данных](/debezium/04-module-4/02-monitoring-metrics/)
+> Debezium CDC позволяет мониторить freshness в реальном времени: каждое изменение в PostgreSQL мгновенно отправляется в Kafka, и downstream системы обновляются в течение секунд, а не часов. Подробнее о streaming data quality patterns: [Мониторинг качества потоковых данных](/debezium/04-module-4/02-prometheus-metrics-collection/)
 
 С CDC freshness SLA для критических таблиц можно снизить с 24 часов до минут -- но это создаёт новые observability-вызовы: мониторинг consumer lag, connector health, schema evolution.
 

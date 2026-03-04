@@ -49,11 +49,8 @@ import { QualityGauge } from '../../../components/diagrams/governance';
 
 <QualityGauge
   client:load
-  title="Fairness Score: Credit Scoring Model v3.0"
-  score={0.21}
-  threshold={0.70}
+  score={21}
   label="Composite Fairness Score"
-  status="fail"
 />
 
 ## Debiasing в Production
@@ -184,11 +181,8 @@ fairness_tests:
 
 <QualityGauge
   client:load
-  title="Monthly Fairness Monitor: Credit Scoring Model v3.1 (после debiasing)"
-  score={0.82}
-  threshold={0.70}
+  score={82}
   label="Composite Fairness Score"
-  status="pass"
 />
 
 <KnowledgeCheck

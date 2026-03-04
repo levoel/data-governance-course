@@ -91,15 +91,8 @@ import { QualityDashboard, PolicyTemplate, QualityGauge } from '../../../compone
 
 <QualityGauge
   client:load
-  title="DataTech: Business Impact Quality Gauge"
-  value={0.992}
-  target={0.999}
-  thresholds={[
-    { value: 0.95, label: "High Risk (>25K records)", color: "red" },
-    { value: 0.99, label: "Moderate Risk (5K records)", color: "orange" },
-    { value: 0.999, label: "Target (<500 records)", color: "green" }
-  ]}
-  tooltip="Completeness 99.2% = ~4,000 incomplete customer records. Business impact: 640K RUB potential revenue at risk."
+  score={99}
+  label="DataTech: Business Impact Quality Gauge"
 />
 
 > **Для сравнения: FinSecure Bank (ФинСекьюр Банк)**
