@@ -277,4 +277,5 @@ team:
 - **Team/roles** -- ответственные и уровни доступа
 - Контракты версионируются через semver: major (breaking), minor (additive), patch (fix)
 
-Это завершающий урок модуля "Архитектура и Моделирование Данных". В следующем модуле мы перейдём к **Метаданным и Каталогам Данных** -- практическим инструментам реализации архитектурных принципов, описанных в этом модуле.
+ODCS определяет **ЧТО** -- формальный контракт между producer и consumer. Но контракт без enforcement -- бумажный тигр. **Data Integration Governance (управление интеграцией данных)** определяет **КАК** данные физически перемещаются между системами: ETL/ELT pipeline governance, API versioning, schema registry governance, B2B data exchange. В следующем уроке мы изучим governance-практики для каждого паттерна интеграции -- от Airflow DAGs DataTech до Kafka topics FinSecure.
+

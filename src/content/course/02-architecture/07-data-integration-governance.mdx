@@ -1,0 +1,280 @@
+---
+title: "Data Integration Governance"
+description: "ETL/ELT governance, API governance, schema registry governance, B2B data exchange, integration pattern selection and governance implications"
+order: 7
+difficulty: "advanced"
+estimatedTime: 25
+audience: "engineers"
+topics: ["Data Integration", "ETL", "API Governance", "Schema Registry", "B2B Exchange"]
+---
+
+import { DecisionMatrix, PolicyTemplate, ToolDeepDive } from '../../../components/diagrams/governance';
+
+# Data Integration Governance
+
+## Введение
+
+У DataTech 45 Airflow DAGs. Ни один не документирован. В субботу DAG `customer_sync` падает -- данные из PostgreSQL не доходят до ClickHouse. Дашборды показывают устаревшие данные 48 часов. Три вопроса без ответа: кто владелец DAG? Какие данные он перемещает? Кто downstream-потребитель?
+
+Это симптом отсутствия **Data Integration Governance (управление интеграцией данных)** -- DMBOK2 Knowledge Area 8. В уроке 03 мы изучили Data Flow и Lineage: **откуда** данные приходят и **куда** уходят. В уроке 06 мы определили ODCS контракты: **ЧТО** именно producer обязан предоставить consumer. Теперь мы определим **КАК** -- governance-практики для физического перемещения данных между системами.
+
+## ETL/ELT Governance
+
+ETL (Extract-Transform-Load) и ELT (Extract-Load-Transform) -- два основных паттерна интеграции. Governance для них различается принципиально.
+
+### Pipeline Ownership
+
+Каждый pipeline должен иметь:
+
+| Атрибут | Описание | Пример (DataTech) |
+|---------|----------|-------------------|
+| **Owner** | Команда-владелец | CRM Domain Team |
+| **On-call** | Дежурный инженер | @aivanov (ротация еженедельно) |
+| **SLA** | Максимально допустимый downtime | 4 часа для `customer_sync` |
+| **Downstream** | Потребители данных | ClickHouse marts, Metabase dashboards |
+| **Schedule** | Расписание запуска | Ежедневно 02:00 UTC |
+
+DataTech: из 45 DAGs только 12 имеют description в Airflow. Ни один не имеет определённого owner. Первый шаг -- **Pipeline Ownership Registry**: маппинг DAG -> owner с on-call rotation.
+
+### Transformation Documentation
+
+<FlowRow>
+  <FlowNode variant="database" label="PostgreSQL" sublabel="Source: customers" />
+  <Arrow direction="right" label="Extract" />
+  <FlowNode variant="pipeline" label="Staging" sublabel="Raw extract" />
+  <Arrow direction="right" label="Transform" />
+  <FlowNode variant="pipeline" label="Quality Gate" sublabel="Validation" />
+  <Arrow direction="right" label="Load" />
+  <FlowNode variant="catalog" label="ClickHouse" sublabel="Mart: dim_customers" />
+</FlowRow>
+
+Каждая трансформация в pipeline должна быть документирована: входные данные, бизнес-логика, выходные данные, quality assertions. Для dbt-моделей это `schema.yml` с descriptions и tests. Для Airflow DAGs -- docstring + metadata tags.
+
+### ETL vs ELT: различия governance
+
+| Аспект | ETL Governance | ELT Governance |
+|--------|---------------|----------------|
+| **Фокус** | Логика трансформации до загрузки | Доступ к raw-данным после загрузки |
+| **Quality gate** | Перед Load (данные валидируются до попадания в target) | После Load (raw-данные уже в target, quality при трансформации) |
+| **PII risk** | Можно маскировать при Transform | Raw PII попадает в target -- требуется RBAC на raw layer |
+| **Audit trail** | Трансформации -- чёрный ящик без документации | Все шаги в SQL (dbt) -- полный audit trail |
+| **Change management** | PR review для ETL-кода | PR review для dbt models + schema migration |
+
+DataTech использует ELT (dbt + ClickHouse). Ключевой governance risk: raw PII (email, phone) загружается в ClickHouse staging без маскирования. Решение: dbt macro для автоматического хэширования PII при переходе из staging в marts (связь с уроком 03: column-level lineage для PII).
+
+### Testing Standards
+
+<ToolDeepDive tool="Airflow" version="2.x" lastVerified="2026-03">
+
+Governance-требования к pipeline testing:
+
+1. **Input validation** -- проверка schema источника перед extract (schema drift detection)
+2. **Output assertion** -- проверка row count, null ratio, uniqueness после transform
+3. **Idempotency test** -- повторный запуск DAG не создаёт дубликатов
+4. **Change management** -- PR review для изменений DAG, staging environment для тестирования
+
+Пример Airflow DAG governance metadata:
+```python
+dag = DAG(
+    dag_id="customer_sync",
+    description="Sync customers from PostgreSQL to ClickHouse",
+    tags=["domain:crm", "owner:crm-team", "sla:4h", "pii:true"],
+    # ...
+)
+```
+
+Tags обеспечивают discoverability и автоматическую классификацию DAGs по domain, owner, SLA и PII exposure.
+
+</ToolDeepDive>
+
+## API Governance
+
+Внутренние и внешние API -- второй ключевой паттерн интеграции. DataTech имеет 8 внутренних API. FinSecure -- 12. Ни один не имеет формальной версионной политики.
+
+### Versioning Strategy
+
+Семантическое версионирование для API: `v{major}.{minor}` в URL path.
+
+- **Major** (`/api/v1/` -> `/api/v2/`): breaking change -- удаление поля, изменение типа, переименование endpoint
+- **Minor**: non-breaking additive change -- новое опциональное поле, новый endpoint
+
+URL path versioning (`/api/v1/customers`) предпочтительнее header versioning (`Accept: application/vnd.api+v1`): проще для discovery, debugging, документации.
+
+### Deprecation Policy
+
+<PolicyTemplate
+  title="API Deprecation Policy"
+  sections={[
+    { title: "Notification Period", content: "Минимум 90 дней от объявления deprecation до retirement. Все потребители получают email + Slack notification с точной датой retirement." },
+    { title: "Migration Support", content: "Публикуется migration guide: маппинг старых endpoints/полей -> новые. Предоставляется sandbox для тестирования миграции." },
+    { title: "Version Support", content: "Минимум 2 одновременно поддерживаемые major-версии. v1 и v2 работают параллельно до полной миграции consumers." },
+    { title: "Usage Monitoring", content: "Ежедневный мониторинг v1 traffic. Retirement только когда v1 requests = 0 или оставшиеся consumers явно подтвердили готовность к миграции." },
+    { title: "Emergency Breaking Changes", content: "Только для critical security vulnerabilities. Требует approval VP Engineering + уведомление за 24 часа." }
+  ]}
+/>
+
+### Rate Limiting Governance
+
+Rate limits защищают API от перегрузки, но governance определяет: кто устанавливает лимиты? Как запросить увеличение? Кто одобряет исключения?
+
+| Tier | Лимит | Кто получает | Approval |
+|------|-------|-------------|----------|
+| Tier 1 (default) | 100 req/min | Все внутренние потребители | Автоматически |
+| Tier 2 (elevated) | 1,000 req/min | Команды с обоснованием | Team Lead |
+| Tier 3 (unlimited) | 10,000 req/min | Критические production pipelines | VP Engineering |
+
+<KnowledgeCheck
+  question="DataTech деплоит новую версию Customer API, которая удаляет поле middle_name. Три внутренние команды используют v1. Какие governance-шаги должны были предотвратить инцидент?"
+  answer="Четыре governance-шага: (1) Breaking change detection -- автоматический CI/CD check сравнивает schema v1 и v2, обнаруживает удалённое поле. (2) Impact analysis -- column-level lineage показывает, какие потребители используют middle_name. (3) Deprecation policy -- объявить deprecation v1 с 90-дневным timeline, опубликовать migration guide. (4) Parallel running -- v1 и v2 работают одновременно минимум 90 дней. Удаление поля без этих шагов -- governance failure: breaking change без notification, impact analysis и migration support."
+/>
+
+## Schema Registry Governance
+
+В event-driven архитектуре (Kafka, RabbitMQ) schema registry управляет контрактами между producer и consumer.
+
+<ToolDeepDive tool="Confluent Schema Registry" version="7.x" lastVerified="2026-03">
+
+### Schema Evolution Rules
+
+Schema compatibility определяет, какие изменения producer может вносить без breakage consumers:
+
+<DecisionMatrix
+  client:load
+  title="Schema Compatibility Types"
+  criteria={[
+    { name: "Добавление опционального поля", weight: 2 },
+    { name: "Удаление поля", weight: 3 },
+    { name: "Изменение типа поля", weight: 3 },
+    { name: "Добавление required поля", weight: 2 },
+    { name: "Гибкость producer", weight: 1 },
+    { name: "Защита consumer", weight: 3 }
+  ]}
+  options={[
+    { name: "BACKWARD", scores: [5, 2, 1, 2, 2, 5] },
+    { name: "FORWARD", scores: [5, 5, 1, 5, 5, 2] },
+    { name: "FULL", scores: [5, 1, 1, 1, 1, 5] },
+    { name: "NONE", scores: [5, 5, 5, 5, 5, 1] }
+  ]}
+/>
+
+- **BACKWARD** -- новая schema совместима со старыми consumers. Consumer может читать данные, написанные по старой И новой schema. *Нельзя*: удалять поля, менять типы, добавлять required поля.
+- **FORWARD** -- старая schema совместима с новыми данными. Producer может свободно менять schema, consumers адаптируются. *Нельзя*: менять типы.
+- **FULL** -- BACKWARD + FORWARD одновременно. Максимальная защита, минимальная гибкость.
+- **NONE** -- без проверок. FinSecure использовала NONE для 200+ topics -- результат: 3 consumer crash за квартал.
+
+### Ownership и Approval Workflow
+
+Каждый Kafka topic имеет:
+- **Schema owner** -- команда, которая определяет и эволюционирует schema
+- **Compatibility mode** -- устанавливается при создании topic, изменение требует approval от всех consumers
+- **Change workflow** -- PR с новой schema version -> CI проверяет compatibility -> consumer teams review -> merge
+
+FinSecure: после 3 инцидентов перешли с NONE на BACKWARD для всех production topics. Исключение: FULL для regulatory topics (PCI DSS audit trail).
+
+</ToolDeepDive>
+
+## B2B Data Exchange
+
+Внешний обмен данными -- третий паттерн интеграции с уникальными governance-вызовами: вы не контролируете отправителя.
+
+### Сценарий: BioGenesis
+
+> BioGenesis получает еженедельные CSV файлы от 5 внешних лабораторий. 12% записей fail quality validation: null patient_id, invalid date formats (DD/MM/YYYY вместо ISO 8601), encoding issues (Windows-1251 вместо UTF-8). Текущий процесс: reject entire file, request resend. Средняя задержка: 5 рабочих дней.
+
+### Governance для внешних данных
+
+<FlowRow>
+  <FlowNode variant="stakeholder" label="External Lab" sublabel="CSV файл" />
+  <Arrow direction="right" label="SFTP upload" />
+  <FlowNode variant="pipeline" label="Ingestion Gate" sublabel="Format + Schema" />
+  <Arrow direction="right" label="Valid rows" />
+  <FlowNode variant="catalog" label="Staging" sublabel="Quarantine invalid" />
+  <Arrow direction="right" label="Quality check" />
+  <FlowNode variant="database" label="Production" sublabel="Clean data" />
+</FlowRow>
+
+**Row-level quarantine** вместо full-file rejection:
+1. **Format validation** -- encoding, delimiter, header check
+2. **Schema validation** -- column names, types, required fields
+3. **Quality validation** -- business rules (non-null patient_id, valid dates)
+4. Valid rows --> staging --> production
+5. Invalid rows --> quarantine table с конкретными violations
+6. Автоматическое уведомление vendor: "15 из 200 записей quarantined: 8 null patient_id, 7 invalid date format"
+
+### Data Sharing Agreements
+
+Каждый B2B exchange требует формального соглашения:
+
+| Элемент | Описание |
+|---------|----------|
+| **Format** | CSV/JSON/Parquet, encoding (UTF-8), delimiter |
+| **Schema** | Column names, types, required fields (ODCS контракт) |
+| **Frequency** | Ежедневно/еженедельно/по запросу |
+| **Quality SLA** | Max % invalid records (< 5%), response time for fixes |
+| **Security** | Encryption in transit (TLS), at rest, SFTP credentials rotation |
+| **Escalation** | Контакт vendor при нарушениях, SLA для response |
+
+## Integration Pattern Selection
+
+Выбор паттерна интеграции -- архитектурное решение с governance-последствиями.
+
+<DecisionMatrix
+  client:load
+  title="Integration Pattern Governance Comparison"
+  criteria={[
+    { name: "Ownership complexity", weight: 3 },
+    { name: "Latency requirements", weight: 2 },
+    { name: "Testing difficulty", weight: 2 },
+    { name: "Rollback capability", weight: 3 },
+    { name: "Schema governance", weight: 2 },
+    { name: "Monitoring maturity needed", weight: 1 }
+  ]}
+  options={[
+    { name: "Batch ETL", scores: [4, 2, 4, 5, 3, 3] },
+    { name: "Streaming CDC", scores: [2, 5, 2, 2, 5, 2] },
+    { name: "API", scores: [3, 4, 3, 3, 4, 3] },
+    { name: "File Exchange", scores: [5, 1, 5, 5, 2, 5] }
+  ]}
+/>
+
+- **Batch ETL** (Airflow DAGs): простой ownership (DAG = owner), лёгкий rollback (перезапуск), но высокая latency. Подходит DataTech (Level 1).
+- **Streaming CDC** (Debezium, Kafka): сложный ownership (topic = producer + N consumers), трудный rollback, но near-realtime. Требует Level 3+ governance. Подробнее -- в [курсе Debezium](/debezium/06-etl-elt-patterns/).
+- **API**: средняя сложность, хороший контроль через versioning и rate limiting. DataTech: 8 APIs.
+- **File Exchange**: простейший governance (файл = snapshot), но нет schema enforcement. BioGenesis B2B exchange.
+
+<KnowledgeCheck
+  question="FinSecure использует Kafka с 200+ topics и schema registry в режиме BACKWARD compatibility. Producer team хочет добавить required поле risk_score в topic customer_events. Текущие consumers не отправляют risk_score. Что произойдёт и какое governance-решение корректно?"
+  answer="Schema будет отклонена registry. BACKWARD compatibility означает: новая schema должна быть читаема consumers, использующими старую schema. Required поле risk_score отсутствует в данных от старых producers -- consumers не смогут десериализовать. Корректное governance-решение: (1) добавить risk_score как optional поле с default value, (2) мигрировать producers на заполнение risk_score, (3) после 100% adoption -- если бизнес требует required -- переговоры с consumer teams, переход на новую major-версию schema с полным deprecation cycle."
+/>
+
+## Data Contract Enforcement
+
+ODCS контракты (урок 06) определяют **обязательства**. Integration governance определяет **enforcement** -- как проверить соблюдение контракта в runtime.
+
+### Contract Checks в Pipeline
+
+Встраивание contract validation в integration pipeline:
+
+1. **Pre-ingestion** -- schema validation (контракт определяет schema -> pipeline проверяет перед load)
+2. **Post-transform** -- quality rules (контракт определяет mustBe: 0 nulls -> dbt test проверяет после transform)
+3. **SLA monitoring** -- latency check (контракт определяет latency: 1d -> monitoring alert при нарушении)
+
+### Связь с ODCS
+
+ODCS `quality` section -> dbt tests (автоматическая генерация)
+ODCS `slaProperties` section -> monitoring alerts (Prometheus/Grafana)
+ODCS `schema` section -> schema registry compatibility check
+ODCS `team` section -> on-call rotation для incident response
+
+Контракт без enforcement -- документация. Контракт с enforcement -- governance.
+
+## Итоги
+
+- **ETL/ELT Governance** -- pipeline ownership registry, transformation documentation, testing standards, change management через PR review
+- **API Governance** -- semantic versioning в URL path, 90-дневная deprecation policy, tiered rate limiting, parallel version support
+- **Schema Registry** -- BACKWARD/FORWARD/FULL/NONE compatibility modes; BACKWARD рекомендуется для production (защита consumers)
+- **B2B Data Exchange** -- row-level quarantine вместо full-file rejection, формальные Data Sharing Agreements
+- **Integration Pattern Selection** -- Batch ETL (простой governance, высокая latency) vs Streaming CDC (сложный governance, low latency) vs API (средний баланс) vs File Exchange (простейший, без schema enforcement)
+- **Contract Enforcement** -- ODCS контракты + pipeline validation = governance в runtime
+
+Это завершающий урок модуля "Архитектура и Моделирование Данных". Мы прошли путь от архитектурных принципов (урок 01) через моделирование (02), lineage (03), naming (04), data mesh и contracts (05-06) до интеграционного governance. В следующем модуле мы перейдём к **Метаданным и Каталогам Данных** -- практическим инструментам реализации архитектурных принципов, описанных в этом модуле.
