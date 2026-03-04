@@ -27,6 +27,18 @@ Data Quality Rules (правила качества данных) определ
 | Referential integrity | Consistency | `order.customer_id` не существует в `customers` |
 | Temporal inconsistency | Consistency | `created_at > updated_at` |
 
+> **Hands-On Lab: Quality Lab**
+>
+> Practice these concepts with an intentionally dirty dataset and Great Expectations:
+>
+> ```bash
+> cd labs/quality && cp .env.example .env && docker compose up -d --build
+> ```
+>
+> Open JupyterLab at [http://localhost:28888](http://localhost:28888) and complete **Notebook 01: Data Profiling** -- explore a dirty e-commerce dataset and discover quality violations using SQL queries.
+>
+> **Requirements:** Docker Desktop with 4+ GB RAM allocated. See `labs/quality/README.md` for full setup.
+
 ## SQL-запросы для обнаружения нарушений
 
 ### 1. NULL в обязательных полях

@@ -50,6 +50,20 @@ expect_column_values_to_be_in_set(column="currency", value_set=["RUB", "USD", "E
   <FlowNode label="Data Docs" tooltip="HTML-отчёт с результатами валидации: pass/fail по каждому expectation" variant="output" />
 </FlowRow>
 
+> **Hands-On Lab: Quality Lab**
+>
+> Practice these concepts with an intentionally dirty dataset and Great Expectations:
+>
+> ```bash
+> cd labs/quality && cp .env.example .env && docker compose up -d --build
+> ```
+>
+> Open JupyterLab at [http://localhost:28888](http://localhost:28888) and complete **Notebooks 02 and 03: Expectation Basics + Expectation Suite** -- write GE expectations against dirty data, build a full suite, and run a validation checkpoint.
+>
+> **Note:** The lab uses GE 1.x API (current). This lesson references 0.18.x patterns for context -- see the lab README for API differences.
+>
+> **Requirements:** Docker Desktop with 4+ GB RAM allocated. See `labs/quality/README.md` for full setup.
+
 <KnowledgeCheck
   question="dbt tests и Great Expectations решают одну задачу -- тестирование качества данных. В чём ключевое архитектурное различие?"
   answer="dbt tests работают только с данными внутри dbt pipeline (SQL-трансформации в warehouse). Great Expectations работает с любыми данными: CSV, API, S3, Pandas DataFrames, Spark. Если все данные проходят через dbt -- достаточно dbt tests. Если есть данные вне dbt (внешние файлы, raw data) -- нужен GE. Многие команды используют оба: dbt tests для warehouse, GE для raw data validation."

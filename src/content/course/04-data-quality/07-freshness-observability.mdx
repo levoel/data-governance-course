@@ -82,6 +82,18 @@ def check_volume(table_name, current_count, expected_range):
     return {"table": table_name, "status": "normal", "count": current_count}
 ```
 
+> **Hands-On Lab: Quality Lab**
+>
+> Practice these concepts with an intentionally dirty dataset and Great Expectations:
+>
+> ```bash
+> cd labs/quality && cp .env.example .env && docker compose up -d --build
+> ```
+>
+> Open JupyterLab at [http://localhost:28888](http://localhost:28888) and complete **Notebook 04: Data Docs and Remediation** -- generate GE Data Docs, analyze validation results, and practice data remediation strategies.
+>
+> **Requirements:** Docker Desktop with 4+ GB RAM allocated. See `labs/quality/README.md` for full setup.
+
 <KnowledgeCheck
   question="В analytics_daily обычно загружается 10,000 записей в день. Сегодня загрузилось 500. Freshness SLA не нарушен (данные свежие). Какой столп observability зафиксирует проблему?"
   answer="Volume. Freshness показывает только 'данные обновились', но не 'сколько данных пришло'. Volume anomaly (500 вместо ожидаемых 10,000) указывает на проблему upstream: возможно, API-источник вернул неполный ответ, ETL-пайплайн обработал только часть данных, или произошёл partial failure. Без volume мониторинга эта проблема будет обнаружена только когда бизнес-пользователь заметит пробелы в дашборде."
