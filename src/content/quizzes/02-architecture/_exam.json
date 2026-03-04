@@ -3,7 +3,7 @@
   "moduleId": "02-architecture",
   "_meta": {
     "idPrefix": "dg-exam-m02",
-    "description": "Use IDs: dg-exam-m02-q1 through dg-exam-m02-q10 (10 analytical questions)"
+    "description": "Use IDs: dg-exam-m02-q1 through dg-exam-m02-q12 (12 analytical questions)"
   },
   "questions": [
     {
@@ -148,6 +148,36 @@
       "correctAnswer": "b",
       "explanation": "Последовательность определяется зависимостями: (1) Naming convention -- фундамент, без него всё хаотично. (2) dbt schema.yml + tests -- документация и валидация, создаёт data dictionary. (3) Consumption Layer + Metabase migration -- устраняет архитектурное нарушение, зависит от документированных моделей. (4) dbt lineage -- полезен после документирования. Для подготовки повторите все 5 уроков этого модуля: вопрос синтезирует принципы, моделирование, lineage, naming и архитектурные слои.",
       "hint": "Какой артефакт является prerequisite для всех остальных? Что нужно определить ДО документирования моделей?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m02-q11",
+      "type": "multiple-choice",
+      "question": "DataTech переходит от ad-hoc data contracts к ODCS v3.1.0. CRM-команда определила контракт для customer_data_product с quality rules: nullValues mustBe 0 для email, rowCount mustBeGreaterThan 1000. Через неделю pipeline alert показывает 50 null emails (из legacy-миграции). Какая комбинация действий правильна?",
+      "options": [
+        { "id": "a", "text": "Изменить mustBe: 0 на mustBe: 50 -- привести контракт к текущей реальности" },
+        { "id": "b", "text": "Удалить quality rule для email -- legacy данные не должны проверяться" },
+        { "id": "c", "text": "Запустить data remediation для 50 записей, сохранить quality rule, добавить severity: error и automated monitoring через slaProperties.frequency" },
+        { "id": "d", "text": "Создать новый контракт v2.0.0 с ослабленными quality rules" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Quality rules в ODCS -- это обязательства producer'а. 50 null emails -- data quality issue, решаемый remediation (заполнить или удалить legacy записи), а не ослаблением контракта. severity: error + automated monitoring обеспечивают проактивное обнаружение будущих нарушений. Ослабление rules (A, B) подрывает доверие потребителей. v2.0.0 (D) -- breaking change, неоправданный для fix. Для подготовки повторите урок 6 (ODCS quality rules) и урок 5 (data contracts) этого модуля.",
+      "hint": "Что важнее: привести контракт к проблемным данным или привести данные к стандарту контракта?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m02-q12",
+      "type": "multiple-choice",
+      "question": "FinSecure Bank определяет ODCS контракт для transaction_data_product. Контракт включает schema с колонками: transaction_id (classification: public), amount (classification: restricted), card_number (classification: confidential). Data Engineer предлагает slaProperties: latency 1 hour, retention 7 years, availability 99.9%. Какая проблема в этом контракте?",
+      "options": [
+        { "id": "a", "text": "Retention 7 лет слишком долго для транзакционных данных" },
+        { "id": "b", "text": "classification: confidential для card_number требует дополнительных мер в контракте: roles с access: read ограниченным до compliance-команды, и quality rule для маскирования в downstream" },
+        { "id": "c", "text": "availability 99.9% нереалистична для банковских систем" },
+        { "id": "d", "text": "Контракт составлен правильно -- classification достаточно для защиты card_number" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "classification: confidential -- это метка, но не enforcement. ODCS контракт должен дополнять classification ролевым доступом (roles section: кто может read card_number?) и quality rules для downstream (маскирование card_number_masked в аналитических витринах). Без этого card_number будет доступен всем потребителям контракта. retention 7 лет (A) стандартен для финансовых данных (ЦБ требования). 99.9% availability (C) реалистична для core banking. Для подготовки повторите уроки 5 (contracts) и 6 (ODCS) модуля M02, а также урок 6 модуля M06 (security).",
+      "hint": "classification -- это метка. Что обеспечивает фактическое ограничение доступа к confidential данным?",
       "bloomLevel": "analytical"
     }
   ]
