@@ -1,0 +1,209 @@
+---
+title: "Организационный assessment: оценка готовности к governance"
+description: "Capstone: assessment BioGenesis Lab (Level 2). Фреймворк оценки готовности, gap analysis по всем доменам, матрица приоритизации, ресурсная оценка, план управления изменениями."
+order: 2
+difficulty: "advanced"
+estimatedTime: 25
+audience: "both"
+topics: ["Organizational Assessment", "Governance Readiness", "Gap Analysis"]
+---
+
+import { QualityDashboard, ComplianceChecklist } from '../../../components/diagrams/governance';
+
+# Организационный assessment: оценка готовности к governance
+
+## Введение
+
+В предыдущем уроке мы спроектировали governance-программу для DataTech (Level 1) -- с нуля. Но большинство организаций не начинают с чистого листа. У них уже есть **частичный governance**: отдельные политики, разрозненные инструменты, неформальные процессы. Задача assessment (оценки) -- определить, **где организация сейчас**, **где должна быть**, и **как закрыть разрыв**.
+
+В этом уроке мы проведём assessment для BioGenesis Lab (БиоГенезис Лаб) -- исследовательской компании на Level 2, работающей с самыми чувствительными данными в курсе: геномные последовательности и клинические данные пациентов.
+
+## Сценарий: BioGenesis Lab -- Level 2 с критическими пробелами
+
+BioGenesis Lab (БиоГенезис Лаб) -- биотех-компания из 200 сотрудников с командой данных из 7 человек. Основные факты:
+
+- **Регуляторное давление**: 152-ФЗ (персональные данные пациентов), 323-ФЗ (охрана здоровья), GCP (клинические исследования)
+- **Данные**: геномные последовательности (50+ ТБ, MinIO), клинические записи (PostgreSQL), результаты ML-моделей (JupyterHub)
+- **Текущий governance**: IRB/этический комитет для протоколов исследований, но **нет** Data Governance Council, **нет** data stewards, **нет** каталога данных
+
+## Фреймворк оценки готовности
+
+Assessment проводится по 6 доменам из M01 (матрица зрелости DMBOK):
+
+<QualityDashboard
+  client:load
+  title="BioGenesis Lab: текущие оценки по доменам governance"
+  dimensions={[
+    { name: "Качество данных", score: 0.40, threshold: 0.60, description: "Quality checks только для клинических данных (регуляторное требование). Score: 2/5" },
+    { name: "Метаданные", score: 0.20, threshold: 0.60, description: "Нет каталога; документация в Jupyter notebooks исследователей. Score: 1/5" },
+    { name: "Приватность", score: 0.40, threshold: 0.80, description: "Бумажные формы согласия; нет digital consent management. Score: 2/5" },
+    { name: "Безопасность", score: 0.40, threshold: 0.80, description: "RBAC на PostgreSQL; MinIO API ключи; JupyterHub без сегрегации. Score: 2/5" },
+    { name: "Организация", score: 0.20, threshold: 0.60, description: "IRB/этика только для протоколов; нет governance council. Score: 1/5" },
+    { name: "AI Governance", score: 0.20, threshold: 0.40, description: "ML для drug discovery без model cards, bias testing, lineage. Score: 1/5" }
+  ]}
+/>
+
+## Методология Gap Analysis
+
+Gap analysis -- системное сравнение текущего состояния (as-is) с целевым (to-be) по каждому домену. Для каждого домена определяем:
+
+1. **Текущий уровень** (0-5 по шкале DMBOK)
+2. **Целевой уровень** (реалистичный за 12-18 месяцев)
+3. **Размер gap** (target - current)
+4. **Blocking issues** (что конкретно мешает)
+5. **Зависимости** (какие домены должны быть улучшены первыми)
+
+### Domain 1: Качество данных (M04)
+
+**Текущее (2/5):** Quality checks существуют только для клинических данных -- это регуляторное требование GCP. Исследовательские данные (геномные, лабораторные) не имеют никаких проверок качества.
+
+**Целевое (4/5):** Automated quality monitoring для всех критических datasets (клинические + геномные + результаты внешних лабораторий).
+
+**Gap (2):**
+- Нет quality checks для геномных данных (50+ ТБ)
+- Внешние лабораторные данные приходят CSV без валидации (M04, урок 3)
+- Нет SLA на freshness исследовательских данных
+
+**Зависимости:** Требует каталог (M03) для привязки quality metrics к datasets.
+
+### Domain 2: Метаданные и каталог (M03)
+
+**Текущее (1/5):** Метаданные существуют только в Jupyter notebooks отдельных исследователей. Tribal knowledge -- уход одного биоинформатика = потеря контекста.
+
+**Целевое (3/5):** Data catalog с покрытием 80% критических datasets (клинические таблицы + геномные коллекции + ML training sets).
+
+**Gap (2):**
+- Нет data catalog (M03, урок 1)
+- Нет lineage от raw genomic data до ML model predictions
+- Документация разрозненна (notebooks, email, Slack)
+
+### Domain 3: Приватность и compliance (M05)
+
+**Текущее (2/5):** Бумажные формы согласия пациентов собираются, но management ручной (таблицы Excel). Нет автоматического enforcement. Неясно, покрывает ли согласие secondary research use.
+
+**Целевое (4/5):** Digital consent management, automated PII classification, DPIA для всех проектов с patient data.
+
+**Gap (2):**
+- Бумажные формы согласия не связаны с digital records (M05, урок 2)
+- Нет де-идентификации pipeline (M05, урок 3) -- исследователи видят прямые идентификаторы
+- Геномные данные + клинические = высокий риск re-identification
+
+### Domain 4: Безопасность и контроль доступа (M06)
+
+**Текущее (2/5):** PostgreSQL имеет RBAC. MinIO защищён API ключами. Но JupyterHub -- 25 исследователей имеют доступ ко всем datasets без проектной сегрегации.
+
+**Целевое (4/5):** Project-based access segregation, audit logging, encryption of PII at rest.
+
+**Gap (2):**
+- JupyterHub: все исследователи видят все данные (M06, урок 1)
+- Нет audit trail: невозможно отследить, кто обращался к patient data (M06, урок 3)
+- Нет encryption at rest для PII в PostgreSQL
+
+### Domain 5: Governance Organization (M07)
+
+**Текущее (1/5):** IRB/этический комитет рассматривает протоколы исследований, но не аудирует доступ к данным. Нет Data Governance Council, нет data stewards, нет DPO.
+
+**Целевое (3/5):** Governance council, data steward для клинических данных, DPO (требование 152-ФЗ).
+
+**Gap (2):**
+- Нет governance council (M07, урок 1)
+- Нет data stewards (M07, урок 2)
+- Нет DPO -- этический комитет не заменяет DPO по 152-ФЗ
+
+### Domain 6: AI Governance (M08)
+
+**Текущее (1/5):** ML researcher разрабатывает модели drug discovery и biomarker prediction. Нет model cards, нет bias testing, неизвестно какие patient data использовались для training.
+
+**Целевое (2/5):** Model cards для production models, training data lineage, basic fairness assessment.
+
+**Gap (1):**
+- Нет model cards (M08, урок 4)
+- Training data lineage отсутствует -- невозможно выполнить data deletion request для ML training data
+- Нет bias testing для biomarker prediction (M08, урок 3)
+
+## Матрица приоритизации
+
+Не все gaps одинаково критичны. Приоритизируем по двум осям: **бизнес-impact** (регуляторные риски, финансовые потери) и **сложность закрытия** (время, ресурсы, зависимости):
+
+| Домен | Gap | Impact | Сложность | Приоритет | Тип |
+|-------|-----|--------|-----------|-----------|-----|
+| Приватность (M05) | Consent + de-identification | Критический (152-ФЗ, re-identification risk) | Средняя | **P1** | Quick win + стратегический |
+| Безопасность (M06) | JupyterHub access + audit | Высокий (patient data exposure) | Низкая | **P1** | Quick win |
+| Организация (M07) | Governance council + DPO | Высокий (нет accountability) | Низкая | **P1** | Quick win |
+| Метаданные (M03) | Data catalog | Средний (нет visibility) | Средняя | **P2** | Стратегический |
+| Качество (M04) | Genomic + lab data quality | Средний (research reliability) | Высокая | **P2** | Стратегический |
+| AI Governance (M08) | Model cards + lineage | Средний (future regulatory) | Средняя | **P3** | Стратегический |
+
+## Чеклист governance-готовности
+
+<ComplianceChecklist
+  client:visible
+  title="BioGenesis Lab: чеклист готовности к governance Level 3"
+  items={[
+    { requirement: "Executive sponsor назначен", status: "compliant", note: "Head of Research -- частичный sponsor" },
+    { requirement: "Governance Council создан", status: "non-compliant", note: "Нет. IRB не является Governance Council" },
+    { requirement: "Data Stewards назначены", status: "non-compliant", note: "Нет формальных steward ролей" },
+    { requirement: "DPO назначен (152-ФЗ)", status: "non-compliant", note: "Этический комитет не заменяет DPO" },
+    { requirement: "Data Catalog развёрнут", status: "non-compliant", note: "Нет каталога данных" },
+    { requirement: "PII Inventory проведён", status: "partial", note: "Клинические данные -- да; исследовательские -- нет" },
+    { requirement: "RBAC на всех системах", status: "partial", note: "PostgreSQL -- да; MinIO/JupyterHub -- нет" },
+    { requirement: "Audit logging активирован", status: "non-compliant", note: "Нет audit trail для доступа к данным" },
+    { requirement: "Quality monitoring автоматизирован", status: "partial", note: "Только клинические данные (GCP)" },
+    { requirement: "Incident response plan задокументирован", status: "non-compliant", note: "Нет плана реагирования на data breach" },
+    { requirement: "Model cards для ML-моделей", status: "non-compliant", note: "Нет model documentation" },
+    { requirement: "De-identification pipeline", status: "non-compliant", note: "Исследователи видят прямые идентификаторы" }
+  ]}
+/>
+
+## Ресурсная оценка
+
+Закрытие gaps BioGenesis требует:
+
+| Ресурс | Текущее | Требуемое | Действие |
+|--------|---------|-----------|----------|
+| Data Steward | 0 | 1 (клинический домен) | Назначить senior DE (50% time) |
+| DPO | 0 | 1 | Нанять или аутсорсить (3 месяца) |
+| Data Engineer (governance tooling) | 0 dedicated | 0.5 FTE | Перераспределить одного из 3 DE |
+| Бюджет (инструменты) | 0 | ~$15K/год | OpenMetadata hosting + training |
+| Бюджет (compliance) | 0 | ~$30K/год | DPO salary + audit + training |
+
+## План управления изменениями
+
+Assessment -- это не только технический аудит. Успех зависит от **готовности людей** принять новые процессы:
+
+1. **Исследователи** (25 человек) -- главное сопротивление. Привыкли к полному доступу ко всем данным. Project-based segregation замедлит их работу. **Стратегия:** объяснить compliance-риски (152-ФЗ штрафы, IRB отзыв), предложить self-service request workflow
+2. **Биоинформатики** (2 человека) -- союзники. Понимают проблему tribal knowledge. **Стратегия:** привлечь к каталогизации как first adopters
+3. **Head of Research** -- partial sponsor. **Стратегия:** показать ROI: сокращение onboarding нового исследователя с 3 недель до 3 дней (каталог), автоматическая compliance (DPO + audit)
+
+<KnowledgeCheck
+  question="BioGenesis проводит assessment и обнаруживает, что IRB/этический комитет рассматривает протоколы исследований, но не аудирует фактический доступ к данным. Почему этого недостаточно для governance?"
+  answer="IRB/этический комитет проверяет дизайн исследования (протокол) -- это pre-approval. Но governance требует также runtime enforcement и audit: (1) Protocol says 'use de-identified data' -- но кто проверяет, что исследователь действительно не видит PII? Нет audit logging (M06). (2) Protocol approved for Project A -- но исследователь может обращаться к данным Project B. Нет project-based access control (M06). (3) Пациент отзывает согласие -- но нет механизма удаления данных из ML training sets (M08, lineage). IRB -- governance 'на бумаге'. Для Level 3 нужен governance 'в runtime': automated access control + audit trail + consent enforcement."
+/>
+
+<KnowledgeCheck
+  question="В матрице приоритизации BioGenesis безопасность JupyterHub (M06) отмечена как P1/Quick Win, а AI Governance (M08) -- как P3. Почему такая разница, если обе проблемы связаны с patient data?"
+  answer="Impact разный: JupyterHub access -- текущая exposure (25 исследователей видят все patient data прямо сейчас). AI Governance -- будущий risk (модели обучены, но регуляторы пока не требуют model cards от biotech Level 2). Сложность разная: JupyterHub access control -- настраивается за 1-2 недели (project-based groups). Model cards + training lineage -- 3-6 месяцев (требует data catalog, lineage infrastructure). P1/Quick Win = высокий impact + низкая сложность. P3 = средний impact + средняя сложность + зависимости (нужен каталог)."
+/>
+
+## Формат отчёта assessment
+
+Результат assessment -- структурированный JSON-отчёт (см. код-challenge CC-41), включающий:
+
+1. **Maturity snapshot** -- текущий уровень с evidence по каждому домену
+2. **Gap analysis** -- target vs current с blocking issues
+3. **Recommendations** -- приоритизированные действия (quick wins + стратегические)
+4. **Improvement plan** -- поквартальный план (12 месяцев)
+
+Этот формат стандартизирует assessment и позволяет отслеживать прогресс: повторный assessment через 6-12 месяцев по той же структуре покажет, какие gaps закрыты.
+
+## Итоги
+
+Organizational assessment -- это **диагностика**, без которой невозможно лечение:
+
+1. **6 доменов** из M01 дают полную картину зрелости
+2. **Gap analysis** показывает конкретные проблемы, а не абстрактные оценки
+3. **Приоритизация** (impact vs сложность) определяет порядок действий
+4. **Ресурсная оценка** делает план реалистичным
+5. **Change management** обеспечивает adoption
+
+В следующем уроке мы сравним все три компании курса (DataTech, BioGenesis, FinSecure) -- кросс-компанийный анализ покажет, как governance выглядит на разных уровнях зрелости.

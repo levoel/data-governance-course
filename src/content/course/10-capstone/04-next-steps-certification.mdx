@@ -1,0 +1,153 @@
+---
+title: "Следующие шаги: самооценка, сертификации и развитие в Data Governance"
+description: "Самооценка по результатам курса, обзор профессиональных сертификаций (CDMP, DGSP), построение community of practice, тренды: AI governance, data mesh governance, real-time governance."
+order: 4
+difficulty: "intermediate"
+estimatedTime: 15
+audience: "both"
+topics: ["Data Governance Career", "Certification", "Continuous Learning"]
+---
+
+# Следующие шаги: самооценка, сертификации и развитие в Data Governance
+
+## Введение
+
+Вы завершили 10-модульный курс Data Governance (управление данными): от фундаментальных концепций (M01) через 6 технических доменов (M02-M06) и организационное внедрение (M07) до AI governance (M08), инструментов (M09) и capstone-синтеза (M10). Этот заключительный урок -- о том, **что дальше**: как оценить свои знания, какие профессиональные пути открыты и куда движется индустрия.
+
+## Самооценка: чек-лист по модулям
+
+Оцените свою уверенность в каждом домене по шкале 1-5:
+
+| Модуль | Домен | Ключевые навыки | Ваша оценка (1-5) |
+|--------|-------|-----------------|-------------------|
+| M01 | Основы | Матрица зрелости DMBOK, домены governance, governance council | ___ |
+| M02 | Архитектура | Data modeling, naming conventions, lineage | ___ |
+| M03 | Метаданные | Data catalog, metadata management, OpenMetadata | ___ |
+| M04 | Качество | Quality dimensions, Great Expectations, quality KPIs | ___ |
+| M05 | Приватность | 152-ФЗ/GDPR, PII classification, consent, DPIA | ___ |
+| M06 | Безопасность | RBAC/ABAC, audit logging, incident response | ___ |
+| M07 | Внедрение | Program design, stakeholders, charter, roadmap, KPIs | ___ |
+| M08 | AI Governance | AI risk, fairness, model cards, EU AI Act | ___ |
+| M09 | Инструменты | Tool categories, evaluation, deployment, integration | ___ |
+| M10 | Capstone | Program design, assessment, cross-company synthesis | ___ |
+
+**Интерпретация:**
+- Средний балл **4-5**: вы готовы к senior governance roles или CDMP-сертификации
+- Средний балл **3-4**: solid foundation; углубляйте слабые домены через практику
+- Средний балл **1-3**: пересмотрите модули с оценкой < 3; сфокусируйтесь на code challenges
+
+## Профессиональные сертификации
+
+Data Governance -- растущая профессиональная область. Ниже -- обзор двух основных сертификаций. **Мы не рекомендуем конкретную сертификацию** -- выбор зависит от вашей карьерной цели и региона.
+
+### CDMP (Certified Data Management Professional)
+
+- **Организация:** DAMA International
+- **Что покрывает:** 14 областей DMBOK2 (Data Governance, Data Quality, Metadata, Data Security, и др.)
+- **Уровни:** Associate, Practitioner, Master
+- **Формат:** 100 вопросов, 90 минут, online proctored
+- **Связь с курсом:** M01-M06 покрывают 6 из 14 областей DMBOK; M07-M09 добавляют Implementation и Tools
+- **Язык:** Английский (экзамен), русскоязычные материалы для подготовки существуют
+
+### DGSP (Data Governance and Stewardship Professional)
+
+- **Организация:** EDM Council
+- **Что покрывает:** Data Governance frameworks, stewardship, data quality, regulatory compliance
+- **Формат:** Online assessment
+- **Связь с курсом:** Наиболее близок к M01, M04, M05, M07
+- **Язык:** Английский
+
+### Дополнительные направления
+
+| Направление | Сертификация / курс | Связь с курсом |
+|-------------|---------------------|----------------|
+| Privacy | CIPP/E (IAPP) | M05 (GDPR, 152-ФЗ) |
+| Security | CISSP (ISC2) | M06 (Access control, encryption) |
+| Data Engineering | AWS/GCP/Azure Data | M02, M03, M09 |
+| AI Ethics | IEEE CertifAIEd | M08 (AI governance) |
+
+## Построение Community of Practice
+
+Governance -- не индивидуальная дисциплина. Успех зависит от **community of practice** (сообщество практиков) внутри организации:
+
+### Шаги запуска CoP
+
+1. **Найдите 3-5 единомышленников**: data engineers, analysts, legal -- те, кто уже сталкивается с governance-проблемами
+2. **Bi-weekly meetup** (30 минут): обсуждение конкретного governance-кейса (не абстрактных теорий)
+3. **Internal wiki / Confluence space**: документирование решений, политик, best practices
+4. **Lunch & Learn**: ежемесячная презентация на тему governance для широкой аудитории
+5. **Champion program**: governance ambassadors в каждой команде
+
+### Метрики CoP
+
+- Количество участников (рост)
+- Количество решённых governance-кейсов в месяц
+- NPS (Net Promoter Score) от участников
+- Количество команд с governance ambassador
+
+## Тренды Data Governance
+
+Governance -- динамичная область. Три ключевых тренда определяют следующие 3-5 лет:
+
+### 1. AI Governance
+
+AI governance (M08) -- самый быстрорастущий домен. Драйверы:
+
+- **EU AI Act** (2024) -- первый comprehensive AI regulation. Risk-based approach: unacceptable / high / limited / minimal risk
+- **Model cards и model registry** становятся стандартом для production ML
+- **Fairness testing** -- от "nice to have" к регуляторному требованию
+- **LLM governance** -- новый фронтир: prompt injection, hallucination detection, output governance
+
+**Для вашей карьеры:** Специалист на пересечении ML + governance + ethics -- одна из самых дефицитных ролей в индустрии.
+
+### 2. Data Mesh Governance
+
+Data Mesh (Zhamak Dehghani, 2022) переосмысливает governance для **децентрализованной** архитектуры:
+
+- **Domain ownership**: каждый домен (Customer, Order, Product) отвечает за качество своих данных
+- **Federated computational governance**: централизованные политики, распределённое enforcement
+- **Data as Product**: governance embedded в data product lifecycle
+- **Self-serve infrastructure**: governance guardrails в платформе, не в процессах
+
+**Связь с курсом:** M07 (организационные модели: федеративная) + M09 (tools для self-serve).
+
+### 3. Real-Time Governance
+
+Batch governance (ежедневные проверки) уступает место real-time:
+
+- **Streaming quality checks**: валидация в момент поступления данных (Kafka, Flink)
+- **Real-time lineage**: CDC (Debezium) отслеживает каждое изменение
+- **Continuous compliance**: automated policy enforcement в pipeline, не в annual audit
+- **Event-driven governance**: governance реагирует на события, а не на расписание
+
+**Связь с курсом:** M04 (quality), M09 (tools), cross-course Debezium CDC.
+
+## Рекомендации по дальнейшему обучению
+
+| Ваша роль | Рекомендуемый фокус | Модули для углубления |
+|-----------|---------------------|----------------------|
+| **Data Engineer** | Tools + automation | M03, M04, M09 |
+| **Data Analyst** | Quality + metadata | M03, M04 |
+| **ML Engineer** | AI governance + fairness | M08, M05 |
+| **DPO / Compliance** | Privacy + security | M05, M06 |
+| **Data Leader / CDO** | Program design + KPIs | M01, M07, M10 |
+| **Data Steward** | All domains (broad) | M01-M09 |
+
+<KnowledgeCheck
+  question="Вы завершили курс Data Governance. Какие два действия наиболее ценны для закрепления знаний: (A) пересдать все экзамены модулей, (B) запустить governance Community of Practice в своей организации, (C) получить CDMP сертификацию, (D) применить assessment framework (M10) к своей организации?"
+  answer="Наиболее ценны (B) и (D). Community of Practice (B) создаёт устойчивую среду для применения знаний -- governance невозможен в одиночку. Assessment framework (D) -- немедленное практическое применение: оцените текущую зрелость своей организации по 6 доменам, определите gaps, составьте план. Пересдача экзаменов (A) -- повторение теории без практики. CDMP (C) -- ценна для карьеры, но не заменяет практический опыт. Приоритет: сначала practice (B+D), затем certification (C)."
+/>
+
+## Заключение курса
+
+Data Governance -- это не проект с конечной датой. Это **операционная дисциплина**, которая эволюционирует вместе с организацией, технологиями и регуляторным ландшафтом.
+
+Ключевые принципы, которые останутся актуальными:
+
+1. **Governance -- про людей**, не про инструменты (M07)
+2. **Измеряйте** то, что хотите улучшить (M04, M07 KPIs)
+3. **Автоматизируйте** enforcement, не полагайтесь на compliance by documentation (M09)
+4. **Начинайте с малого**, масштабируйте по мере зрелости (M01, M07)
+5. **Интегрируйте** домены -- governance как система, не как сумма частей (M10)
+
+Успехов в построении Data Governance в вашей организации.

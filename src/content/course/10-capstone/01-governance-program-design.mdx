@@ -1,0 +1,197 @@
+---
+title: "Проектирование программы Data Governance: от требований до запуска"
+description: "Capstone: проектирование полной governance-программы для DataTech. Определение scope, выбор организационной модели, карта стейкхолдеров, интеграция регуляторных требований, модель безопасности, выбор инструментов."
+order: 1
+difficulty: "advanced"
+estimatedTime: 30
+audience: "both"
+topics: ["Governance Program", "Program Design", "Organizational Assessment"]
+---
+
+import { OrgChart, MaturityModel } from '../../../components/diagrams/governance';
+
+# Проектирование программы Data Governance: от требований до запуска
+
+## Введение
+
+В модулях M01-M09 мы изучали отдельные домены Data Governance (управление данными): от фундаментальных концепций (M01) и архитектуры данных (M02) до AI-governance (M08) и инструментов (M09). Теперь объединяем все домены в **единую программу** для конкретной организации.
+
+Capstone-модуль отличается от предыдущих: здесь нет новой теории. Вместо этого мы **применяем** знания из всех модулей к реальным организационным сценариям. Первый урок -- проектирование программы с нуля для DataTech Solutions (ДатаТех Солюшенз).
+
+## Сценарий: DataTech Solutions -- с нуля к Level 3
+
+DataTech Solutions (ДатаТех Солюшенз) -- e-commerce компания на **Level 1 (Initial)**. Напомним ключевые проблемы из предыдущих модулей:
+
+| Проблема | Модуль | Текущее состояние |
+|----------|--------|-------------------|
+| 15% дубликатов клиентов | M04 (Качество) | Ad-hoc проверки, нет мониторинга |
+| 80+ неконтролируемых дашбордов | M03 (Метаданные) | Нет каталога, tribal knowledge |
+| 152-ФЗ: нет согласий, нет классификации | M05 (Приватность) | Legal на case-by-case основе |
+| Общие credentials к базам | M06 (Безопасность) | Нет RBAC, нет audit logging |
+| ML-модель без governance | M08 (AI) | Нет model cards, нет fairness |
+| Нет governance-ролей | M07 (Внедрение) | 0 stewards, 0 DPO |
+| Нет инструментов governance | M09 (Инструменты) | Ручные скрипты |
+
+**Задача:** Спроектировать программу, которая за 18 месяцев переведёт DataTech с Level 1 на Level 3 (Defined).
+
+## Шаг 1: Определение scope программы
+
+Scope (объём) программы -- первое архитектурное решение. Из M07 (проектирование программы) мы знаем три подхода:
+
+- **Enterprise-wide**: все данные, все системы, все команды
+- **Domain-focused**: один или несколько доменов данных
+- **System-focused**: конкретные системы и pipeline'ы
+
+Для DataTech (500 сотрудников, 7 человек в data-команде) правильный выбор -- **domain-focused** с прогрессивным расширением:
+
+**Фаза 1 (0-6 месяцев):** Customer Data Domain -- решаем проблему 15% дубликатов и 152-ФЗ compliance.
+
+**Фаза 2 (6-12 месяцев):** Product + Analytics Domain -- наводим порядок в 80+ дашбордах и ClickHouse warehouse.
+
+**Фаза 3 (12-18 месяцев):** Enterprise-wide + AI Governance -- покрываем ML-модели и оставшиеся системы.
+
+## Шаг 2: Выбор организационной модели
+
+Из M07 мы рассматривали три модели: централизованную, федеративную и гибридную. Для DataTech нужна **гибридная модель** с постепенным усилением центра:
+
+<OrgChart
+  client:load
+  title="DataTech: целевая организационная структура governance"
+  nodes={[
+    { id: "cdo", label: "VP Engineering", role: "И.о. CDO, Executive Sponsor", tooltip: "Обеспечивает бюджет, эскалацию и стратегическое направление governance-программы" },
+    { id: "council", label: "Data Council", role: "Governing Body (4 чел.)", parent: "cdo", tooltip: "VP Eng + Senior DE + Business Analyst + Legal Representative. Ежемесячные заседания" },
+    { id: "steward-cust", label: "Steward: Customer", role: "Domain Steward", parent: "council", tooltip: "Домен клиентских данных: PII, согласия, дубликаты. 50% рабочего времени" },
+    { id: "steward-prod", label: "Steward: Product", role: "Domain Steward", parent: "council", tooltip: "Домен продуктовых данных: каталог, analytics, ClickHouse warehouse" },
+    { id: "dpo", label: "DPO", role: "Data Protection Officer", parent: "council", tooltip: "152-ФЗ, подготовка к GDPR. Нанять к 3-му месяцу программы" },
+    { id: "tools", label: "DE: Governance Tools", role: "Tooling Lead", parent: "council", tooltip: "OpenMetadata, Great Expectations, pgaudit. 0.5 FTE на governance infrastructure" }
+  ]}
+/>
+
+**Ключевые роли** (из M07, урок 2 -- стейкхолдеры):
+- **VP Engineering (и.о. CDO)** -- executive sponsor, бюджет, эскалация
+- **Data Council** -- VP Engineering + Senior DE + Business Analyst + Legal Representative
+- **Data Stewards** -- 2 доменных стюарда (Customer, Product)
+- **DPO** -- ответственный за 152-ФЗ (нанять к 3-му месяцу)
+
+## Шаг 3: Карта стейкхолдеров
+
+Из M07 (урок 2) мы используем матрицу влияния/интереса:
+
+| Стейкхолдер | Влияние | Интерес | Стратегия | Модуль-источник |
+|-------------|---------|---------|-----------|-----------------|
+| CEO | Высокое | Низкий | Информировать (квартальный отчёт ROI) | M07 |
+| VP Engineering | Высокое | Высокий | Вовлекать (weekly sync, executive sponsor) | M07 |
+| Marketing Director | Среднее | Высокий | Вовлекать (customer data quality напрямую) | M04, M07 |
+| Legal Counsel | Среднее | Высокий | Вовлекать (152-ФЗ compliance) | M05 |
+| Data Engineers (3) | Низкое | Высокий | Поддерживать (tooling, automation) | M09 |
+| Business Analysts (2) | Низкое | Среднее | Информировать (новые процессы) | M03 |
+| ML Engineer (1) | Низкое | Среднее | Информировать (future AI governance) | M08 |
+
+## Шаг 4: Интеграция регуляторных требований
+
+Из M05 (приватность и compliance) DataTech имеет два регуляторных контекста:
+
+1. **152-ФЗ** (текущий) -- персональные данные клиентов хранятся без надлежащих согласий, нет классификации данных, нет политики retention
+2. **GDPR** (будущий, 12 месяцев) -- планируется выход на рынок ЕС
+
+Governance-программа должна включить:
+- **Инвентаризация PII** (M05, урок 1) -- первые 2 месяца
+- **Классификация данных** (M05, урок 3) -- параллельно с инвентаризацией
+- **Управление согласиями** (M05, урок 2) -- месяцы 3-6
+- **DPIA процесс** (M05, урок 4) -- к 6-му месяцу
+
+## Шаг 5: Модель безопасности
+
+Из M06 (безопасность и контроль доступа) критические проблемы DataTech:
+
+- **Общие credentials** -- все используют один пароль к PostgreSQL
+- **Нет audit logging** -- невозможно отследить, кто что менял
+- **Нет encryption** -- PII хранятся в plaintext
+
+Целевая модель безопасности:
+1. **RBAC** (M06, урок 1) -- ролевой доступ вместо shared credentials
+2. **Audit logging** (M06, урок 3) -- логирование всех операций с данными
+3. **Encryption at rest** (M06, урок 2) -- шифрование столбцов с PII
+4. **Incident response plan** (M06, урок 4) -- процедура реагирования на инциденты
+
+## Шаг 6: Выбор инструментов
+
+Из M09 (инструменты) применяем послойный подход:
+
+| Приоритет | Инструмент | Категория | Обоснование |
+|-----------|-----------|-----------|-------------|
+| 1 (месяц 1-2) | OpenMetadata | Каталог данных | Layer 1: visibility. 200+ таблиц без документации |
+| 2 (месяц 2-4) | Great Expectations + dbt tests | Качество | Layer 2: 15% дубликатов, нет quality monitoring |
+| 3 (месяц 4-6) | PostgreSQL RBAC + pgaudit | Безопасность | Layer 3: shared credentials -> RBAC |
+| 4 (месяц 6-9) | Elementary | Observability | Layer 4: monitoring quality SLAs |
+| 5 (месяц 9-12) | OPA/Rego | Policy engine | Layer 5: automated enforcement |
+
+## Целевая модель зрелости
+
+<MaturityModel
+  client:visible
+  currentLevel={3}
+  title="DataTech: целевая зрелость через 18 месяцев (L1 -> L3)"
+  levels={[
+    { name: "Level 1: Initial", description: "Текущее состояние DataTech. Quality 1/5, Metadata 0/5, Privacy 1/5, Security 1/5, Org 0/5, AI 0/5" },
+    { name: "Level 2: Managed", description: "Месяц 6: каталог 60%, quality checks, RBAC, PII inventory, DPO нанят" },
+    { name: "Level 3: Defined", description: "Месяц 18: Quality 4/5, Metadata 3/5, Privacy 3/5, Security 4/5, Org 3/5, AI 2/5" },
+    { name: "Level 4: Measured", description: "Будущее: predictive quality, automated compliance, governance KPI dashboard" },
+    { name: "Level 5: Optimizing", description: "Долгосрочная перспектива: data-driven governance culture" }
+  ]}
+/>
+
+## Интеграция доменов: почему программа -- не сумма частей
+
+Ключевой урок capstone-модуля: governance-программа -- это **система**, а не набор изолированных инициатив. Каждый домен связан с другими:
+
+- **Качество** (M04) зависит от **метаданных** (M03): quality checks привязаны к dataset owners из каталога
+- **Приватность** (M05) зависит от **классификации** (M05) и **безопасности** (M06): RBAC enforcement на основе PII classification
+- **AI governance** (M08) зависит от **lineage** (M03) и **качества** (M04): model cards требуют lineage training data и quality metrics
+- **Инструменты** (M09) зависят от **процессов** (M07): tool adoption без governance процессов -- shelfware
+
+<KnowledgeCheck
+  question="DataTech внедрила OpenMetadata (каталог) и Great Expectations (качество), но quality alerts приходят в Slack без контекста (нет owner, нет classification, нет downstream impact). Какой governance-домен не интегрирован?"
+  answer="Не интегрированы метаданные (M03) с качеством (M04). OpenMetadata содержит owners, classification и lineage -- но quality results из GE не отправляются обратно в каталог. Нужна интеграция: GE -> OpenMetadata API -> enriched alerts с контекстом (owner, PII status, downstream dashboards). Без этой интеграции каталог и quality monitoring работают как изолированные silos, а не как governance stack."
+/>
+
+## Рубрика оценки программы
+
+Полноценная governance-программа оценивается по 8 секциям (100 баллов):
+
+| Секция | Баллы | Критерии |
+|--------|-------|----------|
+| Устав (Charter) | 10 | Миссия, scope, принципы, орг-структура, decision rights, эскалация |
+| Политики (Policies) | 15 | 4+ политики, classification, retention, access, quality, enforcement, review schedule |
+| RACI-матрица | 10 | 5+ активностей, 4+ ролей, один accountable, responsible для всех |
+| Quality Framework | 15 | 5+ dimensions, метрики, пороги, мониторинг, remediation |
+| Privacy Controls | 15 | PII inventory, classification, consent, DPIA, breach procedure |
+| Security Model | 15 | RBAC, audit logging, encryption, incident response, access review |
+| KPIs | 10 | 5+ KPIs, targets, owners, frequency, пороги |
+| Roadmap | 10 | 3+ фазы, milestones, зависимости, timeline, success criteria |
+
+**Шкала оценки:**
+- 90-100: Level 4 (Optimized) -- excellence
+- 80-89: Level 3 (Defined) -- strong program
+- 70-79: Level 2 (Managed) -- adequate
+- 60-69: Level 1 (Initial) -- needs improvement
+- < 60: Not viable -- fundamental gaps
+
+<KnowledgeCheck
+  question="В рубрике оценки программы секция 'Privacy Controls' (15 баллов) оценивает 5 компонентов: PII inventory, classification, consent management, DPIA, breach procedure. DataTech набрала 12/15 -- не хватает breach notification procedure. Почему этот компонент критичен даже для Level 1 компании?"
+  answer="Breach notification procedure обязательна по 152-ФЗ (статья 21): оператор обязан уведомить Роскомнадзор о нарушении безопасности персональных данных в течение 24 часов. DataTech хранит PII клиентов (имена, адреса, история заказов). Без breach procedure: (1) время реагирования неизвестно (кто уведомляет? кого? в какой срок?), (2) риск штрафов за несвоевременное уведомление, (3) нет плана containment (как остановить утечку). Даже Level 1 компания с PII обязана иметь хотя бы базовый план реагирования на инциденты (M06, урок 4)."
+/>
+
+## Итоги
+
+Проектирование governance-программы -- это **архитектурное упражнение**, объединяющее знания из всех доменов курса:
+
+1. **Scope** определяет, с чего начать (domain-focused для DataTech)
+2. **Организационная модель** определяет, кто принимает решения (M07)
+3. **Стейкхолдеры** определяют стратегию change management (M07)
+4. **Регуляторные требования** определяют минимальный baseline (M05)
+5. **Модель безопасности** защищает данные и обеспечивает audit trail (M06)
+6. **Инструменты** автоматизируют enforcement (M09)
+7. **Интеграция** между доменами создаёт ценность, превышающую сумму частей
+
+В следующем уроке мы проведём **assessment** организации на примере BioGenesis Lab -- компании Level 2, которая уже имеет частичный governance, но с существенными пробелами.

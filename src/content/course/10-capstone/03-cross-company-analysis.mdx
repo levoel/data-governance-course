@@ -1,0 +1,199 @@
+---
+title: "Кросс-компанийный анализ: governance на разных уровнях зрелости"
+description: "Capstone: сравнительный анализ DataTech (L1), BioGenesis (L2), FinSecure (L3). Что каждый уровень зрелости означает на практике, отраслевые вызовы, ROI governance на разных уровнях."
+order: 3
+difficulty: "advanced"
+estimatedTime: 25
+audience: "both"
+topics: ["Cross-Company Analysis", "Governance Maturity", "Comparative Analysis"]
+---
+
+import { MaturityModel } from '../../../components/diagrams/governance';
+
+# Кросс-компанийный анализ: governance на разных уровнях зрелости
+
+## Введение
+
+На протяжении курса мы работали с тремя компаниями: DataTech Solutions (ДатаТех Солюшенз, Level 1), BioGenesis Lab (БиоГенезис Лаб, Level 2) и FinSecure Bank (ФинСекьюр Банк, Level 3). Каждая компания иллюстрировала разные аспекты Data Governance (управление данными) в контексте своей отрасли, размера и регуляторного давления.
+
+В этом уроке мы проводим **сравнительный анализ** -- что общего, что отличается и какие уроки можно извлечь из каждого уровня зрелости.
+
+## Три компании: сводное сравнение
+
+| Характеристика | DataTech (L1) | BioGenesis (L2) | FinSecure (L3) |
+|----------------|---------------|-----------------|----------------|
+| **Отрасль** | E-commerce | Healthcare / biotech | Fintech / banking |
+| **Сотрудники** | 500 | 200 | 2,000+ |
+| **Data team** | 7 (нет governance-ролей) | 7 (нет governance-ролей) | 30 (stewards + DPO) |
+| **Governance maturity** | Level 1 (Initial) | Level 2 (Managed) | Level 3 (Defined) |
+| **Основной вызов** | Всё с нуля | Самые чувствительные данные | Legacy + consistency |
+| **Регуляторное давление** | Умеренное (152-ФЗ) | Высокое (медицинские данные) | Очень высокое (банк + GDPR) |
+
+## Сравнение по доменам governance
+
+<MaturityModel
+  client:visible
+  currentLevel={2}
+  title="Три компании: DataTech (L1), BioGenesis (L2), FinSecure (L3)"
+  levels={[
+    { name: "Level 1: Initial", description: "DataTech: Quality 1, Metadata 0, Privacy 1, Security 1, Org 0, AI 0. Avg: 0.5" },
+    { name: "Level 2: Managed", description: "BioGenesis: Quality 2, Metadata 1, Privacy 2, Security 2, Org 1, AI 1. Avg: 1.5" },
+    { name: "Level 3: Defined", description: "FinSecure: Quality 3, Metadata 3, Privacy 4, Security 4, Org 3, AI 2. Avg: 3.2" },
+    { name: "Level 4: Measured", description: "Целевой уровень: KPI-driven governance, automated enforcement, continuous monitoring" },
+    { name: "Level 5: Optimizing", description: "Идеал: data-driven governance culture, predictive compliance, self-healing quality" }
+  ]}
+/>
+
+> **Примечание:** Диаграмма выше показывает DataTech (current) vs целевой уровень. Ниже -- детальное сравнение всех трёх компаний по каждому домену.
+
+### Качество данных (M04)
+
+| Аспект | DataTech (1/5) | BioGenesis (2/5) | FinSecure (3/5) |
+|--------|----------------|------------------|-----------------|
+| **Проверки** | Ad-hoc; бизнес-пользователи сообщают о проблемах | Клинические данные -- GCP checks; research -- нет | Spark pipelines -- automated; microservices -- нет |
+| **Инструменты** | Нет (ручные SQL-запросы) | Нет (R-скрипты для clinical reporting) | dbt tests + custom Spark checks |
+| **SLA** | Нет; warehouse отстаёт на 2 дня без alert | Clinical -- 24h; research -- нет | Core banking -- 1h; analytics -- 4h |
+| **Ключевой урок** | Без measurement нет governance: начать с автоматических checks на критические таблицы (M04) | Регуляторное давление создаёт partial governance -- но только для regulated data (M04, M05) | Зрелые checks не масштабируются автоматически: 15 microservices без coverage (M04, M09) |
+
+### Метаданные и каталог (M03)
+
+| Аспект | DataTech (0/5) | BioGenesis (1/5) | FinSecure (3/5) |
+|--------|----------------|------------------|-----------------|
+| **Каталог** | Нет | Нет (notebooks) | OpenMetadata 40% |
+| **Lineage** | Нет | Нет | Spark pipelines only |
+| **Documentation** | Tribal knowledge | Researcher notebooks | 40% cataloged |
+| **Ключевой урок** | 200+ таблиц без каталога = 3 недели onboarding для нового DE (M03) | Tribal knowledge + 50 ТБ genomic data = single point of failure (M03) | Каталог без 100% coverage создаёт ложное чувство полноты (M03, M09) |
+
+### Приватность и compliance (M05)
+
+| Аспект | DataTech (1/5) | BioGenesis (2/5) | FinSecure (4/5) |
+|--------|----------------|------------------|-----------------|
+| **PII Inventory** | Нет | Partial (clinical) | Comprehensive (core banking) |
+| **Consent** | Нет | Бумажные формы | Digital (GDPR program) |
+| **Classification** | Нет | Нет | Partial (Snowflake tags) |
+| **Ключевой урок** | Без classification невозможен RBAC: DataTech не знает, где PII (M05, M06) | Бумажные формы + digital data = consent gap: согласие пациента не привязано к dataset (M05) | Cross-border transfer (Moscow-Frankfurt) + 47 политик = enforcement challenge (M05, M07) |
+
+### Безопасность и контроль доступа (M06)
+
+| Аспект | DataTech (1/5) | BioGenesis (2/5) | FinSecure (4/5) |
+|--------|----------------|------------------|-----------------|
+| **Access model** | Shared credentials | RBAC (PostgreSQL) + API keys (MinIO) | RBAC + Vault + PCI zones |
+| **Audit** | Нет | Нет | Core systems -- да |
+| **Incident response** | Нет | Нет | Documented but manual |
+| **Ключевой урок** | Shared credentials = невозможно отследить кто что сделал (M06) | Project-based segregation отсутствует: 25 researchers see all patient data (M06) | 47 policies + inconsistent enforcement = compliance на бумаге (M06, M07) |
+
+### AI Governance (M08)
+
+| Аспект | DataTech (0/5) | BioGenesis (1/5) | FinSecure (2/5) |
+|--------|----------------|------------------|-----------------|
+| **Model docs** | Нет | Нет | Partial (credit scoring) |
+| **Fairness testing** | Нет | Нет | Нет automated |
+| **Model risk committee** | Нет | Нет | Существует (quarterly) |
+| **Ключевой урок** | ML-рекомендации обучены на PII без review -- governance blind spot (M08, M05) | Drug discovery ML без lineage = невозможно удалить patient data из training set (M08, M03) | Model Risk Committee без automation = annual review, не continuous governance (M08, M09) |
+
+## Отраслевые вызовы governance
+
+Каждая отрасль создаёт уникальные governance-вызовы, которые невозможно решить универсальным шаблоном:
+
+### E-commerce (DataTech)
+- **Объём транзакций**: миллионы заказов = massive data volume
+- **Customer data**: PII + behaviour data + payment references
+- **Скорость изменений**: новые features каждую неделю = governance должен быть agile
+- **ML**: рекомендации и churn prediction = personalization vs privacy trade-off (M08, M05)
+
+### Healthcare / Biotech (BioGenesis)
+- **Чувствительность данных**: геномные + клинические = highest sensitivity
+- **Consent complexity**: general consent vs specific research use vs secondary use
+- **Re-identification risk**: genomic data + clinical data = re-identification even after de-identification (M05)
+- **Research vs Governance tension**: исследователи хотят полный доступ; governance ограничивает (M06, M07)
+
+### Fintech / Banking (FinSecure)
+- **Регуляторное давление**: ЦБ РФ + 152-ФЗ + GDPR + PCI DSS = multi-framework compliance
+- **Legacy systems**: Oracle 19c, 800+ таблиц, 15 лет эволюции = governance archaeological dig (M02, M03)
+- **Cross-border**: Moscow + Frankfurt = different jurisdictions, different rules (M05)
+- **Shadow IT**: 12 известных shadow copies customer data = governance leakage (M06)
+
+## Streaming governance: real-time вызовы
+
+Все три компании сталкиваются с потребностью в near-real-time governance по мере роста:
+
+- **DataTech**: streaming order events для real-time рекомендаций
+- **BioGenesis**: streaming lab results от внешних лабораторий
+- **FinSecure**: Kafka с 200+ topics для real-time transaction processing
+
+> Streaming governance: [CDC and Data Lineage](/debezium/06-module-6/03-data-pipeline-patterns/)
+
+CDC (Change Data Capture) через Debezium позволяет отслеживать изменения данных в real-time, что критично для governance:
+- **Lineage в real-time**: каждое изменение прослеживается от источника до потребителя
+- **Quality checks на streaming**: валидация в момент поступления, а не batch post-factum
+- **Compliance audit trail**: каждая операция с PII зафиксирована в Kafka topic
+
+## Уроки из каждого уровня зрелости
+
+### Level 1 (DataTech) -- "с нуля"
+
+**Что работает на Level 1:**
+1. Quick wins создают momentum: первый quality check, первая страница каталога, первая RBAC роль
+2. Domain-focused scope (один домен данных) лучше enterprise-wide (M07)
+3. Open-source инструменты снижают барьер входа: $0 license cost (M09)
+
+**Что не работает на Level 1:**
+1. "Governance by documentation" -- политики без enforcement = shelfware
+2. Попытка охватить всё сразу = ни один домен не доведён до ума
+3. Governance без executive sponsor = инициатива одного человека
+
+### Level 2 (BioGenesis) -- "partial governance"
+
+**Что работает на Level 2:**
+1. Regulatory-driven governance создаёт baseline (GCP для clinical data)
+2. Domain expertise (bioinformaticians) -- залог качественных metadata (M03)
+3. Targeted investment: DPO + consent management решает compliance risk (M05)
+
+**Что не работает на Level 2:**
+1. "Regulated = governed" -- governance только для regulated data оставляет gaps (research data)
+2. Paper-based processes не масштабируются: бумажные формы согласия (M05)
+3. Без каталога невозможна интеграция доменов (quality + metadata + lineage)
+
+### Level 3 (FinSecure) -- "defined but inconsistent"
+
+**Что работает на Level 3:**
+1. Формальная программа (council, stewards, DPO) обеспечивает accountability (M07)
+2. Enterprise tools (OpenMetadata, Vault, Tableau) создают infrastructure
+3. Multi-framework compliance (GDPR + 152-ФЗ + PCI) закаляет governance
+
+**Что не работает на Level 3:**
+1. 47 политик без automated enforcement = audit-only compliance (M07, M09)
+2. Tool adoption =/= governance adoption: OpenMetadata deployed but 40% cataloged (M09)
+3. Legacy systems (Oracle 800+ tables) = governance "black hole" -- ungoverned data (M02, M03)
+
+## Governance ROI на разных уровнях
+
+| Метрика | DataTech (L1->L3) | BioGenesis (L2->L4) | FinSecure (L3->L4) |
+|---------|-------------------|---------------------|---------------------|
+| **Инвестиция (18 мес)** | ~$150K (tools + DPO + 0.5 FTE) | ~$200K (DPO + tools + DE time) | ~$500K (automation + migration) |
+| **ROI Quality** | 15% дубликатов снижены до 2%: $300K/год сэкономленных ресурсов | Lab data errors reduced: $100K/год avoided rework | Microservice quality: $200K/год faster incident resolution |
+| **ROI Compliance** | 152-ФЗ readiness: avoided fines up to 18M RUB | Patient data compliance: avoided IRB sanctions | GDPR cross-border: avoided fines up to 4% revenue |
+| **ROI Productivity** | Onboarding 3 weeks -> 3 days | Researcher self-service: 50% faster data access | Shadow IT elimination: 12 copies -> 0 |
+
+<KnowledgeCheck
+  question="FinSecure имеет 47 published governance политик и formal governance council, но при annual audit обнаруживается, что 30% политик не enforced. Какой домен из курса объясняет эту проблему и как её решить?"
+  answer="Проблема описана в M07 (Implementation, урок 5 -- KPIs) и M09 (Tools, урок 4 -- deployment). 47 политик без automated enforcement -- это 'governance theater'. Решение: (1) Policy-as-code через OPA/Rego (M09): конвертировать критические политики в автоматические checks. (2) Governance KPIs (M07): не только 'policy published' но и 'policy enforced rate' как метрика. (3) Приоритизация: не все 47 нужны -- 80/20 rule, enforce top 10 critical policies автоматически. FinSecure нужен переход от document-based governance к automated governance."
+/>
+
+<KnowledgeCheck
+  question="AI Governance -- самый слабый домен у всех трёх компаний (DataTech: 0, BioGenesis: 1, FinSecure: 2). Почему это закономерно и что это означает для индустрии?"
+  answer="AI Governance (M08) -- самый молодой домен Data Governance. Причины: (1) Регулирование запаздывает: EU AI Act (2024) -- первый comprehensive framework, Россия -- нет AI-specific regulation. Без regulatory pressure компании не инвестируют. (2) Инструменты незрелы: model registries и fairness testing tools появились в 2022-2024. (3) Экспертиза редка: пересечение ML + governance + ethics -- узкая специализация. Для индустрии это означает: AI Governance будет fastest-growing domain в следующие 3-5 лет, аналогично тому, как privacy governance выросла после GDPR (2018)."
+/>
+
+## Итоги
+
+Кросс-компанийный анализ показывает:
+
+1. **Governance -- не линейный путь**: L1 -> L2 -> L3 выглядит просто, но каждый уровень имеет свои ловушки
+2. **Отрасль определяет приоритеты**: e-commerce = скорость, healthcare = чувствительность, fintech = compliance
+3. **Size =/= maturity**: BioGenesis (200 человек, L2) vs DataTech (500 человек, L1) -- регуляторное давление важнее размера
+4. **AI Governance -- universal gap**: слабейший домен у всех трёх компаний
+5. **Tools without processes = shelfware**: FinSecure deployed OpenMetadata, но 40% cataloged
+6. **Streaming governance** через CDC (Debezium) становится критичным по мере перехода к real-time data processing
+
+В заключительном уроке -- самооценка, профессиональные сертификации и путь дальнейшего развития в Data Governance.
