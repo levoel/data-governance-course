@@ -1,0 +1,346 @@
+---
+title: "Хранение, архивирование и утилизация данных"
+description: "Retention policy design, archiving lifecycle (hot/warm/cold), data disposal governance (crypto-shredding), backup governance (RPO/RTO), storage classification matrix"
+order: 8
+difficulty: "advanced"
+estimatedTime: 25
+audience: "engineers"
+topics: ["Retention", "Archiving", "Disposal", "RPO/RTO", "Storage Tiers"]
+---
+
+import { PolicyTemplate, ComplianceChecklist } from '../../../components/diagrams/governance';
+
+# Хранение, архивирование и утилизация данных
+
+## Введение
+
+> **Сценарий: FinSecure Bank (ФинСекьюр Банк)**
+>
+> FinSecure хранит 2.5 ТБ клиентских данных. Рост -- 15% ежегодно, затраты на хранение выросли на 40% за год. Регуляторы требуют хранить финансовые данные 7 лет. GDPR требует удаления персональных данных по запросу клиента. Юридический отдел: "Мы храним всё, потому что удалить страшнее." Результат: 30% данных -- дубликаты или данные с истёкшим retention-сроком, которые никто не чистил.
+
+"Мы храним всё, потому что удалить страшнее" -- типичная позиция организаций без retention governance. Но бесконечное хранение -- это не осторожность, а governance failure: данные без retention-политики -- это liability (юридический риск), а не asset.
+
+В этом уроке мы разберём три этапа жизненного цикла данных после их активного использования: **Retention (хранение)**, **Archiving (архивирование)** и **Disposal (утилизация/уничтожение)**. Предварительно рекомендуем повторить урок 07 этого модуля (Freshness и Observability) и урок 05 модуля M05 (классификация данных).
+
+## Data Retention Policy Design
+
+### Регуляторные требования
+
+Retention-политика определяется пересечением регуляторных и бизнес-требований:
+
+| Регуляция | Требование | Срок |
+|-----------|-----------|------|
+| **152-ФЗ** (Россия) | Удаление ПДн после отзыва согласия | По факту отзыва |
+| **GDPR Art. 5(1)(e)** | Хранение не дольше необходимого (storage limitation) | По purpose |
+| **GDPR Art. 17** | Right to erasure (право на удаление) | По запросу |
+| **44-ФЗ** (Россия) | Документы гос. закупок | 3 года |
+| **402-ФЗ** (Россия) | Бухгалтерские документы | 5 лет |
+| **Банковское регулирование** | Финансовые транзакции | 5-7 лет |
+| **FDA 21 CFR Part 11** | Клинические данные | 15+ лет |
+
+### Classification-Driven Retention Tiers
+
+Retention-срок привязывается к классификации данных (урок M05-05):
+
+| Классификация | Active Retention | Archive | Total | Disposal |
+|--------------|-----------------|---------|-------|----------|
+| **Public** | 1 год | Не требуется | 1 год | Стандартное удаление |
+| **Internal** | 3 года | 2 года | 5 лет | Стандартное удаление |
+| **Confidential** | 5 лет | 2 года | 7 лет | Secure overwrite |
+| **Restricted** | Regulatory minimum | По регулятору | 7-15 лет | Crypto-shredding |
+
+<PolicyTemplate
+  client:load
+  title="Data Retention Policy: FinSecure Bank"
+  sections={[
+    { name: "Scope", description: "Все структурированные и неструктурированные данные в production-системах FinSecure: PostgreSQL, Kafka, S3, backup storage." },
+    { name: "Classification Mapping", description: "Retention период определяется классификацией данных: Public (1 год), Internal (3 года), Confidential (7 лет), Restricted (regulatory minimum, не менее 7 лет)." },
+    { name: "Legal Hold", description: "При активном legal hold retention-таймер приостанавливается. Data Owner не может инициировать disposal до снятия hold. Legal department уведомляет Data Council." },
+    { name: "Consent-Driven", description: "Персональные данные (PII): retention привязан к согласию клиента. При отзыве согласия -- initiate disposal workflow в течение 30 дней (GDPR Art. 17)." },
+    { name: "Review", description: "Ежегодный review retention-политики: Data Council + Legal + Compliance. Trigger: изменение регуляций, новый тип данных, M&A." },
+    { name: "Exceptions", description: "Исключения утверждает CDO. Документируются в exception register с обоснованием и датой пересмотра." }
+  ]}
+/>
+
+<KnowledgeCheck
+  question="Юридический отдел FinSecure говорит: 'Храним всё навсегда -- на всякий случай.' Почему это governance failure?"
+  answer="Бесконечное хранение -- governance failure по четырём причинам: (1) Regulatory risk: GDPR Art. 5(1)(e) требует storage limitation -- хранение дольше необходимого нарушает принцип purpose limitation. (2) Cost: 2.5 ТБ растёт 15%/год, 30% -- мёртвые данные, хранение которых стоит денег. (3) Security risk: каждый ТБ данных -- потенциальная цель breach. Больше данных = больше exposure при инциденте. (4) Discovery risk: при судебном разбирательстве все сохранённые данные могут быть запрошены (e-discovery). Данные, которых не должно было быть, становятся liability."
+/>
+
+## Архивирование: Hot/Warm/Cold Lifecycle
+
+### Storage Tiers
+
+Не все данные одинаково активны. Архивирование -- это перемещение данных между уровнями хранения по мере снижения активности:
+
+| Tier | Характеристика | Access Time | Стоимость | Пример |
+|------|---------------|-------------|-----------|--------|
+| **Hot** | Активные данные | Миллисекунды | Высокая (SSD) | PostgreSQL production |
+| **Warm** | Редко запрашиваемые | Секунды | Средняя (HDD) | Read replica, ClickHouse |
+| **Cold** | Архив для compliance | Минуты-часы | Низкая (S3 IA) | S3 Infrequent Access |
+| **Archive** | Долгосрочное хранение | Часы | Минимальная (Glacier) | S3 Glacier Deep Archive |
+
+### Archive Triggers
+
+Данные перемещаются между tiers на основе governance-правил:
+
+```python
+# Archive policy rules
+ARCHIVE_TRIGGERS = {
+    "hot_to_warm": {
+        "condition": "last_accessed > 90 days",
+        "action": "Move to read replica / cold storage",
+        "approval": "Automated (Data Engineer review weekly)"
+    },
+    "warm_to_cold": {
+        "condition": "last_accessed > 180 days AND past active_retention",
+        "action": "Move to S3 Infrequent Access",
+        "approval": "Data Owner approval"
+    },
+    "cold_to_archive": {
+        "condition": "past active_retention AND within total_retention",
+        "action": "Move to S3 Glacier",
+        "approval": "Data Owner + Compliance approval"
+    },
+    "archive_to_dispose": {
+        "condition": "past total_retention AND no legal_hold",
+        "action": "Initiate disposal workflow",
+        "approval": "Data Owner + Legal + CDO"
+    }
+}
+```
+
+<FlowRow>
+  <FlowNode
+    label="Hot (SSD)"
+    description="Active: 0-90 дней"
+    variant="source"
+    tooltip="Production PostgreSQL: активные транзакции, текущие клиенты"
+  />
+  <Arrow />
+  <FlowNode
+    label="Warm (HDD)"
+    description="Rare: 90-180 дней"
+    variant="process"
+    tooltip="Read replica: исторические запросы, ad-hoc аналитика"
+  />
+  <Arrow />
+  <FlowNode
+    label="Cold (S3 IA)"
+    description="Archive: 180 дней+"
+    variant="pipeline"
+    tooltip="S3 Infrequent Access: compliance storage, rare audit requests"
+  />
+  <Arrow />
+  <FlowNode
+    label="Dispose"
+    description="Past retention"
+    variant="target"
+    tooltip="Crypto-shredding или secure overwrite после истечения retention"
+  />
+</FlowRow>
+
+### Searchability и Restore SLA
+
+Архивированные данные не исчезают из governance:
+
+| Tier | Searchability | Restore SLA | Governance |
+|------|--------------|-------------|------------|
+| Hot | Full-text search | Мгновенно | Полный доступ |
+| Warm | Index search | Минуты | Ограниченный доступ |
+| Cold | Metadata only | 4-24 часа | По запросу + approval |
+| Archive | Catalog reference | 12-48 часов | Legal/Compliance only |
+
+> **Сценарий: BioGenesis Lab (БиоГенезис Лаб)**
+>
+> Клинические данные trial Phase III архивированы в Cold storage 2 года назад. FDA запрашивает данные для post-market review. Требование: восстановить в течение 4 часов. BioGenesis определила Restore SLA для clinical data: Cold -> 4 часа, Archive -> 12 часов. Регулярное тестирование восстановления (ежеквартально) подтверждает, что SLA соблюдается.
+
+## Data Disposal/Purging Governance
+
+### Методы безопасного удаления
+
+Удаление данных -- не просто `DELETE FROM`. Governance требует гарантии полного уничтожения:
+
+| Метод | Описание | Применение | Гарантия |
+|-------|----------|-----------|----------|
+| **Logical deletion** | Пометка `is_deleted=true` | Soft delete, legal hold | Данные восстановимы |
+| **Crypto-shredding** | Удаление ключа шифрования | Per-record/per-tenant encryption | Данные нечитаемы |
+| **Secure overwrite** | Перезапись данных (DOD 5220.22-M) | Физические носители | Данные невосстановимы |
+| **Physical destruction** | Уничтожение носителя | Decommission серверов | Полная гарантия |
+
+**Crypto-shredding** -- наиболее эффективный метод для cloud-среды: если данные зашифрованы per-record ключом, удаление ключа делает данные нечитаемыми без физического удаления.
+
+### Disposal Verification
+
+<ComplianceChecklist
+  client:load
+  title="Data Disposal Verification Checklist"
+  items={[
+    {
+      requirement: "1. Authorization: Data Owner утвердил disposal",
+      status: "compliant",
+      note: "Approval в JIRA ticket DG-2024-0342, утверждён CDO"
+    },
+    {
+      requirement: "2. Legal Hold check: нет активных legal holds",
+      status: "compliant",
+      note: "Legal department подтвердил: нет pending litigation"
+    },
+    {
+      requirement: "3. Primary storage: данные удалены из PostgreSQL",
+      status: "compliant",
+      note: "DELETE + VACUUM executed, verified 0 rows"
+    },
+    {
+      requirement: "4. Backup rotation: данные не восстановимы из backup",
+      status: "partial",
+      note: "30-day backup cycle: данные будут purged через 30 дней"
+    },
+    {
+      requirement: "5. Archive storage: данные удалены из S3/Glacier",
+      status: "compliant",
+      note: "S3 objects deleted, versioning purged"
+    },
+    {
+      requirement: "6. Audit trail: запись о disposal сохранена",
+      status: "compliant",
+      note: "Disposal record: what, when, who, why, method"
+    }
+  ]}
+/>
+
+<KnowledgeCheck
+  question="FinSecure удаляет записи клиентов из PostgreSQL после отзыва согласия. Но резервные копии (backups) всё ещё содержат эти данные. Выполнено ли обязательство GDPR по удалению?"
+  answer="Нет, обязательство GDPR Art. 17 не выполнено полностью. Данные существуют в backups и потенциально восстановимы. Варианты решения: (1) Если данные зашифрованы per-record -- crypto-shredding (удалить ключ шифрования, данные в backup нечитаемы). (2) Если не зашифрованы -- дождаться backup rotation (30 дней) и документировать 'reasonable efforts' + timeline. (3) Принудительная ротация backup (дорого). GDPR допускает 'reasonable time' для backup cleanup, но требует документированный процесс и timeline. Ключевое: disposal policy должна учитывать ВСЕ locations: active DB + replicas + backups + archives + caches."
+/>
+
+## Backup Governance: RPO/RTO
+
+### Определения
+
+- **RPO (Recovery Point Objective)**: максимально допустимая потеря данных. RPO=0 означает zero data loss (синхронная репликация). RPO=24h означает допустимую потерю данных за последние 24 часа.
+- **RTO (Recovery Time Objective)**: максимально допустимое время простоя. RTO=1h означает восстановление в течение часа.
+
+### RPO/RTO по критичности данных
+
+| Система | RPO | RTO | Стратегия | Стоимость |
+|---------|-----|-----|-----------|-----------|
+| Core Banking | 0 | 1 час | Synchronous replication | Высокая |
+| Payment Processing | 5 мин | 30 мин | Async replication + WAL | Высокая |
+| Analytics/BI | 24 часа | 48 часов | Daily backups | Средняя |
+| Development/Staging | 72 часа | 1 неделя | Weekly snapshots | Низкая |
+| Marketing campaigns | 24 часа | 72 часа | Daily backups | Низкая |
+
+### Governance: кто определяет RPO/RTO
+
+**Business Owner**, не DBA, определяет RPO/RTO. DBA реализует техническое решение. Data Council утверждает.
+
+> **Сценарий: FinSecure Bank**
+>
+> Core Banking: RPO=0, RTO=1h. Потеря даже одной транзакции -- регуляторное нарушение. Стоимость: synchronous replication across AZ ($$$). Analytics: RPO=24h, RTO=48h. Потеря дневных данных -- задержка отчётов, не catastrophe. Стоимость: daily pg_dump ($). Governance-решение: RPO/RTO определяет Business Owner (VP Banking для core, VP Analytics для BI). DBA предлагает технические варианты с cost estimate. Data Council утверждает бюджет.
+
+### Тестирование Recovery
+
+Recovery без тестирования -- fiction. Governance требует:
+
+```
+Quarterly Recovery Testing Schedule:
+  Q1: Core Banking full recovery drill (target: RTO < 1h)
+  Q2: Payment Processing failover test (target: RPO < 5 min)
+  Q3: Analytics restore from backup (target: RTO < 48h)
+  Q4: Full disaster recovery simulation (all systems)
+
+Each test:
+  1. Simulate failure (controlled)
+  2. Execute recovery procedure
+  3. Measure actual RPO/RTO
+  4. Document gaps vs target
+  5. Update runbook if needed
+```
+
+## Storage Classification Matrix
+
+Сводная матрица связывает классификацию данных с storage governance:
+
+| Классификация | Storage Tier | Retention | Encryption | Disposal | Backup RPO |
+|--------------|-------------|-----------|------------|----------|------------|
+| **Public** | Hot -> Warm | 1 год | At rest (AES-256) | Standard delete | 24 часа |
+| **Internal** | Hot -> Warm -> Cold | 3+2 года | At rest + in transit | Secure overwrite | 24 часа |
+| **Confidential** | Hot -> Cold | 5+2 года | At rest + in transit + per-field | Crypto-shredding | 4 часа |
+| **Restricted** | Hot (isolated) | Regulatory min | At rest + in transit + per-record | Crypto-shredding + audit | RPO=0 |
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> DataTech строит первую Storage Classification Matrix. При ограниченном бюджете доступны только два storage tier: Hot (SSD) и Cold (HDD). Маппинг: Restricted + Internal (active) -> Hot (быстрый доступ для governance-проверок, шифрование, частые backups). Public + Internal (archived) -> Cold (низкая стоимость, longer restore SLA допустим). Ключевой фактор -- governance requirements, не объём данных.
+
+## Автоматизация Retention Enforcement
+
+### Policy-as-Code: TTL и автоматическое удаление
+
+Ручное retention enforcement не масштабируется. Автоматизация:
+
+```python
+# Automated retention enforcement
+def enforce_retention(table_name, classification, retention_policy):
+    """Проверить и применить retention policy для таблицы."""
+    records = get_records_past_retention(table_name, retention_policy)
+
+    if not records:
+        return {"table": table_name, "action": "none", "reason": "all within retention"}
+
+    # Check legal hold
+    if has_active_legal_hold(table_name):
+        return {"table": table_name, "action": "hold", "reason": "active legal hold"}
+
+    # Determine disposal method by classification
+    disposal_methods = {
+        "public": "standard_delete",
+        "internal": "secure_overwrite",
+        "confidential": "crypto_shredding",
+        "restricted": "crypto_shredding_with_audit"
+    }
+
+    method = disposal_methods.get(classification, "manual_review")
+
+    # Create disposal ticket for approval
+    return {
+        "table": table_name,
+        "action": "dispose",
+        "records": len(records),
+        "method": method,
+        "requires_approval": classification in ("confidential", "restricted")
+    }
+```
+
+### Compliance Reporting
+
+Ежемесячный retention compliance report:
+
+```
+Retention Compliance Report -- March 2026
+==========================================
+Total datasets:           200
+Within retention:         170 (85%)
+Past retention (pending):  20 (10%)  <- requires disposal workflow
+Past retention (overdue):   5 (2.5%) <- governance violation
+Under legal hold:           5 (2.5%) <- retention suspended
+
+Overdue datasets:
+  - raw_campaigns_2022 (Internal, expired 2025-01, 14 months overdue)
+  - staging_temp_exports (Public, expired 2024-06, 21 months overdue)
+  - ...
+
+Action required: CDO review of 5 overdue datasets by March 31.
+```
+
+## Итоги
+
+- **Retention Policy**: classification-driven сроки хранения (Public 1 год -> Restricted 7-15 лет)
+- **Archiving Lifecycle**: Hot -> Warm -> Cold -> Archive -> Dispose с governance-правилами на каждом переходе
+- **Disposal Governance**: crypto-shredding для Confidential/Restricted, disposal verification checklist, backup rotation
+- **RPO/RTO**: Business Owner определяет, DBA реализует. Квартальное тестирование recovery
+- **Storage Classification Matrix**: связывает classification с storage tier, encryption, disposal method, backup frequency
+- **Automated Enforcement**: policy-as-code для TTL, scheduled purge с approval workflow, compliance reporting
+- "Храним всё навсегда" -- governance failure: regulatory risk + cost + security exposure
+
+Это завершает модуль **M04: Качество Данных и Observability**. Вы изучили: шесть измерений качества, обнаружение нарушений, дедупликацию, автоматизацию тестов с dbt и Great Expectations, Data Observability, и governance жизненного цикла данных от retention до disposal. В следующем модуле мы перейдём к **M05: Приватность и Compliance**.

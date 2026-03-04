@@ -1,0 +1,79 @@
+{
+  "lessonSlug": "04-data-quality/08-retention-archiving-disposal",
+  "moduleId": "04-data-quality",
+  "_meta": {
+    "idPrefix": "dg-m04-08",
+    "description": "Use IDs: dg-m04-08-q1 through dg-m04-08-q5"
+  },
+  "questions": [
+    {
+      "id": "dg-m04-08-q1",
+      "type": "multiple-choice",
+      "question": "BioGenesis хранит данные клинического trial Phase III. FDA требует 15-летнее хранение для regulatory submission. GDPR требует удаления по завершении purpose. Trial завершён 3 года назад, данные в пределах FDA retention window. Каков правильный governance-подход?",
+      "options": [
+        { "id": "a", "text": "Удалить немедленно по GDPR -- purpose завершён" },
+        { "id": "b", "text": "GDPR Art. 17(3)(b) исключает данные, необходимые для legal/regulatory compliance. Хранить с документированным legal basis, применить псевдонимизацию где возможно, установить автоматический trigger на удаление по истечении 15-летнего FDA срока" },
+        { "id": "c", "text": "Хранить навсегда -- клинические данные никогда не удаляются" },
+        { "id": "d", "text": "Запросить разрешение каждого пациента на продление хранения" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "GDPR не абсолютен: Art. 17(3)(b) явно исключает данные, хранение которых требуется для compliance with legal obligation. FDA 21 CFR Part 11 -- legal obligation для клинических данных. Правильный подход: (1) документировать legal basis (FDA requirement), (2) минимизировать exposure: псевдонимизация PII где возможно (только идентификатор пациента, не имя), (3) автоматический disposal trigger на 15 лет. Немедленное удаление (A) нарушит FDA. Бесконечное хранение (C) нарушает GDPR storage limitation после FDA срока.",
+      "hint": "GDPR Art. 17(3)(b) содержит исключения для right to erasure. Какое из них применимо к регуляторным требованиям?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-08-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure: core banking (RPO=0, RTO=1 час) и marketing analytics (RPO=24 часа, RTO=48 часов). Бюджет позволяет апгрейд только одной системы до synchronous replication. Какая получает приоритет?",
+      "options": [
+        { "id": "a", "text": "Marketing analytics -- больше пользователей зависят от неё" },
+        { "id": "b", "text": "Core banking -- RPO=0 означает zero data loss, достижимый только с synchronous replication. Marketing analytics RPO=24h покрывается daily backups" },
+        { "id": "c", "text": "Обе одинаково критичны" },
+        { "id": "d", "text": "Ни одна -- daily backups достаточно для обеих систем" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "RPO=0 (zero data loss) -- единственный RPO, требующий synchronous replication. Асинхронная репликация допускает потерю транзакций 'в полёте'. Core banking: потеря даже одной транзакции -- регуляторное нарушение + финансовый ущерб клиенту. Marketing analytics: потеря 24 часов данных -- задержка отчётов, пересчёт из source, никакого регуляторного или клиентского ущерба. Business impact: banking data loss = regulatory violation + customer harm; analytics data loss = delayed reports.",
+      "hint": "RPO=0 означает 'ни одна транзакция не может быть потеряна'. Какая технология обеспечивает это? Какой RPO покрывается ежедневными backups?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m04-08-q3",
+      "type": "multiple-choice",
+      "question": "DataTech удаляет 500K клиентских записей из PostgreSQL после отзыва согласия. Записи находятся в: active database + 30-дневный backup cycle + cold archive в S3. Какой метод disposal обеспечивает compliance?",
+      "options": [
+        { "id": "a", "text": "DELETE FROM customers WHERE consent_withdrawn = true -- достаточно удалить из active database" },
+        { "id": "b", "text": "Crypto-shredding (если данные зашифрованы per-record ключами) или системное удаление из ВСЕХ locations: database + явная backup rotation + S3 object deletion с version purge" },
+        { "id": "c", "text": "Logical deletion (is_deleted = true) во всех системах" },
+        { "id": "d", "text": "Удалить из active database и подождать natural backup rotation" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Удаление только из active database (A) оставляет данные в backups (восстановимы) и S3 (доступны). Logical deletion (C) не удаляет данные -- они по-прежнему хранятся. Natural rotation (D) -- 30 дней задержки, GDPR требует 'without undue delay'. Правильно: (1) Crypto-shredding -- если per-record encryption, удалить ключ делает данные нечитаемыми ВЕЗДЕ (DB + backup + S3). (2) Если нет per-record encryption: физическое удаление из DB + принудительная backup rotation + S3 versioning purge. Disposal verification: подтвердить 0 records во всех locations.",
+      "hint": "Данные существуют в трёх местах. Удаление только из одного -- оставляет данные в двух других. Какой метод работает 'одним действием' для всех locations?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m04-08-q4",
+      "type": "true-false",
+      "question": "Архивирование данных эквивалентно их удалению: после перемещения в архив данные недоступны и не требуют governance.",
+      "correctAnswer": false,
+      "explanation": "Архивированные данные по-прежнему требуют полноценного governance: (1) Access controls: кто может восстановить (restore approval workflow). (2) Retention tracking: когда данные подлежат disposal (retention timer продолжает работать). (3) Searchability: возможность найти конкретные записи для legal hold или regulatory audit (metadata в каталоге). (4) Encryption maintenance: ключи шифрования для archived данных должны управляться (key rotation). (5) Compliance monitoring: FDA может запросить клинические данные BioGenesis из архива в любой момент. Архив -- это storage tier, не disposal.",
+      "hint": "Может ли регулятор запросить данные из архива? Нужно ли знать, какие данные архивированы и когда их удалять?",
+      "bloomLevel": "conceptual"
+    },
+    {
+      "id": "dg-m04-08-q5",
+      "type": "multiple-choice",
+      "question": "DataTech имеет 3 классификации данных: Public, Internal, Restricted. Бюджет ограничивает до 2 storage tiers: Hot (SSD) и Cold (HDD). Как маппить классификации на tiers?",
+      "options": [
+        { "id": "a", "text": "По объёму: большие таблицы на Cold, маленькие на Hot" },
+        { "id": "b", "text": "По частоте обращения: часто используемые на Hot, редко на Cold" },
+        { "id": "c", "text": "По governance requirements: Restricted + Internal (active) на Hot (быстрый доступ для governance-проверок, шифрование, частые backups), Public + Internal (archived) на Cold (низкая стоимость, longer restore SLA)" },
+        { "id": "d", "text": "Всё на Hot -- SSD дешевеет каждый год" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Governance requirements -- ключевой фактор, не объём и не частота обращения. Restricted данные требуют: быстрый доступ для audit (Hot), шифрование at rest (Hot поддерживает), частые backups (RPO < 4h). Public + archived Internal: lower governance requirements, longer restore SLA допустим, стоимость Cold оправдана. Маппинг по объёму (A) может поместить Restricted данные на Cold -- governance violation. Маппинг по частоте (B) игнорирует compliance requirements.",
+      "hint": "Restricted данные требуют быстрый доступ для audit и частые backups. Public данные допускают longer restore SLA. Какой фактор определяющий?",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

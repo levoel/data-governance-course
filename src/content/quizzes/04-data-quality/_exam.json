@@ -3,7 +3,7 @@
   "moduleId": "04-data-quality",
   "_meta": {
     "idPrefix": "dg-exam-m04",
-    "description": "Use IDs: dg-exam-m04-q1 through dg-exam-m04-q10 (10 analytical questions)"
+    "description": "Use IDs: dg-exam-m04-q1 through dg-exam-m04-q11 (11 analytical questions)"
   },
   "questions": [
     {
@@ -147,6 +147,21 @@
       "correctAnswer": "b",
       "explanation": "Закрыты основные gaps, но остаются: CSV от поставщиков не валидируются (GE), schema changes не мониторятся, нет формализованного incident response. Target 0.90 не достигнут, quality -- непрерывный процесс. Остановка преждевременна. Переход к другим модулям возможен параллельно. Найм полезен, но не немедленно. Для подготовки повторите все уроки модуля.",
       "hint": "Какие столпы Observability покрыты (freshness, volume)? Какие нет (schema, distribution, lineage)? Какие данные без валидации (CSV)?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m04-q11",
+      "type": "multiple-choice",
+      "question": "Маркетинг DataTech хочет хранить данные о поведении клиентов 5 лет для ML-моделей. Юридический отдел указывает на 152-ФЗ: удаление ПДн после отзыва согласия. Privacy officer обнаруживает, что 30% хранимых записей не имеют активного согласия. Какие governance-действия необходимы?",
+      "options": [
+        { "id": "a", "text": "Удалить все данные старше 1 года" },
+        { "id": "b", "text": "Немедленный аудит всех записей на статус согласия, анонимизация или удаление записей без активного согласия, внедрение automated consent-driven retention triggers (отзыв согласия -> initiate deletion workflow), обновление retention policy с consent как условием хранения" },
+        { "id": "c", "text": "Запросить повторное согласие у всех клиентов" },
+        { "id": "d", "text": "Перенести данные в анонимизированное хранилище и продолжить использование" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Четыре обязательных действия: (1) Аудит: определить scope проблемы -- какие записи без consent, сколько, какие данные содержат. (2) Remediation: анонимизация (если ML-модели работают с агрегатами) или удаление (если per-record данные). 152-ФЗ требует прекращения обработки ПДн при отсутствии согласия. (3) Автоматизация: consent withdrawal -> automated deletion workflow, не manual process. (4) Policy update: retention policy явно связывает consent status с retention period. Повторный запрос согласия (C) не ретроактивно легализует обработку. Просто перенос в анонимизированное хранилище (D) требует проверки: полная ли анонимизация, или только псевдонимизация? Для подготовки повторите урок 08 (retention) и урок 01 модуля M05 (privacy principles).",
+      "hint": "30% записей обрабатываются без legal basis. Это нарушение прямо сейчас. Какие действия immediate, какие preventive?",
       "bloomLevel": "analytical"
     }
   ]
