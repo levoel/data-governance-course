@@ -1,0 +1,102 @@
+{
+  "lessonSlug": "08-ai-governance/05-fairness-implementation",
+  "moduleId": "08-ai-governance",
+  "_meta": {
+    "idPrefix": "dg-m08-05",
+    "description": "Use IDs: dg-m08-05-q1 through dg-m08-05-q4, dg-m08-05-code-1 (CC-37 JavaScript Fairness Scoring)"
+  },
+  "questions": [
+    {
+      "id": "dg-m08-05-q1",
+      "type": "multiple-choice",
+      "question": "FinSecure внедряет Fairness Scoring для Credit Scoring Model. Composite Score = 0.21 (порог 0.70). CDO спрашивает: 'Какая метрика тянет score вниз?' DPD normalized = 0.20 (PASS), EOD normalized = 0.00 (FAIL), DIR normalized = 0.25 (PASS), PPD normalized = 0.50 (PASS). Ваш ответ?",
+      "options": [
+        { "id": "a", "text": "DPD -- наименьшая нормализованная оценка среди PASS метрик" },
+        { "id": "b", "text": "Equalized Odds Difference -- единственная FAIL метрика (normalized = 0.00), с весом 0.30 вносит 0 баллов в composite score" },
+        { "id": "c", "text": "Все метрики одинаково плохие -- нужно улучшать все" },
+        { "id": "d", "text": "Composite Score низкий из-за неправильно настроенных весов" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "EOD normalized = 0.00 означает, что Equalized Odds Difference >= max_acceptable (0.12 >= 0.10). С весом 0.30 эта метрика вносит 0.30 * 0.00 = 0.00 в composite score. Остальные метрики: DPD вносит 0.30 * 0.20 = 0.06, DIR вносит 0.20 * 0.25 = 0.05, PPD вносит 0.20 * 0.50 = 0.10. Итого: 0.06 + 0.00 + 0.05 + 0.10 = 0.21. Даже если бы EOD была PASS (normalized 0.50), score был бы 0.06 + 0.15 + 0.05 + 0.10 = 0.36 -- всё равно FAIL. Вывод: нужно значительно улучшить EOD (TPR и FPR по группам), а также DPD и DIR.",
+      "hint": "Нормализованное значение 0.00 означает, что метрика 'на грани' или за гранью допустимого. С весом 0.30 это вносит ноль в composite score.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m08-05-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure рассматривает 3 стратегии debiasing: (A) Pre-processing: accuracy 0.87→0.84, (B) In-processing: 0.87→0.85, (C) Post-processing: accuracy сохраняется, но разные пороги для групп. Какая оптимальна для кредитного скоринга?",
+      "options": [
+        { "id": "a", "text": "Pre-processing -- устраняет root cause в данных, самая фундаментальная коррекция" },
+        { "id": "b", "text": "In-processing -- оптимальный fairness-accuracy trade-off (accuracy 0.85 > порога 0.80), fairness встроена в модель, нет разных стандартов для групп" },
+        { "id": "c", "text": "Post-processing -- сохраняет accuracy, быстро применяется в production" },
+        { "id": "d", "text": "Все три одновременно -- максимальная fairness" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "In-processing оптимален для банка: (1) Accuracy 0.85 -- минимальная потеря (-0.02), остаётся выше порога 0.80. (2) Fairness встроена в модель через fairness constraint / adversarial debiasing -- модель сама учится принимать решения на основе кредитоспособности, а не proxy-переменных. (3) Нет разных порогов для групп (проблема post-processing C) -- юридически и этически чисто. (4) Pre-processing (A) потеря 0.03 accuracy больше; может удалить информативные features. Все три (D) -- over-engineering, может привести к reverse discrimination. In-processing + мониторинг -- оптимальный баланс.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m08-05-q3",
+      "type": "multiple-choice",
+      "question": "Credit Scoring Model v3.1 (после debiasing) deploy в production. Через 3 месяца Composite Fairness Score падает с 0.82 до 0.68 (ниже порога 0.70). Наиболее вероятная причина?",
+      "options": [
+        { "id": "a", "text": "Bug в коде мониторинга -- перепроверить расчёт метрик" },
+        { "id": "b", "text": "Concept Drift -- изменились паттерны заявок (сезонность, маркетинговые кампании привлекли новую демографию), модель, справедливая при обучении, стала предвзятой на новых данных" },
+        { "id": "c", "text": "Debiasing 'выветрился' -- fairness constraint перестал работать" },
+        { "id": "d", "text": "Порог 0.70 слишком высокий -- нужно снизить до 0.50" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Concept Drift -- наиболее вероятная причина постепенной деградации fairness через 3 месяца: (1) Сезонность: в Q1 больше заявок от молодых (новый год, расходы), меняется демографический mix. (2) Маркетинг: кампания 'первый кредит' привлекла новую демографию, не представленную в training data. (3) Экономические изменения: изменение ставок / инфляция влияет на группы по-разному. Решение: (1) Fallback на ручной скоринг. (2) Retrain на свежих данных с fairness constraint. (3) Post-mortem: какие метрики деградировали, для каких субгрупп. Bug (A) возможен, но Score упал постепенно. Снижение порога (D) -- 'заметание под ковёр'.",
+      "hint": "Модель обучена на данных прошлого. Если паттерны заявок изменились за 3 месяца, модель может стать предвзятой на новых данных.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m08-05-q4",
+      "type": "true-false",
+      "question": "Fairness-тесты в CI/CD pipeline должны блокировать deploy только при нарушении Critical порогов. Warning пороги достаточно логировать без блокировки.",
+      "correctAnswer": true,
+      "explanation": "Верно: двухуровневая система порогов -- best practice для CI/CD. Warning порог (DPD > 0.08) -- сигнал для review: CDO получает уведомление, ML-команда анализирует причину. Deploy не блокируется -- возможно, незначительное отклонение из-за sampling noise. Critical порог (DPD > 0.10) -- deploy блокируется автоматически: Model Owner получает P1 alert, модель не может быть deploy до исправления. Блокировка на Warning привела бы к: (1) слишком частым блокировкам из-за статистического шума, (2) 'alert fatigue' -- команда перестанет реагировать. Critical = автоматическая защита, Warning = человеческий контроль. Повторите урок 5 (alert thresholds).",
+      "hint": "Подумайте: если блокировать deploy на Warning (> 0.08), сколько false positive блокировок будет из-за статистического шума? Alert fatigue -- реальная проблема.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m08-05-code-1",
+      "type": "code-challenge",
+      "question": "Напишите JavaScript-функцию, которая вычисляет Composite Fairness Score для модели. Функция принимает набор fairness-метрик с весами, нормализует каждую метрику к шкале 0-1 (где 1 = идеально справедливо), вычисляет взвешенное среднее и определяет pass/fail. Для метрик с ideal=0 (diff-метрики): normalized = max(0, 1 - value/max_acceptable). Для метрик с ideal=1 (ratio-метрики): normalized = max(0, (value - (1 - max_acceptable)) / max_acceptable). Каждая метрика PASS если value <= max_acceptable (для ideal=0) или value >= (1-max_acceptable) (для ideal=1). Composite score = взвешенная сумма normalized * weight. Округление до 2 знаков.",
+      "language": "javascript",
+      "starterCode": "function calculateFairnessScore(inputData) {\n  const { metrics, pass_threshold } = inputData;\n  const scores = {};\n  const failingMetrics = [];\n  let compositeScore = 0;\n\n  // TODO: For each metric:\n  //   1. Normalize to 0-1 scale based on ideal value\n  //   2. Determine PASS/FAIL status\n  //   3. Calculate weighted contribution to composite score\n  //   4. Track failing metrics\n\n  // TODO: Calculate composite_score, determine overall, generate recommendation\n\n  return JSON.stringify({\n    scores,\n    composite_score: compositeScore,\n    pass_threshold,\n    overall: \"\",\n    failing_metrics: failingMetrics,\n    recommendation: \"\"\n  }, null, 2);\n}\n\nconst input = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));\nconsole.log(calculateFairnessScore(input));",
+      "solutionCode": "function calculateFairnessScore(inputData) {\n  const { metrics, pass_threshold } = inputData;\n  const scores = {};\n  const failingMetrics = [];\n  let compositeScore = 0;\n\n  for (const [name, m] of Object.entries(metrics)) {\n    let normalized;\n    let status;\n\n    if (m.ideal === 0) {\n      normalized = Math.max(0, Math.round((1 - m.value / m.max_acceptable) * 100) / 100);\n      status = m.value <= m.max_acceptable ? \"PASS\" : \"FAIL\";\n    } else {\n      const threshold = 1 - m.max_acceptable;\n      normalized = Math.max(0, Math.round(((m.value - threshold) / m.max_acceptable) * 100) / 100);\n      status = m.value >= threshold ? \"PASS\" : \"FAIL\";\n    }\n\n    scores[name] = { raw: m.value, normalized, status };\n    compositeScore += normalized * m.weight;\n\n    if (status === \"FAIL\") {\n      failingMetrics.push(name);\n    }\n  }\n\n  compositeScore = Math.round(compositeScore * 100) / 100;\n  const overall = compositeScore >= pass_threshold ? \"PASS\" : \"FAIL\";\n\n  let recommendation;\n  if (failingMetrics.length === 0) {\n    recommendation = \"All metrics within acceptable thresholds\";\n  } else {\n    const details = failingMetrics.map(name => {\n      const m = metrics[name];\n      if (m.ideal === 0) {\n        return `${name} before deployment (${m.value} > ${m.max_acceptable} threshold)`;\n      } else {\n        return `${name} before deployment (${m.value} < ${1 - m.max_acceptable} threshold)`;\n      }\n    });\n    recommendation = \"Address \" + details.join(\"; \");\n  }\n\n  return JSON.stringify({\n    scores,\n    composite_score: compositeScore,\n    pass_threshold,\n    overall,\n    failing_metrics: failingMetrics,\n    recommendation\n  }, null, 2);\n}\n\nconst input = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));\nconsole.log(calculateFairnessScore(input));",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Mixed metrics: one FAIL (equalized_odds_diff > threshold), overall FAIL",
+          "input": "{\"metrics\":{\"demographic_parity_diff\":{\"value\":0.08,\"ideal\":0,\"max_acceptable\":0.10,\"weight\":0.3},\"equalized_odds_diff\":{\"value\":0.12,\"ideal\":0,\"max_acceptable\":0.10,\"weight\":0.3},\"disparate_impact_ratio\":{\"value\":0.85,\"ideal\":1,\"max_acceptable\":0.80,\"weight\":0.2},\"predictive_parity_diff\":{\"value\":0.05,\"ideal\":0,\"max_acceptable\":0.10,\"weight\":0.2}},\"pass_threshold\":0.70}",
+          "expectedOutput": "\"overall\": \"FAIL\""
+        },
+        {
+          "id": "tc2",
+          "description": "All metrics PASS, composite score above threshold",
+          "input": "{\"metrics\":{\"demographic_parity_diff\":{\"value\":0.02,\"ideal\":0,\"max_acceptable\":0.10,\"weight\":0.3},\"equalized_odds_diff\":{\"value\":0.03,\"ideal\":0,\"max_acceptable\":0.10,\"weight\":0.3},\"disparate_impact_ratio\":{\"value\":0.95,\"ideal\":1,\"max_acceptable\":0.80,\"weight\":0.2},\"predictive_parity_diff\":{\"value\":0.01,\"ideal\":0,\"max_acceptable\":0.10,\"weight\":0.2}},\"pass_threshold\":0.70}",
+          "expectedOutput": "\"overall\": \"PASS\""
+        },
+        {
+          "id": "tc3",
+          "description": "All metrics FAIL, composite score 0",
+          "input": "{\"metrics\":{\"demographic_parity_diff\":{\"value\":0.25,\"ideal\":0,\"max_acceptable\":0.10,\"weight\":0.5},\"equalized_odds_diff\":{\"value\":0.30,\"ideal\":0,\"max_acceptable\":0.10,\"weight\":0.5}},\"pass_threshold\":0.70}",
+          "expectedOutput": "\"overall\": \"FAIL\"",
+          "hidden": true
+        },
+        {
+          "id": "tc4",
+          "description": "Edge case: metric exactly at threshold boundary",
+          "input": "{\"metrics\":{\"demographic_parity_diff\":{\"value\":0.10,\"ideal\":0,\"max_acceptable\":0.10,\"weight\":0.5},\"disparate_impact_ratio\":{\"value\":0.20,\"ideal\":1,\"max_acceptable\":0.80,\"weight\":0.5}},\"pass_threshold\":0.50}",
+          "expectedOutput": "\"overall\": \"FAIL\"",
+          "hidden": true
+        }
+      ],
+      "explanation": "Fairness Scoring Function вычисляет композитную оценку справедливости модели. Нормализация: для diff-метрик (ideal=0) -- normalized = max(0, 1 - value/max_acceptable). Для ratio-метрик (ideal=1) -- normalized = max(0, (value - threshold)/range). Взвешенное среднее даёт composite score. PASS/FAIL определяется по pass_threshold. Функция написана на JavaScript -- второй JS-challenge в курсе (после CC-29 ABAC evaluator в M06).",
+      "hint": "Для каждой метрики: (1) если ideal=0: normalized = max(0, 1 - value/max_acceptable), PASS если value <= max_acceptable. (2) если ideal=1: normalized = max(0, (value - (1-max_acceptable))/max_acceptable), PASS если value >= (1-max_acceptable). Composite = sum(normalized * weight). Округляйте до 2 знаков.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

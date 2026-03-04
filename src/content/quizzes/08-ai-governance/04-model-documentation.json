@@ -1,0 +1,124 @@
+{
+  "lessonSlug": "08-ai-governance/04-model-documentation",
+  "moduleId": "08-ai-governance",
+  "_meta": {
+    "idPrefix": "dg-m08-04",
+    "description": "Use IDs: dg-m08-04-q1 through dg-m08-04-q4, dg-m08-04-code-1 (CC-35 Python Model Card), dg-m08-04-code-2 (CC-36 JSON AI Risk Assessment)"
+  },
+  "questions": [
+    {
+      "id": "dg-m08-04-q1",
+      "type": "multiple-choice",
+      "question": "BioGenesis создаёт Model Card для модели скрининга пациентов. Overall precision = 0.88, но precision для женщин 18-35 лет = 0.61. ML Lead предлагает указать в Model Card только overall precision. Почему это неприемлемо?",
+      "options": [
+        { "id": "a", "text": "Потому что Model Card должен содержать минимум 10 метрик" },
+        { "id": "b", "text": "Overall precision маскирует критическую проблему: 39% false positives для женщин 18-35. Model Card ОБЯЗАН содержать performance breakdown по субгруппам (Mitchell et al.), иначе Compliance Officer и регулятор не увидят проблему" },
+        { "id": "c", "text": "Потому что precision -- неподходящая метрика для медицины" },
+        { "id": "d", "text": "Потому что Model Card должен быть одностраничным, а breakdown увеличит объём" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Mitchell et al. (2019) -- создатели формата Model Card -- явно указывают: aggregate metrics insufficient. Performance breakdown по субгруппам обязателен. Для BioGenesis: precision 0.61 для женщин 18-35 означает 39% false positives -- модель включает неподходящих пациенток, что может: (1) подвергнуть их рискам испытания, (2) занять место реально подходящих пациентов. Без breakdown эта проблема невидима: overall 0.88 выглядит хорошо. Model Card должен включить: (1) Limitation: 'precision для женщин 18-35 значительно ниже', (2) Recommendation: 'обязательный ручной review для этой субгруппы'.",
+      "hint": "Mitchell et al. ввели Model Card именно для борьбы с 'average metrics fallacy'. Зачем указывать performance по субгруппам?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m08-04-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure обновляет Credit Scoring Model: retrain на данных Q4 2025, без изменения features и алгоритма. Какую версию присвоить?",
+      "options": [
+        { "id": "a", "text": "Major: v3.0.0 → v4.0.0 -- новые данные = новая модель" },
+        { "id": "b", "text": "Minor: v3.0.0 → v3.1.0 -- retrain на свежих данных без изменения архитектуры" },
+        { "id": "c", "text": "Patch: v3.0.0 → v3.0.1 -- это исправление, не обновление" },
+        { "id": "d", "text": "Не менять версию -- те же features и алгоритм" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Semantic Versioning для ML: Major (X.0.0) -- новая архитектура, новые features, принципиально другой training set. Minor (X.Y.0) -- retrain на свежих данных, hyperparameter tuning при сохранении архитектуры. Patch (X.Y.Z) -- bug fix, threshold adjustment. Retrain на данных Q4 2025 -- это Minor update: модель та же (gradient boosting, 23 features), но обучена на более свежих данных. Major был бы если бы добавили features или сменили алгоритм. Patch -- если бы исправили bug. Не менять версию (D) -- недопустимо: модель изменилась, audit trail должен это отражать.",
+      "hint": "Semantic Versioning для ML: Major = архитектура, Minor = retrain, Patch = bug fix. Retrain на свежих данных без изменения features -- это...",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m08-04-q3",
+      "type": "multiple-choice",
+      "question": "CTO BioGenesis предлагает, чтобы ML-команда сама валидировала свою модель скрининга пациентов (self-review). Почему это неприемлемо для high-risk AI?",
+      "options": [
+        { "id": "a", "text": "Потому что ML-команда технически некомпетентна для валидации" },
+        { "id": "b", "text": "Self-review нарушает принцип независимости валидации: конфликт интересов (разработчик заинтересован в deploy), blind spots (не видит своих ошибок), и требования EU AI Act / ISO 42001 к независимой оценке" },
+        { "id": "c", "text": "Потому что валидация занимает слишком много времени для ML-команды" },
+        { "id": "d", "text": "Self-review допустим, если ML-команда документирует результаты" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Три причины недопустимости self-review: (1) Конфликт интересов -- ML Lead потратил 6 месяцев на модель, подсознательно заинтересован в deploy, а не в обнаружении проблем. (2) Blind spots -- разработчик не тестирует edge cases, которые не предвидел при обучении (precision 0.61 для женщин 18-35 может остаться незамеченным). (3) Регуляторные требования -- EU AI Act для high-risk AI требует независимой оценки; ISO/IEC 42001 требует separation of duties. Правильный процесс: Independent Model Validator (Biostatistician из другой команды) проверяет performance, fairness, документацию. Валидатор не должен подчиняться Model Owner.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m08-04-q4",
+      "type": "true-false",
+      "question": "Audit trail для AI-решений FinSecure должен хранить только финальное решение модели (approved/rejected) и идентификатор клиента.",
+      "correctAnswer": false,
+      "explanation": "Минимальный audit record включает значительно больше: (1) decision_id -- уникальный идентификатор решения. (2) model_version -- какая версия модели приняла решение (v3.0.0 или v3.1.0). (3) timestamp -- когда решение принято. (4) input_features -- все 23 features, которые модель использовала. (5) output -- решение, кредитный лимит, confidence score. (6) explanation -- top-3 features, повлиявших на решение (SHAP values). (7) human_override -- был ли ручной пересмотр. Без input_features и explanation невозможно ответить регулятору 'почему модель отказала этому клиенту'. Без model_version невозможно воспроизвести решение. Retention: 5-7 лет для банков. Повторите урок 4 (audit trail).",
+      "hint": "Регулятор спрашивает: 'Почему модель отказала клиенту Иванову 15 ноября?' Достаточно ли знать 'rejected, client_id=42389'?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m08-04-code-1",
+      "type": "code-challenge",
+      "question": "Напишите функцию, которая генерирует структурированную Model Card из метаданных модели. На вход -- JSON с training details, performance metrics, fairness assessment и governance information. На выход -- форматированная текстовая Model Card с секциями: Model Details, Training Details, Performance Metrics, Fairness Assessment, Governance, Intended Use, Limitations.",
+      "language": "python",
+      "starterCode": "import json\nimport sys\n\ndef generate_model_card(data_json: str) -> str:\n    data = json.loads(data_json)\n    \n    # TODO: Extract model_name, version, type, training, performance, fairness, governance\n    # TODO: Format each section according to the Model Card template\n    # TODO: Format numbers with commas for thousands (e.g., 150,000)\n    # TODO: Format metrics with 3 decimal places (e.g., 0.870)\n    # TODO: Fairness: compare against 0.10 threshold, show [PASS/FAIL]\n    # TODO: Number limitations\n    \n    pass\n\nresult = generate_model_card(sys.stdin.read())\nprint(result)",
+      "solutionCode": "import json\nimport sys\n\ndef generate_model_card(data_json: str) -> str:\n    data = json.loads(data_json)\n    \n    name = data[\"model_name\"]\n    version = data[\"version\"]\n    mtype = data[\"type\"]\n    training = data[\"training\"]\n    perf = data[\"performance\"]\n    fair = data[\"fairness\"]\n    gov = data[\"governance\"]\n    \n    lines = []\n    lines.append(\"=== MODEL CARD ===\")\n    lines.append(\"\")\n    lines.append(f\"Model: {name} v{version}\")\n    lines.append(f\"Type: {mtype}\")\n    lines.append(f\"Owner: {gov['owner']}\")\n    lines.append(\"\")\n    lines.append(\"--- Training Details ---\")\n    lines.append(f\"Dataset: {training['dataset']}\")\n    rows_formatted = f\"{training['rows']:,}\"\n    split_pct = int(training['train_split'] * 100)\n    lines.append(f\"Records: {rows_formatted} | Features: {training['features']} | Split: {split_pct}/{100 - split_pct}\")\n    lines.append(f\"Algorithm: {training['algorithm']}\")\n    lines.append(f\"Training Date: {training['training_date']}\")\n    lines.append(\"\")\n    lines.append(\"--- Performance Metrics ---\")\n    lines.append(f\"Accuracy:  {perf['accuracy']:.3f}\")\n    lines.append(f\"Precision: {perf['precision']:.3f}\")\n    lines.append(f\"Recall:    {perf['recall']:.3f}\")\n    lines.append(f\"F1 Score:  {perf['f1']:.3f}\")\n    lines.append(f\"AUC-ROC:   {perf['auc_roc']:.3f}\")\n    lines.append(\"\")\n    lines.append(\"--- Fairness Assessment ---\")\n    lines.append(f\"Protected Attribute: {fair['protected_attribute']}\")\n    dpd_status = \"PASS\" if fair[\"demographic_parity_diff\"] < 0.10 else \"FAIL\"\n    eod_status = \"PASS\" if fair[\"equalized_odds_diff\"] < 0.10 else \"FAIL\"\n    lines.append(f\"Demographic Parity Difference: {fair['demographic_parity_diff']:.3f} [{dpd_status}: < 0.10]\")\n    lines.append(f\"Equalized Odds Difference:     {fair['equalized_odds_diff']:.3f} [{eod_status}: < 0.10]\")\n    lines.append(\"\")\n    lines.append(\"--- Governance ---\")\n    lines.append(f\"Approved By: {gov['approved_by']}\")\n    lines.append(f\"Review Date: {gov['review_date']}\")\n    lines.append(f\"Next Review: {gov['next_review']}\")\n    lines.append(f\"Data Classification: {gov['data_classification']}\")\n    lines.append(\"\")\n    lines.append(\"--- Intended Use ---\")\n    lines.append(gov[\"intended_use\"])\n    lines.append(\"\")\n    lines.append(\"--- Limitations ---\")\n    for i, lim in enumerate(gov[\"limitations\"], 1):\n        lines.append(f\"{i}. {lim}\")\n    lines.append(\"\")\n    lines.append(\"=== END MODEL CARD ===\")\n    \n    return \"\\n\".join(lines)\n\nresult = generate_model_card(sys.stdin.read())\nprint(result)",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Standard model card generation with all sections",
+          "input": "{\"model_name\":\"Customer Churn Predictor\",\"version\":\"2.1\",\"type\":\"binary_classification\",\"training\":{\"dataset\":\"customer_activity_2024\",\"rows\":150000,\"features\":23,\"train_split\":0.8,\"algorithm\":\"gradient_boosting\",\"training_date\":\"2025-11-01\"},\"performance\":{\"accuracy\":0.87,\"precision\":0.82,\"recall\":0.79,\"f1\":0.80,\"auc_roc\":0.91},\"fairness\":{\"protected_attribute\":\"age_group\",\"demographic_parity_diff\":0.05,\"equalized_odds_diff\":0.08},\"governance\":{\"owner\":\"ML Team\",\"approved_by\":\"Model Risk Committee\",\"review_date\":\"2025-11-15\",\"next_review\":\"2026-05-15\",\"data_classification\":\"confidential\",\"intended_use\":\"Predict customer churn probability for retention campaigns\",\"limitations\":[\"Not validated for B2B customers\",\"Performance degrades for accounts < 30 days old\"]}}",
+          "expectedOutput": "=== MODEL CARD ===\n\nModel: Customer Churn Predictor v2.1\nType: binary_classification\nOwner: ML Team\n\n--- Training Details ---\nDataset: customer_activity_2024\nRecords: 150,000 | Features: 23 | Split: 80/20\nAlgorithm: gradient_boosting\nTraining Date: 2025-11-01\n\n--- Performance Metrics ---\nAccuracy:  0.870\nPrecision: 0.820\nRecall:    0.790\nF1 Score:  0.800\nAUC-ROC:   0.910\n\n--- Fairness Assessment ---\nProtected Attribute: age_group\nDemographic Parity Difference: 0.050 [PASS: < 0.10]\nEqualized Odds Difference:     0.080 [PASS: < 0.10]\n\n--- Governance ---\nApproved By: Model Risk Committee\nReview Date: 2025-11-15\nNext Review: 2026-05-15\nData Classification: confidential\n\n--- Intended Use ---\nPredict customer churn probability for retention campaigns\n\n--- Limitations ---\n1. Not validated for B2B customers\n2. Performance degrades for accounts < 30 days old\n\n=== END MODEL CARD ==="
+        },
+        {
+          "id": "tc2",
+          "description": "Model card with failing fairness metrics",
+          "input": "{\"model_name\":\"Credit Scoring Model\",\"version\":\"3.0\",\"type\":\"binary_classification\",\"training\":{\"dataset\":\"loan_applications_2024\",\"rows\":500000,\"features\":35,\"train_split\":0.75,\"algorithm\":\"xgboost\",\"training_date\":\"2025-10-01\"},\"performance\":{\"accuracy\":0.91,\"precision\":0.88,\"recall\":0.85,\"f1\":0.86,\"auc_roc\":0.94},\"fairness\":{\"protected_attribute\":\"gender\",\"demographic_parity_diff\":0.17,\"equalized_odds_diff\":0.15},\"governance\":{\"owner\":\"ML Engineering\",\"approved_by\":\"Risk Committee\",\"review_date\":\"2025-10-15\",\"next_review\":\"2026-04-15\",\"data_classification\":\"restricted\",\"intended_use\":\"Determine credit limits for retail banking customers\",\"limitations\":[\"Historical bias in training data\",\"Not validated for self-employed applicants\",\"Performance degrades during economic downturns\"]}}",
+          "expectedOutput": "=== MODEL CARD ===\n\nModel: Credit Scoring Model v3.0\nType: binary_classification\nOwner: ML Engineering\n\n--- Training Details ---\nDataset: loan_applications_2024\nRecords: 500,000 | Features: 35 | Split: 75/25\nAlgorithm: xgboost\nTraining Date: 2025-10-01\n\n--- Performance Metrics ---\nAccuracy:  0.910\nPrecision: 0.880\nRecall:    0.850\nF1 Score:  0.860\nAUC-ROC:   0.940\n\n--- Fairness Assessment ---\nProtected Attribute: gender\nDemographic Parity Difference: 0.170 [FAIL: < 0.10]\nEqualized Odds Difference:     0.150 [FAIL: < 0.10]\n\n--- Governance ---\nApproved By: Risk Committee\nReview Date: 2025-10-15\nNext Review: 2026-04-15\nData Classification: restricted\n\n--- Intended Use ---\nDetermine credit limits for retail banking customers\n\n--- Limitations ---\n1. Historical bias in training data\n2. Not validated for self-employed applicants\n3. Performance degrades during economic downturns\n\n=== END MODEL CARD ==="
+        },
+        {
+          "id": "tc3",
+          "description": "Model card with single limitation",
+          "input": "{\"model_name\":\"Drug Interaction Predictor\",\"version\":\"1.0\",\"type\":\"multi_classification\",\"training\":{\"dataset\":\"drug_pairs_2025\",\"rows\":75000,\"features\":48,\"train_split\":0.7,\"algorithm\":\"random_forest\",\"training_date\":\"2025-09-15\"},\"performance\":{\"accuracy\":0.83,\"precision\":0.79,\"recall\":0.81,\"f1\":0.80,\"auc_roc\":0.88},\"fairness\":{\"protected_attribute\":\"patient_age\",\"demographic_parity_diff\":0.03,\"equalized_odds_diff\":0.06},\"governance\":{\"owner\":\"BioML Team\",\"approved_by\":\"Medical Advisory Board\",\"review_date\":\"2025-09-30\",\"next_review\":\"2026-03-30\",\"data_classification\":\"restricted\",\"intended_use\":\"Predict potential drug interactions for clinical decision support\",\"limitations\":[\"Limited to known drug pairs in training set\"]}}",
+          "expectedOutput": "=== MODEL CARD ===\n\nModel: Drug Interaction Predictor v1.0\nType: multi_classification\nOwner: BioML Team\n\n--- Training Details ---\nDataset: drug_pairs_2025\nRecords: 75,000 | Features: 48 | Split: 70/30\nAlgorithm: random_forest\nTraining Date: 2025-09-15\n\n--- Performance Metrics ---\nAccuracy:  0.830\nPrecision: 0.790\nRecall:    0.810\nF1 Score:  0.800\nAUC-ROC:   0.880\n\n--- Fairness Assessment ---\nProtected Attribute: patient_age\nDemographic Parity Difference: 0.030 [PASS: < 0.10]\nEqualized Odds Difference:     0.060 [PASS: < 0.10]\n\n--- Governance ---\nApproved By: Medical Advisory Board\nReview Date: 2025-09-30\nNext Review: 2026-03-30\nData Classification: restricted\n\n--- Intended Use ---\nPredict potential drug interactions for clinical decision support\n\n--- Limitations ---\n1. Limited to known drug pairs in training set\n\n=== END MODEL CARD ===",
+          "hidden": true
+        }
+      ],
+      "explanation": "Model Card Generator формирует стандартизированную документацию ML-модели по формату Mitchell et al. (2019). Каждая секция обязательна: Model Details, Training Details, Performance Metrics (с 3 знаками), Fairness Assessment (с PASS/FAIL), Governance, Intended Use, Limitations (нумерованные). Точное форматирование критично для автоматической обработки и audit.",
+      "hint": "Форматируйте числа: rows с запятыми (150,000), метрики с 3 знаками (0.870). Fairness: сравнивайте с 0.10 для PASS/FAIL. Limitations нумеруйте с 1.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m08-04-code-2",
+      "type": "code-challenge",
+      "question": "Создайте JSON-структуру AI Risk Assessment для кредитной скоринговой модели FinSecure Bank. Assessment должен включать: model purpose, risk_category (high -- кредитный скоринг), минимум 5 рисков с likelihood/impact, mitigation для каждого риска, human_oversight, и monitoring. Все risk_id в mitigations должны ссылаться на существующие risks.",
+      "language": "json",
+      "starterCode": "{\n  \"ai_risk_assessment\": {\n    \"model\": \"\",\n    \"organization\": \"\",\n    \"assessment_date\": \"\",\n    \"risk_category\": \"\",\n    \"classification_basis\": \"\",\n    \"model_purpose\": {},\n    \"risks\": [],\n    \"mitigations\": [],\n    \"human_oversight\": {},\n    \"monitoring\": {}\n  }\n}",
+      "solutionCode": "{\n  \"ai_risk_assessment\": {\n    \"model\": \"Credit Scoring Model v3.0\",\n    \"organization\": \"FinSecure Bank\",\n    \"assessment_date\": \"2025-12-01\",\n    \"risk_category\": \"high\",\n    \"classification_basis\": \"EU AI Act Article 6 - credit scoring is high-risk AI system\",\n\n    \"model_purpose\": {\n      \"description\": \"Automated credit limit determination for retail banking customers\",\n      \"data_subjects\": \"Individual loan applicants\",\n      \"decision_impact\": \"Determines credit limit (0 to 5,000,000 RUB)\",\n      \"automation_level\": \"semi-automated (human review for limits > 1,000,000 RUB)\"\n    },\n\n    \"risks\": [\n      {\"id\": \"AIR-01\", \"category\": \"bias\", \"description\": \"Discriminatory outcomes based on age, gender, or ethnicity proxies\", \"likelihood\": \"medium\", \"impact\": \"high\"},\n      {\"id\": \"AIR-02\", \"category\": \"transparency\", \"description\": \"Black-box model prevents explanation of credit decisions\", \"likelihood\": \"high\", \"impact\": \"high\"},\n      {\"id\": \"AIR-03\", \"category\": \"data_quality\", \"description\": \"Training data contains historical bias from manual decisions\", \"likelihood\": \"high\", \"impact\": \"medium\"},\n      {\"id\": \"AIR-04\", \"category\": \"privacy\", \"description\": \"Model uses sensitive personal data without explicit consent\", \"likelihood\": \"medium\", \"impact\": \"high\"},\n      {\"id\": \"AIR-05\", \"category\": \"robustness\", \"description\": \"Model performance degrades with distribution shift in economic conditions\", \"likelihood\": \"medium\", \"impact\": \"medium\"}\n    ],\n\n    \"mitigations\": [\n      {\"risk_id\": \"AIR-01\", \"control\": \"Quarterly bias audits using demographic parity and equalized odds metrics\", \"status\": \"implemented\"},\n      {\"risk_id\": \"AIR-02\", \"control\": \"SHAP explanations generated for every decision; plain-language explanation provided to applicants\", \"status\": \"planned\"},\n      {\"risk_id\": \"AIR-03\", \"control\": \"Training data audit for proxy variables; resampling to balance underrepresented groups\", \"status\": \"implemented\"},\n      {\"risk_id\": \"AIR-04\", \"control\": \"Explicit consent collection for credit scoring purpose; data minimization review\", \"status\": \"implemented\"},\n      {\"risk_id\": \"AIR-05\", \"control\": \"Monthly model performance monitoring with automatic retraining trigger at AUC < 0.80\", \"status\": \"planned\"}\n    ],\n\n    \"human_oversight\": {\n      \"review_threshold\": \"All decisions with credit limit > 1,000,000 RUB\",\n      \"appeal_process\": \"Applicants can request manual review within 30 days\",\n      \"override_authority\": \"Credit committee can override model decisions\"\n    },\n\n    \"monitoring\": {\n      \"performance_metrics\": [\"AUC-ROC\", \"precision\", \"recall\", \"default_rate\"],\n      \"fairness_metrics\": [\"demographic_parity\", \"equalized_odds\", \"disparate_impact\"],\n      \"monitoring_frequency\": \"monthly\",\n      \"retraining_trigger\": \"AUC-ROC < 0.80 or disparate_impact < 0.80\"\n    }\n  }\n}",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Risk assessment has all required sections and risk_category is 'high'",
+          "expectedOutput": "{\"valid\":true,\"required_sections\":[\"model_purpose\",\"risks\",\"mitigations\",\"human_oversight\",\"monitoring\"],\"risk_category\":\"high\"}"
+        },
+        {
+          "id": "tc2",
+          "description": "At least 5 risks with id, category, description, likelihood, impact; mitigation for each risk",
+          "expectedOutput": "{\"valid\":true,\"minimums\":{\"risks\":\">=5\",\"mitigations\":\">=5\"},\"all_risks_have_mitigation\":true}"
+        },
+        {
+          "id": "tc3",
+          "description": "Human oversight has review_threshold and appeal_process; monitoring has metrics and frequency",
+          "expectedOutput": "{\"valid\":true,\"human_oversight_complete\":true,\"monitoring_complete\":true}",
+          "hidden": true
+        }
+      ],
+      "explanation": "AI Risk Assessment -- формальный документ, требуемый EU AI Act для high-risk AI-систем. Структура: model purpose (что делает модель, кто субъекты), risks (минимум 5 с категориями: bias, transparency, data_quality, privacy, robustness), mitigations (контроль для каждого риска), human_oversight (когда человек вмешивается), monitoring (метрики и частота проверки).",
+      "hint": "Заполните все секции. risks: минимум 5, каждый с id (AIR-01..AIR-05), category, description, likelihood, impact. mitigations: risk_id должен ссылаться на существующий risk. human_oversight: threshold, appeal, override. monitoring: metrics, frequency, trigger.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

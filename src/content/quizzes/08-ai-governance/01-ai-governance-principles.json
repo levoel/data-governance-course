@@ -1,0 +1,63 @@
+{
+  "lessonSlug": "08-ai-governance/01-ai-governance-principles",
+  "moduleId": "08-ai-governance",
+  "_meta": {
+    "idPrefix": "dg-m08-01",
+    "description": "Use IDs: dg-m08-01-q1 through dg-m08-01-q4"
+  },
+  "questions": [
+    {
+      "id": "dg-m08-01-q1",
+      "type": "multiple-choice",
+      "question": "FinSecure имеет зрелую Data Governance программу (Level 3): Data Quality Score 0.92, полная классификация, Data Lineage. Но Credit Scoring Model одобряет 75% заявок мужчин и 58% заявок женщин. Какой вывод о связи Data Governance и AI Governance?",
+      "options": [
+        { "id": "a", "text": "Data Governance программа неэффективна -- если данные качественные, модель не может быть предвзятой" },
+        { "id": "b", "text": "Data Governance -- необходимое, но недостаточное условие для AI Governance: качественные данные могут содержать исторический bias, который воспроизводится моделью" },
+        { "id": "c", "text": "AI Governance заменяет Data Governance -- нужно отказаться от DQ Score и перейти на Fairness Score" },
+        { "id": "d", "text": "Различие в одобрениях 75% vs 58% нормально и не требует AI Governance вмешательства" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Data Quality Score 0.92 означает, что данные полные, точные и свежие -- Data Governance работает. Но исторические данные содержат паттерн: менеджеры банка в прошлом чаще одобряли заявки мужчин. Данные 'качественные' (нет ошибок), но содержат systematic bias. AI Governance добавляет: (1) Fairness metrics мониторинг (DPD = 0.17, DIR = 0.77 -- оба FAIL). (2) Bias detection в training data. (3) Debiasing strategies. Data Governance -- фундамент, AI Governance -- надстройка. Одно без другого недостаточно.",
+      "hint": "Может ли набор данных быть одновременно 'качественным' (полным, точным) и 'предвзятым' (содержать исторические паттерны дискриминации)?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m08-01-q2",
+      "type": "multiple-choice",
+      "question": "ML-команда FinSecure развернула Credit Scoring Model v3.0 без Model Card, без fairness-мониторинга, без audit trail. Через 6 месяцев регулятор запрашивает объяснение, почему модель отказала конкретному клиенту. Какой принцип Responsible AI критически нарушен?",
+      "options": [
+        { "id": "a", "text": "Fairness -- модель дискриминирует клиента" },
+        { "id": "b", "text": "Transparency -- невозможно объяснить решение модели из-за отсутствия Model Card, audit trail и explainability" },
+        { "id": "c", "text": "Safety -- модель небезопасна для клиента" },
+        { "id": "d", "text": "Privacy -- модель использует персональные данные без согласия" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Критически нарушен принцип Transparency (прозрачность): (1) Нет Model Card -- регулятор не может понять, как модель работает, на каких данных обучена, какие limitations. (2) Нет audit trail -- невозможно воспроизвести конкретное решение (input features, model output, confidence). (3) Нет explainability -- нет SHAP/LIME объяснения, почему модель выдала конкретный результат. Fairness (A) тоже может быть нарушен, но без transparency это невозможно даже проверить. Transparency -- prerequisite для проверки всех остальных принципов.",
+      "hint": "Регулятор запрашивает объяснение конкретного решения. Какие артефакты нужны для ответа: Model Card, audit log, SHAP-объяснение?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m08-01-q3",
+      "type": "multiple-choice",
+      "question": "FinSecure внедряет AI Governance. CDO предлагает использовать NIST AI RMF. Какой первый шаг в рамках функции 'Map'?",
+      "options": [
+        { "id": "a", "text": "Установить fairness thresholds для Credit Scoring Model" },
+        { "id": "b", "text": "Понять контекст использования AI: кто пользователи, какие решения принимает модель, кто подвержен воздействию, какие потенциальные риски" },
+        { "id": "c", "text": "Назначить Model Owner и Model Validator" },
+        { "id": "d", "text": "Внедрить continuous monitoring для всех моделей" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "NIST AI RMF функция Map: понять контекст использования AI-системы. Для Credit Scoring Model: (1) Пользователи -- кредитные менеджеры и автоматическая система. (2) Решения -- определение кредитных лимитов 0-5M рублей. (3) Субъекты воздействия -- заявители на кредит (50,000/месяц). (4) Риски -- предвзятость по полу/возрасту, непрозрачность решений, ошибочные отказы. Только после Map можно переходить к Measure (A -- установить thresholds), Govern (C -- назначить роли) и Manage (D -- внедрить мониторинг). Map определяет, что именно измерять и контролировать.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m08-01-q4",
+      "type": "true-false",
+      "question": "AI Governance применяется только к high-risk AI-системам (кредитный скоринг, медицинская диагностика). Для спам-фильтров и рекомендательных систем AI Governance не нужен.",
+      "correctAnswer": false,
+      "explanation": "AI Governance применяется ко всем AI-системам, но с разной глубиной (принцип пропорциональности). High-risk (кредитный скоринг, медицина) -- максимальные требования: Model Card, fairness audit, human oversight, audit trail. Limited risk (рекомендательные системы) -- обязательства по прозрачности и базовая документация. Minimal risk (спам-фильтры) -- добровольные кодексы, но best practice включает: базовый Model Card, performance мониторинг, incident response. Пример: рекомендательная система может усиливать filter bubbles или показывать вредный контент -- это требует governance. Повторите урок 1 (AI Governance vs Data Governance).",
+      "hint": "Подумайте: может ли рекомендательная система причинить вред пользователю? Нужно ли документировать, как она работает?",
+      "bloomLevel": "applied"
+    }
+  ]
+}

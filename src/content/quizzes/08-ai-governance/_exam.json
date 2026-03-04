@@ -3,34 +3,158 @@
   "moduleId": "08-ai-governance",
   "_meta": {
     "idPrefix": "dg-exam-m08",
-    "description": "Use IDs: dg-exam-m08-q1, dg-exam-m08-q2, ... (8-12 analytical questions)"
+    "description": "Use IDs: dg-exam-m08-q1 through dg-exam-m08-q10 (10 analytical questions)"
   },
   "questions": [
     {
-      "id": "dg-exam-08-ai-governance-placeholder",
+      "id": "dg-exam-m08-q1",
       "type": "multiple-choice",
-      "question": "Placeholder -- будет заменён в следующих фазах",
+      "question": "FinSecure имеет Data Governance Level 3 (DQ Score 0.92, полная классификация, lineage) и Credit Scoring Model v3.0. Модель одобряет 75% заявок мужчин и 58% заявок женщин. DPD = 0.17, EOD = 0.15, DIR = 0.77. Все три метрики FAIL. Какой наиболее вероятный root cause?",
       "options": [
-        {
-          "id": "a",
-          "text": "Вариант A"
-        },
-        {
-          "id": "b",
-          "text": "Вариант B"
-        },
-        {
-          "id": "c",
-          "text": "Вариант C"
-        },
-        {
-          "id": "d",
-          "text": "Вариант D"
-        }
+        { "id": "a", "text": "Недостаточное качество данных -- DQ Score нужно поднять до 0.98" },
+        { "id": "b", "text": "Historical Bias в обучающих данных: менеджеры в прошлом чаще одобряли мужчин, модель воспроизводит этот паттерн. DQ Score 0.92 означает, что данные 'качественные', но содержат систематическую предвзятость" },
+        { "id": "c", "text": "Неправильно настроены пороги fairness-метрик -- нужно увеличить до 0.20" },
+        { "id": "d", "text": "Алгоритм gradient boosting изначально предвзят -- нужно сменить на logistic regression" }
       ],
-      "correctAnswer": "a",
-      "explanation": "Placeholder question -- будет заменён полноценным содержанием.",
-      "bloomLevel": "conceptual"
+      "correctAnswer": "b",
+      "explanation": "Root cause -- Historical Bias: (1) DQ Score 0.92 -- данные полные, точные, свежие (Data Governance работает). (2) Но данные содержат 5 лет решений менеджеров, которые систематически чаще одобряли мужчин. (3) Модель обучилась на этих данных и воспроизводит исторический паттерн. (4) DPD 0.17, DIR 0.77 -- значительное отклонение, не объяснимое реальной разницей в кредитоспособности. Решение: pre-processing (аудит training data, resampling) + in-processing (fairness constraint). Повышение порогов (C) -- маскировка проблемы. Смена алгоритма (D) -- bias в данных, не в алгоритме. Повторите урок 1 (связь DG и AI Governance) и урок 3 (типы bias).",
+      "studyHint": "Повторите урок 1 (AI Governance vs Data Governance) и урок 3 (Historical Bias)",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m08-q2",
+      "type": "multiple-choice",
+      "question": "BioGenesis разрабатывает 4 AI-системы: (A) AI-скрининг пациентов для клинических исследований, (B) Рекомендательная система для подбора научных статей исследователям, (C) AI-анализ МРТ для обнаружения опухолей, (D) AI-система для оценки эффективности сотрудников HR. Классифицируйте по EU AI Act.",
+      "options": [
+        { "id": "a", "text": "Все High Risk -- BioGenesis работает в медицине" },
+        { "id": "b", "text": "(A) High Risk, (B) Limited Risk, (C) High Risk, (D) High Risk" },
+        { "id": "c", "text": "(A) High Risk, (B) Minimal Risk, (C) High Risk, (D) Minimal Risk" },
+        { "id": "d", "text": "(A) Unacceptable Risk, (B) Limited Risk, (C) High Risk, (D) High Risk" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Классификация по ВОЗДЕЙСТВИЮ системы, а не по отрасли: (A) High Risk -- влияет на доступ пациентов к медицинским исследованиям (здоровье). (B) Limited Risk -- рекомендательная система для подбора статей, обязанность прозрачности (пользователь знает, что рекомендации от ИИ), но не влияет на фундаментальные права. NOT Minimal -- это рекомендательная система с определённым воздействием на работу. (C) High Risk -- медицинская диагностика, влияет на здоровье и безопасность пациентов. (D) High Risk -- оценка эффективности сотрудников = управление персоналом (рекрутинг и HR решения -- high-risk по EU AI Act). Повторите урок 2 (четыре уровня риска).",
+      "studyHint": "Повторите урок 2 (EU AI Act: четыре уровня риска). Рекрутинг и HR -- High Risk.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m08-q3",
+      "type": "multiple-choice",
+      "question": "Credit Scoring Model FinSecure: для клиентов 18-25 лет одобрение 45%, для 26-60 -- 72%. DPD = 0.27, DIR = 0.625. ML-команда обнаруживает, что переменная 'employment_years' (стаж работы) коррелирует с возрастом на 0.89. Какой тип bias и какое решение?",
+      "options": [
+        { "id": "a", "text": "Measurement Bias -- стаж измеряется по-разному для молодых. Решение: стандартизировать измерение" },
+        { "id": "b", "text": "Proxy Variable Bias -- employment_years является proxy для возраста. Решение: удалить proxy (pre-processing) или retrain с fairness constraint (in-processing), затем проверить, что метрики вернулись в норму" },
+        { "id": "c", "text": "Selection Bias -- молодых клиентов мало в выборке. Решение: oversampling" },
+        { "id": "d", "text": "Aggregation Bias -- нужны отдельные модели для молодых и взрослых" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Proxy Variable Bias: employment_years коррелирует с возрастом на 0.89 -- фактически модель использует возраст через proxy. Молодые имеют меньший стаж → модель оценивает их как менее кредитоспособных, хотя стаж сам по себе не определяет кредитоспособность для этой группы. Решение: (1) Pre-processing: удалить employment_years или заменить на 'employment_to_age_ratio' (нормализованный стаж). (2) In-processing: retrain с fairness constraint по возрасту. (3) Verify: DPD < 0.10, DIR >= 0.80 после коррекции. Selection Bias (C) возможен параллельно, но root cause -- proxy. Повторите урок 3 (proxy-переменные и debiasing).",
+      "studyHint": "Повторите урок 3 (типы bias, proxy-переменные) и debiasing strategies",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m08-q4",
+      "type": "multiple-choice",
+      "question": "BioGenesis создаёт Model Card для модели скрининга пациентов. Overall AUC-ROC = 0.90, но для мужчин 45-65 = 0.95, женщин 18-35 = 0.72. ML Lead предлагает deploy модель с оговоркой в Limitations. Правильна ли стратегия?",
+      "options": [
+        { "id": "a", "text": "Да -- overall AUC-ROC 0.90 превышает порог 0.80, оговорка в Limitations достаточна" },
+        { "id": "b", "text": "Нет -- AUC-ROC 0.72 для женщин 18-35 ниже порога 0.80. Модель не должна использоваться для этой субгруппы без Human Oversight. Deploy допустим ТОЛЬКО с: (1) обязательным ручным review для женщин 18-35, (2) resampling + retrain для этой субгруппы в roadmap" },
+        { "id": "c", "text": "Нет -- модель не должна deploy вообще до повышения AUC-ROC для всех субгрупп" },
+        { "id": "d", "text": "Да, но только после получения дополнительных данных по женщинам 18-35" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "AUC-ROC 0.72 для субгруппы ниже приемлемого порога (0.80). Для high-risk медицинского AI: (1) Deploy допустим с ограничениями: обязательный Human Oversight для женщин 18-35 (врач принимает решение, а не модель). (2) Model Card: в Limitations указать 'AUC-ROC 0.72 для женщин 18-35, not recommended as sole criterion'. (3) Roadmap: resampling обучающей выборки (Representation Bias -- женщин 18-35 <10% в training data), retrain, re-validate. Полная блокировка deploy (C) слишком жёсткая -- модель полезна для 90% субгрупп. Оговорка без ограничений (A) недостаточна -- нет protection mechanism. Повторите урок 4 (Model Card, Performance по субгруппам).",
+      "studyHint": "Повторите урок 4 (Model Card: Performance по субгруппам, Limitations, Human Oversight)",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m08-q5",
+      "type": "multiple-choice",
+      "question": "DataTech внедряет рекомендательную AI-систему для персонализации каталога продуктов. Система классифицирована как Limited Risk по EU AI Act. Какие минимальные AI Governance практики необходимы?",
+      "options": [
+        { "id": "a", "text": "Никаких -- Limited Risk не требует AI Governance" },
+        { "id": "b", "text": "Полный AI Governance: Model Card, fairness audit, human oversight, audit trail (как для High Risk)" },
+        { "id": "c", "text": "Прозрачность: уведомление пользователей, что рекомендации генерирует ИИ. Базовая документация: Model Card (упрощённый), performance monitoring. Добровольный fairness review для предотвращения filter bubbles" },
+        { "id": "d", "text": "Только уведомление пользователей, что это ИИ, без дополнительной документации" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Limited Risk требует обязательства по прозрачности + рекомендуемые best practices: (1) ОБЯЗАТЕЛЬНО: уведомление пользователей, что рекомендации генерирует AI (EU AI Act transparency requirement). (2) РЕКОМЕНДУЕТСЯ: упрощённый Model Card (тип алгоритма, features, limitations), performance monitoring (CTR, conversion), fairness review (не усиливает ли система filter bubbles, не дискриминирует ли по демографии при показе цен). (3) Полный AI Governance (B) избыточен -- Model Risk Committee, formal audit trail, human override для рекомендаций каталога -- overkill. Только уведомление (D) недостаточно для ответственного подхода. Повторите урок 2 (Limited Risk требования).",
+      "studyHint": "Повторите урок 2 (Limited Risk: обязательства по прозрачности) и урок 1 (принципы AI Governance)",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m08-q6",
+      "type": "multiple-choice",
+      "question": "FinSecure рассматривает debiasing стратегии для Credit Scoring Model. Pre-processing: accuracy 0.84. In-processing: accuracy 0.85. Post-processing: accuracy 0.87. CDO требует accuracy >= 0.82. Регулятор требует DIR >= 0.80. Все три стратегии достигают DIR >= 0.80. Какая оптимальна?",
+      "options": [
+        { "id": "a", "text": "Post-processing -- максимальная accuracy (0.87) при выполнении DIR" },
+        { "id": "b", "text": "In-processing -- fairness встроена в модель (0.85 > 0.82), без разных порогов для групп, юридически и этически чисто" },
+        { "id": "c", "text": "Pre-processing -- устраняет root cause (accuracy 0.84 > 0.82 порог, допустимо)" },
+        { "id": "d", "text": "Все три одинаково хороши -- все выполняют оба constraint" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "In-processing оптимален: (1) Accuracy 0.85 > порога 0.82 -- выполняет constraint CDO. (2) DIR >= 0.80 -- выполняет constraint регулятора. (3) Fairness встроена в модель -- нет разных порогов (проблема post-processing). (4) Accuracy 0.85 vs 0.87 (post) -- потеря 0.02 незначительна. Post-processing (A): максимальная accuracy, но разные threshold'ы для групп создают юридический риск ('мы одобряем по разным стандартам'). Pre-processing (C): допустимо, но accuracy 0.84 ближе к порогу (меньше margin of safety). Все три (D) -- не одинаково хороши по этическим и юридическим критериям. Повторите урок 5 (debiasing trade-offs).",
+      "studyHint": "Повторите урок 5 (debiasing strategies) и урок 3 (trade-offs между fairness и accuracy)",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m08-q7",
+      "type": "multiple-choice",
+      "question": "BioGenesis deploy модель скрининга пациентов (v1.0, random_forest, 48 features). Через 4 месяца Biostatistician (Model Validator) обнаруживает, что ML-команда обновила модель до v1.1 (retrain на свежих данных) без его валидации. Какое governance-нарушение произошло?",
+      "options": [
+        { "id": "a", "text": "Нарушение принципа Human Oversight -- врач должен утверждать каждую версию" },
+        { "id": "b", "text": "Нарушение принципа независимой валидации: Minor update (v1.0 → v1.1 = retrain) ОБЯЗАН проходить Independent Model Validator. ML-команда не может self-deploy даже minor updates для high-risk AI" },
+        { "id": "c", "text": "Нарушение semantic versioning -- retrain должен быть v2.0.0, а не v1.1" },
+        { "id": "d", "text": "Нет нарушения -- minor update не требует валидации" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Нарушение принципа независимой валидации: для high-risk AI (медицинский скрининг) каждый major И minor update ОБЯЗАН проходить Independent Model Validator. Minor update (v1.0 → v1.1 = retrain на свежих данных) может изменить performance по субгруппам, внести новый bias из свежих данных, изменить feature importance. Без валидации Biostatistician: (1) Performance для женщин 18-35 мог деградировать незаметно. (2) Новые данные могли внести drift. (3) Audit trail нарушен. Model Risk Committee должен утвердить deploy. Self-deploy minor = governance failure. Повторите урок 4 (Model Governance Roles, валидация).",
+      "studyHint": "Повторите урок 4 (Model Validator, принцип независимости валидации, semantic versioning)",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m08-q8",
+      "type": "multiple-choice",
+      "question": "FinSecure deploy Credit Scoring Model v3.1 (после in-processing debiasing). Fairness CI/CD pipeline: DPD Warning > 0.08, Critical > 0.10. Через 2 месяца monitoring показывает DPD = 0.09. Какой правильный ответ?",
+      "options": [
+        { "id": "a", "text": "Немедленно блокировать модель -- DPD > 0.08 указывает на предвзятость" },
+        { "id": "b", "text": "Игнорировать -- DPD 0.09 < 0.10 (Critical), модель в норме" },
+        { "id": "c", "text": "Warning: уведомить CDO и Model Owner, инициировать review. Deploy не блокируется (0.09 < 0.10 Critical), но команда анализирует: (1) тренд (растёт ли DPD?), (2) root cause (новая демография?), (3) профилактический retrain" },
+        { "id": "d", "text": "Снизить Warning порог до 0.09, чтобы текущее значение не генерировало alert" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "DPD 0.09 попадает в зону Warning (> 0.08, < 0.10): (1) Deploy не блокируется -- модель продолжает работать в production. (2) CDO и Model Owner получают уведомление. (3) ML-команда анализирует: тренд DPD за последние 3 месяца (растёт?), изменения в демографическом составе заявок, feature drift. (4) Если тренд растущий -- профилактический retrain до достижения Critical. Блокировка (A) -- overreaction, DPD < Critical. Игнорирование (B) -- Warning существует именно для раннего предупреждения. Снижение порога (D) -- 'заметание под ковёр'. Повторите урок 5 (alert thresholds, continuous monitoring).",
+      "studyHint": "Повторите урок 5 (двухуровневые alert thresholds: Warning и Critical)",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m08-q9",
+      "type": "multiple-choice",
+      "question": "BioGenesis Regulatory Affairs запрашивает у ML-команды объяснение, почему модель скрининга включила пациента Петрова в исследование, а Иванову -- исключила. ML-команда отвечает: 'У нас нет audit trail.' Какие конкретные данные должен содержать audit record для ответа регулятору?",
+      "options": [
+        { "id": "a", "text": "Только решение (included/excluded) и дату" },
+        { "id": "b", "text": "decision_id, model_version, timestamp, все input features (demographics, medical history), output (decision, confidence), explanation (top-3 contributing features с SHAP values), human_override (было ли ручное вмешательство)" },
+        { "id": "c", "text": "Исходный код модели и training data" },
+        { "id": "d", "text": "Только model_version и output -- остальное можно воспроизвести" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Полный audit record для медицинского AI: (1) decision_id -- уникальный идентификатор. (2) model_version -- v1.0 или v1.1 (критично: разные версии = разные решения). (3) timestamp -- когда принято решение. (4) input_features -- ВСЕ features: возраст, пол, диагноз, анамнез, лабораторные данные (для воспроизведения). (5) output -- included/excluded + confidence score. (6) explanation -- SHAP values: 'пациент исключён из-за: возраст (0.35), сопутствующий диагноз (0.28), лабораторный показатель (0.19)'. (7) human_override -- врач подтвердил/изменил решение. Без input_features и explanation невозможно объяснить, ПОЧЕМУ Иванова исключена. Retention: 10+ лет для медицинских данных. Повторите урок 4 (audit trail).",
+      "studyHint": "Повторите урок 4 (Audit Trail для AI-решений: минимальный audit record)",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m08-q10",
+      "type": "multiple-choice",
+      "question": "DataTech внедряет AI-рекомендации для каталога. Модель обучена на данных покупок за 2 года. Через 6 месяцев обнаружено: модель показывает премиум-товары преимущественно пользователям из определённых регионов (Москва, СПб), а бюджетные -- из остальных. Это усиливает экономическое неравенство. Какой принцип AI Governance нарушен и что делать?",
+      "options": [
+        { "id": "a", "text": "Нарушен принцип Safety -- рекомендательная система опасна для пользователей" },
+        { "id": "b", "text": "Нарушен принцип Fairness -- модель воспроизводит geographical proxy bias. Решение: (1) Fairness audit по регионам, (2) удаление geographic proxy features, (3) in-processing debiasing, (4) мониторинг recommendation diversity по регионам" },
+        { "id": "c", "text": "Не нарушено -- рекомендации отражают реальные предпочтения" },
+        { "id": "d", "text": "Нарушен принцип Transparency -- пользователи не знают, что рекомендации от ИИ" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Нарушен принцип Fairness: модель обучена на исторических покупках, где пользователи из Москвы/СПб чаще покупали премиум-товары (выше доходы). Модель воспроизводит этот паттерн и усиливает его: показывая только бюджетные товары региональным пользователям, она ограничивает их выбор. Это geographical proxy bias -- аналог кредитного скоринга, но для рекомендаций. Решение: (1) Fairness audit: recommendation diversity по регионам. (2) Pre-processing: удалить geographic features (IP, почтовый индекс). (3) In-processing: diversity constraint в recommendation algorithm. (4) Monitoring: отслеживать, что recommendation mix равномерен по регионам. Повторите уроки 1 (Responsible AI), 3 (proxy bias), 5 (monitoring).",
+      "studyHint": "Повторите урок 1 (Fairness), урок 3 (proxy variables, geographical bias), урок 5 (continuous monitoring)",
+      "bloomLevel": "analytical"
     }
   ]
 }

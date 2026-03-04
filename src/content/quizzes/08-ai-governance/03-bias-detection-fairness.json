@@ -1,0 +1,102 @@
+{
+  "lessonSlug": "08-ai-governance/03-bias-detection-fairness",
+  "moduleId": "08-ai-governance",
+  "_meta": {
+    "idPrefix": "dg-m08-03",
+    "description": "Use IDs: dg-m08-03-q1 through dg-m08-03-q4, dg-m08-03-code-1 (CC-34 Python Bias Calculator)"
+  },
+  "questions": [
+    {
+      "id": "dg-m08-03-q1",
+      "type": "multiple-choice",
+      "question": "FinSecure обнаруживает, что Credit Scoring Model одобряет 72% заявок из Москвы и 45% заявок из регионов. AUC-ROC для Москвы = 0.92, для регионов = 0.71. Какой тип bias наиболее вероятен?",
+      "options": [
+        { "id": "a", "text": "Historical Bias -- в прошлом региональным клиентам чаще отказывали" },
+        { "id": "b", "text": "Selection Bias -- обучающая выборка содержит 80% заявок из Москвы/СПб и 20% из регионов, модель плохо обучена на региональных данных" },
+        { "id": "c", "text": "Measurement Bias -- данные региональных клиентов менее качественные" },
+        { "id": "d", "text": "Aggregation Bias -- одна модель для разных типов клиентов" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Ключевой индикатор: AUC-ROC 0.92 для Москвы vs 0.71 для регионов. Если бы это был Historical Bias (A), AUC-ROC был бы одинаков для обеих групп (модель воспроизводила бы исторический паттерн одинаково точно). Низкий AUC-ROC для регионов указывает на Selection Bias: модель не 'видела' достаточно региональных заявок при обучении и не выучила паттерны этой субгруппы. 80/20 дисбаланс в training data -- root cause. Решение: resampling для балансировки или oversampling региональных заявок.",
+      "hint": "AUC-ROC показывает, насколько хорошо модель различает одобренных и отказанных. Если AUC-ROC низкий для группы -- модель плохо обучена на этой группе. Почему?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m08-03-q2",
+      "type": "multiple-choice",
+      "question": "Credit Scoring Model FinSecure: DPD по полу = 0.17 (FAIL), EOD = 0.15 (FAIL), DIR = 0.77 (FAIL). CDO спрашивает: 'Какую метрику исправлять первой?' Ваш ответ?",
+      "options": [
+        { "id": "a", "text": "Demographic Parity -- наибольшее абсолютное отклонение (0.17)" },
+        { "id": "b", "text": "Disparate Impact Ratio -- юридическое требование (правило 80%), наибольший регуляторный риск для банка" },
+        { "id": "c", "text": "Equalized Odds -- наиболее информативная метрика, учитывает фактические исходы" },
+        { "id": "d", "text": "Все три одновременно -- они связаны" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Для банка приоритет -- регуляторный риск. Disparate Impact Ratio 0.77 < 0.80 (правило 80%) -- это юридически измеримый индикатор дискриминации, который может привести к санкциям регулятора. DPD (A) информативен, но не имеет прямого юридического основания. EOD (C) технически наиболее полная метрика, но сложнее объяснить регулятору. Все три (D) -- идеально, но при ограниченных ресурсах приоритизация по регуляторному риску оптимальна. На практике: улучшение DIR обычно улучшает и DPD, потому что они математически связаны (DIR = P(B) / P(A), DPD = |P(A) - P(B)|).",
+      "hint": "FinSecure -- банк. Какая метрика имеет юридическое значение? Правило 80% (four-fifths rule) -- это не просто best practice.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m08-03-q3",
+      "type": "multiple-choice",
+      "question": "Теорема Chouldechova-Kleinberg утверждает, что невозможно одновременно удовлетворить Demographic Parity, Equalized Odds и Calibration (кроме тривиальных случаев). Для FinSecure (кредитный скоринг) -- какую пару метрик приоритизировать?",
+      "options": [
+        { "id": "a", "text": "Demographic Parity + Calibration -- равные доли одобрений и точные вероятности" },
+        { "id": "b", "text": "Equalized Odds + Calibration -- равная точность для групп и правильные вероятности (точность кредитных решений критична)" },
+        { "id": "c", "text": "Demographic Parity + Equalized Odds -- максимальная fairness" },
+        { "id": "d", "text": "Только Calibration -- точность важнее fairness для банка" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Для кредитного скоринга: (1) Equalized Odds -- одинаковая точность (TPR, FPR) для всех групп. Если модель одинаково точно предсказывает default для мужчин и женщин, решения справедливы по результату. (2) Calibration -- если модель говорит 'вероятность default 30%', это должно быть 30% для обеих групп. Точность вероятностей критична для risk pricing. Demographic Parity (A, C) менее приоритетна: различия в одобрениях допустимы, если отражают реальные различия в кредитоспособности (при условии, что модель одинаково точна для обеих групп). Только Calibration (D) -- недостаточно: модель может быть калибрована, но с разным TPR.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m08-03-q4",
+      "type": "true-false",
+      "question": "Pre-processing debiasing (resampling, reweighting) всегда предпочтительнее post-processing (threshold adjustment), потому что устраняет root cause предвзятости.",
+      "correctAnswer": false,
+      "explanation": "Pre-processing НЕ всегда предпочтительнее: (1) Pre-processing может удалить информативные features (proxy removal) и значительно снизить accuracy (от 0.87 до 0.82). (2) In-processing (fairness-constrained training) часто оптимальнее по fairness-accuracy trade-off. (3) Post-processing имеет преимущество: не требует retrain модели, быстро применяется в production, полезен как временная мера до retrain. (4) Оптимальная стратегия -- комбинация: pre-processing (clean data) + in-processing (train fair model) + мониторинг в production. 'Всегда' -- неверно, выбор зависит от: доступного времени, допустимого снижения accuracy, технических возможностей. Повторите урок 3 (debiasing strategies trade-offs).",
+      "hint": "Подумайте: если нужно исправить bias НЕМЕДЛЕННО в production модели, можно ли ждать retrain (pre-processing)? Иногда post-processing -- единственный вариант.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m08-03-code-1",
+      "type": "code-challenge",
+      "question": "Напишите функцию, которая рассчитывает метрики предвзятости (bias metrics) для бинарного классификатора по защищённому атрибуту. Для каждой группы вычислите: positive_rate, TPR (True Positive Rate), FPR (False Positive Rate). Затем рассчитайте: Demographic Parity Difference, Equalized Odds Difference, Disparate Impact Ratio. Сравните каждую метрику с порогом и определите общий статус fairness.",
+      "language": "python",
+      "starterCode": "import json\nimport sys\n\ndef calculate_bias_metrics(data_json: str) -> str:\n    data = json.loads(data_json)\n    predictions = data[\"predictions\"]\n    thresholds = data[\"thresholds\"]\n    \n    # TODO: Group predictions by 'group' attribute\n    # TODO: For each group calculate: total, positive_rate, tpr, fpr\n    # TODO: Calculate metrics: demographic_parity_difference, equalized_odds_difference, disparate_impact_ratio\n    # TODO: Compare each metric against thresholds and set status PASS/FAIL\n    # TODO: Determine overall_fairness (PASS only if all metrics pass)\n    \n    pass\n\nresult = calculate_bias_metrics(sys.stdin.read())\nprint(result)",
+      "solutionCode": "import json\nimport sys\n\ndef calculate_bias_metrics(data_json: str) -> str:\n    data = json.loads(data_json)\n    predictions = data[\"predictions\"]\n    thresholds = data[\"thresholds\"]\n    \n    groups = {}\n    for p in predictions:\n        g = p[\"group\"]\n        if g not in groups:\n            groups[g] = []\n        groups[g].append(p)\n    \n    group_stats = {}\n    for g, preds in groups.items():\n        total = len(preds)\n        positives = sum(1 for p in preds if p[\"predicted\"] == 1)\n        positive_rate = round(positives / total, 2)\n        \n        actual_pos = [p for p in preds if p[\"actual\"] == 1]\n        actual_neg = [p for p in preds if p[\"actual\"] == 0]\n        \n        tpr = round(sum(1 for p in actual_pos if p[\"predicted\"] == 1) / len(actual_pos), 2) if actual_pos else 0.0\n        fpr = round(sum(1 for p in actual_neg if p[\"predicted\"] == 1) / len(actual_neg), 2) if actual_neg else 0.0\n        \n        group_stats[g] = {\"total\": total, \"positive_rate\": positive_rate, \"tpr\": tpr, \"fpr\": fpr}\n    \n    group_keys = sorted(groups.keys())\n    g_a = group_stats[group_keys[0]]\n    g_b = group_stats[group_keys[1]]\n    \n    dpd = round(abs(g_a[\"positive_rate\"] - g_b[\"positive_rate\"]), 2)\n    eod = round(max(abs(g_a[\"tpr\"] - g_b[\"tpr\"]), abs(g_a[\"fpr\"] - g_b[\"fpr\"])), 2)\n    \n    if max(g_a[\"positive_rate\"], g_b[\"positive_rate\"]) > 0:\n        dir_val = round(min(g_a[\"positive_rate\"], g_b[\"positive_rate\"]) / max(g_a[\"positive_rate\"], g_b[\"positive_rate\"]), 2)\n    else:\n        dir_val = 1.0\n    \n    fairness_flags = [\n        {\"metric\": \"demographic_parity_difference\", \"value\": dpd, \"threshold\": thresholds[\"demographic_parity_max\"], \"status\": \"PASS\" if dpd <= thresholds[\"demographic_parity_max\"] else \"FAIL\"},\n        {\"metric\": \"equalized_odds_difference\", \"value\": eod, \"threshold\": thresholds[\"equalized_odds_max\"], \"status\": \"PASS\" if eod <= thresholds[\"equalized_odds_max\"] else \"FAIL\"},\n        {\"metric\": \"disparate_impact_ratio\", \"value\": dir_val, \"threshold\": thresholds[\"disparate_impact_min\"], \"status\": \"PASS\" if dir_val >= thresholds[\"disparate_impact_min\"] else \"FAIL\"}\n    ]\n    \n    overall = \"PASS\" if all(f[\"status\"] == \"PASS\" for f in fairness_flags) else \"FAIL\"\n    \n    result = {\n        \"group_stats\": group_stats,\n        \"metrics\": {\n            \"demographic_parity_difference\": dpd,\n            \"equalized_odds_difference\": eod,\n            \"disparate_impact_ratio\": dir_val\n        },\n        \"fairness_flags\": fairness_flags,\n        \"overall_fairness\": overall\n    }\n    return json.dumps(result)\n\nresult = calculate_bias_metrics(sys.stdin.read())\nprint(result)",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Biased model: group A has higher positive rate, TPR, FPR than group B",
+          "input": "{\"predictions\":[{\"id\":1,\"group\":\"A\",\"actual\":1,\"predicted\":1},{\"id\":2,\"group\":\"A\",\"actual\":1,\"predicted\":1},{\"id\":3,\"group\":\"A\",\"actual\":0,\"predicted\":0},{\"id\":4,\"group\":\"A\",\"actual\":0,\"predicted\":1},{\"id\":5,\"group\":\"A\",\"actual\":1,\"predicted\":0},{\"id\":6,\"group\":\"B\",\"actual\":1,\"predicted\":1},{\"id\":7,\"group\":\"B\",\"actual\":1,\"predicted\":0},{\"id\":8,\"group\":\"B\",\"actual\":0,\"predicted\":0},{\"id\":9,\"group\":\"B\",\"actual\":0,\"predicted\":0},{\"id\":10,\"group\":\"B\",\"actual\":1,\"predicted\":0}],\"thresholds\":{\"demographic_parity_max\":0.1,\"equalized_odds_max\":0.1,\"disparate_impact_min\":0.8}}",
+          "expectedOutput": "{\"group_stats\":{\"A\":{\"total\":5,\"positive_rate\":0.6,\"tpr\":0.67,\"fpr\":0.5},\"B\":{\"total\":5,\"positive_rate\":0.2,\"tpr\":0.33,\"fpr\":0.0}},\"metrics\":{\"demographic_parity_difference\":0.4,\"equalized_odds_difference\":0.5,\"disparate_impact_ratio\":0.33},\"fairness_flags\":[{\"metric\":\"demographic_parity_difference\",\"value\":0.4,\"threshold\":0.1,\"status\":\"FAIL\"},{\"metric\":\"equalized_odds_difference\",\"value\":0.5,\"threshold\":0.1,\"status\":\"FAIL\"},{\"metric\":\"disparate_impact_ratio\",\"value\":0.33,\"threshold\":0.8,\"status\":\"FAIL\"}],\"overall_fairness\":\"FAIL\"}"
+        },
+        {
+          "id": "tc2",
+          "description": "Fair model: similar positive rates and TPR/FPR across groups",
+          "input": "{\"predictions\":[{\"id\":1,\"group\":\"A\",\"actual\":1,\"predicted\":1},{\"id\":2,\"group\":\"A\",\"actual\":1,\"predicted\":1},{\"id\":3,\"group\":\"A\",\"actual\":0,\"predicted\":0},{\"id\":4,\"group\":\"A\",\"actual\":0,\"predicted\":0},{\"id\":5,\"group\":\"A\",\"actual\":1,\"predicted\":0},{\"id\":6,\"group\":\"B\",\"actual\":1,\"predicted\":1},{\"id\":7,\"group\":\"B\",\"actual\":1,\"predicted\":1},{\"id\":8,\"group\":\"B\",\"actual\":0,\"predicted\":0},{\"id\":9,\"group\":\"B\",\"actual\":0,\"predicted\":0},{\"id\":10,\"group\":\"B\",\"actual\":1,\"predicted\":0}],\"thresholds\":{\"demographic_parity_max\":0.1,\"equalized_odds_max\":0.1,\"disparate_impact_min\":0.8}}",
+          "expectedOutput": "{\"group_stats\":{\"A\":{\"total\":5,\"positive_rate\":0.4,\"tpr\":0.67,\"fpr\":0.0},\"B\":{\"total\":5,\"positive_rate\":0.4,\"tpr\":0.67,\"fpr\":0.0}},\"metrics\":{\"demographic_parity_difference\":0.0,\"equalized_odds_difference\":0.0,\"disparate_impact_ratio\":1.0},\"fairness_flags\":[{\"metric\":\"demographic_parity_difference\",\"value\":0.0,\"threshold\":0.1,\"status\":\"PASS\"},{\"metric\":\"equalized_odds_difference\",\"value\":0.0,\"threshold\":0.1,\"status\":\"PASS\"},{\"metric\":\"disparate_impact_ratio\",\"value\":1.0,\"threshold\":0.8,\"status\":\"PASS\"}],\"overall_fairness\":\"PASS\"}"
+        },
+        {
+          "id": "tc3",
+          "description": "Edge case: one metric passes, others fail",
+          "input": "{\"predictions\":[{\"id\":1,\"group\":\"A\",\"actual\":1,\"predicted\":1},{\"id\":2,\"group\":\"A\",\"actual\":1,\"predicted\":1},{\"id\":3,\"group\":\"A\",\"actual\":1,\"predicted\":1},{\"id\":4,\"group\":\"A\",\"actual\":0,\"predicted\":0},{\"id\":5,\"group\":\"A\",\"actual\":0,\"predicted\":0},{\"id\":6,\"group\":\"B\",\"actual\":1,\"predicted\":1},{\"id\":7,\"group\":\"B\",\"actual\":1,\"predicted\":0},{\"id\":8,\"group\":\"B\",\"actual\":1,\"predicted\":0},{\"id\":9,\"group\":\"B\",\"actual\":0,\"predicted\":0},{\"id\":10,\"group\":\"B\",\"actual\":0,\"predicted\":0}],\"thresholds\":{\"demographic_parity_max\":0.1,\"equalized_odds_max\":0.1,\"disparate_impact_min\":0.8}}",
+          "expectedOutput": "{\"group_stats\":{\"A\":{\"total\":5,\"positive_rate\":0.6,\"tpr\":1.0,\"fpr\":0.0},\"B\":{\"total\":5,\"positive_rate\":0.2,\"tpr\":0.33,\"fpr\":0.0}},\"metrics\":{\"demographic_parity_difference\":0.4,\"equalized_odds_difference\":0.67,\"disparate_impact_ratio\":0.33},\"fairness_flags\":[{\"metric\":\"demographic_parity_difference\",\"value\":0.4,\"threshold\":0.1,\"status\":\"FAIL\"},{\"metric\":\"equalized_odds_difference\",\"value\":0.67,\"threshold\":0.1,\"status\":\"FAIL\"},{\"metric\":\"disparate_impact_ratio\",\"value\":0.33,\"threshold\":0.8,\"status\":\"FAIL\"}],\"overall_fairness\":\"FAIL\"}",
+          "hidden": true
+        },
+        {
+          "id": "tc4",
+          "description": "Borderline case: metrics at threshold boundaries",
+          "input": "{\"predictions\":[{\"id\":1,\"group\":\"A\",\"actual\":1,\"predicted\":1},{\"id\":2,\"group\":\"A\",\"actual\":1,\"predicted\":1},{\"id\":3,\"group\":\"A\",\"actual\":1,\"predicted\":1},{\"id\":4,\"group\":\"A\",\"actual\":1,\"predicted\":1},{\"id\":5,\"group\":\"A\",\"actual\":0,\"predicted\":0},{\"id\":6,\"group\":\"A\",\"actual\":0,\"predicted\":0},{\"id\":7,\"group\":\"A\",\"actual\":0,\"predicted\":0},{\"id\":8,\"group\":\"A\",\"actual\":0,\"predicted\":0},{\"id\":9,\"group\":\"A\",\"actual\":0,\"predicted\":1},{\"id\":10,\"group\":\"A\",\"actual\":0,\"predicted\":0},{\"id\":11,\"group\":\"B\",\"actual\":1,\"predicted\":1},{\"id\":12,\"group\":\"B\",\"actual\":1,\"predicted\":1},{\"id\":13,\"group\":\"B\",\"actual\":1,\"predicted\":1},{\"id\":14,\"group\":\"B\",\"actual\":1,\"predicted\":0},{\"id\":15,\"group\":\"B\",\"actual\":0,\"predicted\":0},{\"id\":16,\"group\":\"B\",\"actual\":0,\"predicted\":0},{\"id\":17,\"group\":\"B\",\"actual\":0,\"predicted\":0},{\"id\":18,\"group\":\"B\",\"actual\":0,\"predicted\":0},{\"id\":19,\"group\":\"B\",\"actual\":0,\"predicted\":0},{\"id\":20,\"group\":\"B\",\"actual\":0,\"predicted\":0}],\"thresholds\":{\"demographic_parity_max\":0.15,\"equalized_odds_max\":0.30,\"disparate_impact_min\":0.60}}",
+          "expectedOutput": "{\"group_stats\":{\"A\":{\"total\":10,\"positive_rate\":0.5,\"tpr\":1.0,\"fpr\":0.17},\"B\":{\"total\":10,\"positive_rate\":0.3,\"tpr\":0.75,\"fpr\":0.0}},\"metrics\":{\"demographic_parity_difference\":0.2,\"equalized_odds_difference\":0.25,\"disparate_impact_ratio\":0.6},\"fairness_flags\":[{\"metric\":\"demographic_parity_difference\",\"value\":0.2,\"threshold\":0.15,\"status\":\"FAIL\"},{\"metric\":\"equalized_odds_difference\",\"value\":0.25,\"threshold\":0.3,\"status\":\"PASS\"},{\"metric\":\"disparate_impact_ratio\",\"value\":0.6,\"threshold\":0.6,\"status\":\"PASS\"}],\"overall_fairness\":\"FAIL\"}",
+          "hidden": true
+        }
+      ],
+      "explanation": "Bias Metric Calculator вычисляет три ключевые fairness-метрики: (1) Demographic Parity Difference -- разница в доле положительных решений между группами. (2) Equalized Odds Difference -- максимальная разница между TPR и FPR групп. (3) Disparate Impact Ratio -- отношение положительных решений непривилегированной группы к привилегированной. Каждая метрика сравнивается с порогом для определения PASS/FAIL.",
+      "hint": "Сгруппируйте predictions по group. Для каждой группы: positive_rate = predicted=1 / total, TPR = (actual=1 AND predicted=1) / actual=1, FPR = (actual=0 AND predicted=1) / actual=0. Затем: DPD = |rate_A - rate_B|, EOD = max(|TPR_A - TPR_B|, |FPR_A - FPR_B|), DIR = min(rate) / max(rate).",
+      "bloomLevel": "analytical"
+    }
+  ]
+}
