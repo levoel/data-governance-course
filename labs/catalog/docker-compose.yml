@@ -15,8 +15,7 @@ volumes:
 
 services:
   postgresql:
-    # TODO: Add SHA digest when Docker is available (docker pull and docker inspect --format)
-    image: docker.getcollate.io/openmetadata/postgresql:1.5.15
+    image: docker.getcollate.io/openmetadata/postgresql:1.5.15@sha256:e830609f97138dda5b3ea38c1ebe54d33dea1fd6d6fba68802b585fc13360461
     container_name: catalog-lab-postgresql
     restart: unless-stopped
     command: "--work_mem=10MB"
@@ -36,8 +35,7 @@ services:
     mem_limit: 512m
 
   elasticsearch:
-    # TODO: Add SHA digest when Docker is available
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2@sha256:55d29abaec286cb8f1721a0e9aade874f97edcca21a2351835b78b3def8ed3de
     container_name: catalog-lab-elasticsearch
     restart: unless-stopped
     environment:
@@ -57,8 +55,7 @@ services:
 
   execute-migrate-all:
     # Required: runs database migrations before server starts, then exits
-    # TODO: Add SHA digest when Docker is available
-    image: docker.getcollate.io/openmetadata/server:1.5.15
+    image: docker.getcollate.io/openmetadata/server:1.5.15@sha256:9230ad47ee036746960307277e45f8c1440e87362538fb7f64e105eba081c2db
     container_name: catalog-lab-migrate
     command: "./bootstrap/openmetadata-ops.sh migrate"
     environment:
@@ -99,8 +96,7 @@ services:
         condition: service_healthy
 
   openmetadata-server:
-    # TODO: Add SHA digest when Docker is available
-    image: docker.getcollate.io/openmetadata/server:1.5.15
+    image: docker.getcollate.io/openmetadata/server:1.5.15@sha256:9230ad47ee036746960307277e45f8c1440e87362538fb7f64e105eba081c2db
     container_name: catalog-lab-openmetadata
     restart: unless-stopped
     environment:

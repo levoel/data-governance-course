@@ -1,8 +1,7 @@
 # Catalog Lab - Jupyter Environment with OpenMetadata SDK
 # Based on minimal-notebook (smaller than scipy-notebook by ~700 MB)
 
-# TODO: Add SHA digest when Docker is available
-FROM quay.io/jupyter/minimal-notebook:latest
+FROM quay.io/jupyter/minimal-notebook:latest@sha256:5aaef7e562d89b0c944e79aa95d651bdcfb67c25164249ba0b8a79dfcae25996
 
 LABEL maintainer="Data Governance Course"
 LABEL description="JupyterLab environment for OpenMetadata catalog exercises"

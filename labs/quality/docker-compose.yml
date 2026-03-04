@@ -4,9 +4,7 @@
 
 services:
   postgresql:
-    # TODO: Pin with SHA digest when Docker is available:
-    # docker pull postgres:16 && docker inspect --format='{{index .RepoDigests 0}}' postgres:16
-    image: postgres:16
+    image: postgres:16@sha256:78df81b1442dcc764c1104154da7162635e40cfffe67579c42a1c1b96dfc209c
     container_name: quality-lab-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-quality_lab}
@@ -17,6 +15,7 @@ services:
     volumes:
       - ./init:/docker-entrypoint-initdb.d:ro
       - pg-quality-data:/var/lib/postgresql/data
+    mem_limit: 512m
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lab} -d ${POSTGRES_DB:-quality_lab}"]
       interval: 5s
@@ -36,6 +35,7 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
+    mem_limit: 1g
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8888/api || exit 1"]
       interval: 10s
