@@ -3,34 +3,168 @@
   "moduleId": "09-tools-ecosystem",
   "_meta": {
     "idPrefix": "dg-exam-m09",
-    "description": "Use IDs: dg-exam-m09-q1, dg-exam-m09-q2, ... (8-12 analytical questions)"
+    "description": "Use IDs: dg-exam-m09-q1 through dg-exam-m09-q10 (10 analytical questions)"
   },
   "questions": [
     {
-      "id": "dg-exam-09-tools-ecosystem-placeholder",
+      "id": "dg-exam-m09-q1",
       "type": "multiple-choice",
-      "question": "Placeholder -- будет заменён в следующих фазах",
+      "question": "DataTech (Level 1, 7 человек, 16 GB сервер) планирует governance tool stack. VP Engineering предлагает: OpenMetadata (catalog) + Great Expectations (quality) + Monte Carlo (observability) + OPA (policies) + Airflow (orchestration). Data Engineer возражает: 'Мы не потянем 5 инструментов одновременно.' Кто прав?",
       "options": [
-        {
-          "id": "a",
-          "text": "Вариант A"
-        },
-        {
-          "id": "b",
-          "text": "Вариант B"
-        },
-        {
-          "id": "c",
-          "text": "Вариант C"
-        },
-        {
-          "id": "d",
-          "text": "Вариант D"
-        }
+        { "id": "a", "text": "VP Engineering: все 5 категорий нужны для governance" },
+        { "id": "b", "text": "Data Engineer: для Level 1 начинайте с 2-3 инструментов. OpenMetadata (catalog, Layer 1) + dbt tests / GE (quality, Layer 2) + Airflow (orchestration). Monte Carlo -- SaaS $50K+ (бюджет). OPA -- преждевременно до формализованных политик. Послойный подход: добавлять по мере созревания процессов" },
+        { "id": "c", "text": "Оба неправы: нужно начать с compliance (OPA), затем остальное" },
+        { "id": "d", "text": "Оба правы: можно начать с 5, но уменьшить scope каждого" }
       ],
-      "correctAnswer": "a",
-      "explanation": "Placeholder question -- будет заменён полноценным содержанием.",
-      "bloomLevel": "conceptual"
+      "correctAnswer": "b",
+      "explanation": "Послойный подход: Layer 1 (Metadata) -> Layer 2 (Quality) -> Layer 3 (Observability) -> Layer 4 (Access Control) -> Layer 5 (Orchestration). Для Level 1 с 7 людьми: (1) OpenMetadata -- 4-6 GB, решает pain point #5 (no metadata). (2) GE + dbt tests -- zero additional infra, решает pain point #1 (15% дубликатов). (3) Airflow уже есть (45 DAGs). Monte Carlo -- $50K+ SaaS, observability нужна при 200+ таблицах с quality baseline. OPA -- policy engine для enforcement формализованных политик, а у DataTech Level 1 нет формализованных политик. Повторите уроки 1 (приоритизация) и 4 (послойная архитектура).",
+      "hint": "Level 1: нет формализованных политик, бюджет ограничен, 16 GB сервер. Сколько инструментов реалистично поддерживать?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите урок 1 (категории и приоритизация) и урок 4 (послойная архитектура governance stack)"
+    },
+    {
+      "id": "dg-exam-m09-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure (Level 3, OpenMetadata 1.2, 40% каталогизация) обнаруживает, что column-level lineage необходим для GDPR audit. CTO предлагает три варианта: (A) Upgrade OM 1.2 -> 1.5.x (column lineage beta), (B) Migrate к DataHub (column lineage mature), (C) Купить Collibra (enterprise lineage). Как оценить?",
+      "options": [
+        { "id": "a", "text": "Collibra -- enterprise tool для enterprise organization, автоматически решает все проблемы" },
+        { "id": "b", "text": "DataHub -- mature column lineage, лучший технический выбор" },
+        { "id": "c", "text": "Upgrade OM 1.5.x первым (3-4 недели, low risk). Если beta lineage не satisfies GDPR за 3 месяца -- trigger DataHub migration. Collibra -- last resort ($100K+/год, 6+ месяцев setup). Принцип: upgrade before migrate, migrate before buy" },
+        { "id": "d", "text": "Не менять ничего -- OM 1.2 достаточно для GDPR" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Иерархия решений: upgrade (low cost, low risk) -> migrate (high cost, medium risk) -> buy (highest cost, vendor lock-in). (1) Upgrade OM 1.5.x: 3-4 недели, preserves 6 months metadata investment, column lineage beta доступен. Cost: $5K ops. (2) DataHub migration: 3-6 месяцев, 14+ containers, Kafka dependency, retraining. Cost: $50K+ (3-6 months ops). (3) Collibra: $100K+/год, 6+ месяцев professional services, vendor lock-in. Cost: $300K+ 3-year TCO. OM 1.2 (D) -- не satisfies GDPR (column lineage required). Повторите урок 2 (migration risk) и урок 5 (evaluation process).",
+      "hint": "6 месяцев инвестиций в OM. Upgrade = 3-4 недели. Migration = 3-6 месяцев. Buy = 6+ месяцев + $100K+. Что попробовать первым?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите урок 2 (обзор платформ, migration risk) и урок 5 (structured evaluation, TCO)"
+    },
+    {
+      "id": "dg-exam-m09-q3",
+      "type": "multiple-choice",
+      "question": "DataTech настроила интеграцию: Airflow DAG -> dbt run -> dbt test -> GE checkpoint -> results -> OpenMetadata API. Quality test на модели orders обнаружил 8% дубликатов. Alert пришёл в Slack: 'dbt test unique failed on orders: 8% duplicate rate'. Data Steward спрашивает: 'Какие dashboards затронуты? Есть ли PII в orders?' Как улучшить alerting?",
+      "options": [
+        { "id": "a", "text": "Добавить больше информации в dbt test output" },
+        { "id": "b", "text": "Настроить alert через OpenMetadata (а не напрямую из dbt): каталог обогащает alert контекстом -- owner, classification (PII: yes), downstream lineage (3 dashboards), business description. Alert = actionable notification, не raw error" },
+        { "id": "c", "text": "Отправлять alert не в Slack, а в email -- больше места для деталей" },
+        { "id": "d", "text": "Data Steward должен сам смотреть в каталог -- alert не должен содержать всю информацию" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Governance integration pattern: Quality -> Catalog -> Alert (не Quality -> Alert). Каталог обогащает: (1) Owner: DataSteward Анна (immediate escalation). (2) Classification: PII (orders содержат customer_email) -> высокий приоритет. (3) Lineage: 3 downstream dashboards (executive revenue, marketing funnel, ops daily) -> business impact assessment. (4) Description: 'Customer orders with payment info' -> бизнес-контекст. dbt output (A) -- raw technical error. Email (C) -- format, не content. Steward сам (D) -- delays resolution. Повторите урок 4 (integration patterns).",
+      "hint": "Alert без контекста: 'test failed on orders'. Alert с каталогом: 'test failed on orders (owner: Anna, PII: yes, 3 dashboards affected)'. Какой actionable?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите урок 4 (интеграционные паттерны: Quality -> Catalog -> Alert)"
+    },
+    {
+      "id": "dg-exam-m09-q4",
+      "type": "multiple-choice",
+      "question": "BioGenesis (Level 2, healthcare) оценивает governance tools. Regulatory требования: HIPAA compliance, audit trail, data lineage для FDA submissions. Budget: $300K/год. Какой подход к выбору?",
+      "options": [
+        { "id": "a", "text": "Open-source stack (OpenMetadata + GE): $0 лицензия, максимальная гибкость" },
+        { "id": "b", "text": "Collibra ($200K/год): enterprise-grade, HIPAA-certified, audit trail built-in, FDA reference customers. Для healthcare с regulatory pressure -- compliance certifications перевешивают TCO savings open-source" },
+        { "id": "c", "text": "DataHub: largest connector ecosystem, справится с любым требованием" },
+        { "id": "d", "text": "Custom build: только свой код гарантирует HIPAA compliance" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Healthcare с HIPAA/FDA requirements -- один из случаев, где commercial оправдан: (1) HIPAA certification: Collibra SOC2 Type II + HIPAA BAA (Business Associate Agreement). Open-source (A) не имеет сертификаций -- BioGenesis должен сам обеспечить compliance ($100K+ audit + remediation). (2) Audit trail: Collibra built-in, FDA-ready. Open-source -- custom build. (3) Budget: $300K/год -- Collibra $200K fits. (4) FDA references: Collibra 200+ enterprise references в pharma/healthcare. DataHub (C) -- нет HIPAA. Custom (D) -- years of development. Повторите урок 1 (open-source vs commercial) и урок 5 (evaluation).",
+      "hint": "HIPAA certification, FDA submissions, audit trail. Open-source не имеет compliance certifications. При $300K бюджете -- что покрывает regulatory requirements?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите урок 1 (open-source vs commercial tradeoffs) и урок 5 (TCO и build-vs-buy)"
+    },
+    {
+      "id": "dg-exam-m09-q5",
+      "type": "multiple-choice",
+      "question": "DataTech внедрила OpenMetadata + GE + Airflow. Через 6 месяцев: 200 таблиц в каталоге, 50 quality checks, 45 DAGs с lineage. VP Engineering хочет добавить Data Observability. Open-source альтернативы Monte Carlo ($50K+): Elementary (dbt package), custom Grafana dashboards. Что выбрать?",
+      "options": [
+        { "id": "a", "text": "Monte Carlo -- лучший в категории, стоит $50K" },
+        { "id": "b", "text": "Elementary: бесплатный dbt package, runs внутри dbt (zero new containers), monitors freshness + volume + schema changes. Для DataTech с 120 dbt models -- идеальный первый шаг в observability без additional infrastructure" },
+        { "id": "c", "text": "Custom Grafana: полный контроль, гибкость" },
+        { "id": "d", "text": "Не нужна observability -- 50 quality checks достаточно" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Elementary -- open-source dbt package для data observability: (1) Zero new infrastructure: runs как dbt package, данные в warehouse. (2) Monitors: freshness, volume, schema changes (3 из 5 Monte Carlo pillars). (3) Бесплатный, active community. (4) Integrates с existing dbt workflow (120 models). Monte Carlo (A) -- $50K+ бюджет за рамками DataTech. Custom Grafana (C) -- months of development, maintenance burden. Quality-only (D) -- quality catches known issues, observability catches unknown (distribution drift, volume anomalies). Повторите урок 3 (quality vs observability, паттерны интеграции).",
+      "hint": "DataTech: dbt-centric, budget-constrained. Elementary = dbt package, zero new infra. Monte Carlo = $50K+. Custom Grafana = months of build.",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите урок 3 (Data Observability, интеграционные паттерны quality + observability)"
+    },
+    {
+      "id": "dg-exam-m09-q6",
+      "type": "multiple-choice",
+      "question": "FinSecure проводит PoC для data quality tool (2 candidates: Great Expectations, Soda). PoC длится 6 недель, но нет чётких exit criteria. Через 6 недель команда не может принять решение. Что пошло не так?",
+      "options": [
+        { "id": "a", "text": "6 недель слишком мало -- нужно 3 месяца" },
+        { "id": "b", "text": "Нет exit criteria: PoC должен иметь (1) фиксированную длительность (2-4 недели, не 6), (2) 3-5 конкретных use cases, (3) pass/fail критерии для каждого use case, (4) scoring card deliverable. Без exit criteria PoC превращается в бесконечный exploration" },
+        { "id": "c", "text": "Нужно было тестировать 4 candidate, не 2" },
+        { "id": "d", "text": "Команда не компетентна для evaluation" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "PoC без exit criteria -- ошибка #2 в evaluation process. Правильный PoC: (1) Длительность: 2-4 недели (не 6 -- diminishing returns после 4 недель). (2) Реальные данные: production subset, не synthetic. (3) 3-5 use cases: 'validate 10 critical datasets', 'integrate с Airflow pipeline', 'generate quality report'. (4) Exit criteria: 'pass = GE validates 10 datasets in < 30 min, integrates с Airflow via PythonOperator'. (5) Deliverable: scoring card + recommendation memo. FinSecure PoC не имел exit criteria -- команда 'пробовала features' без чёткой цели. Повторите урок 5 (Phase 3: PoC).",
+      "hint": "PoC без exit criteria = бесконечный exploration. Что нужно определить upfront?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите урок 5 (Phase 3: Proof of Concept -- параметры, exit criteria, deliverables)"
+    },
+    {
+      "id": "dg-exam-m09-q7",
+      "type": "multiple-choice",
+      "question": "DataTech выбирает между двумя quality tools: Great Expectations (Python, 300+ expectations, Data Docs) и Soda (YAML SodaCL, freshness checks, Soda Cloud). Команда: 3 Data Engineers (Python), 2 Data Analysts (SQL/YAML), 1 Data Steward (non-technical). Какой фактор определяет выбор?",
+      "options": [
+        { "id": "a", "text": "GE -- больше expectations (300 vs 150), значит лучше" },
+        { "id": "b", "text": "Soda -- YAML-first, доступнее для non-engineers" },
+        { "id": "c", "text": "Состав команды: если quality ownership только у Engineers -- GE (Python-native, comprehensive). Если ownership shared между Engineers + Analysts + Steward -- Soda (YAML понятен всем, Steward может писать checks). DataTech: смешанная команда -> Soda. Но raw data validation (CSV) требует GE Python. Оптимум: Soda для warehouse + GE для raw data" },
+        { "id": "d", "text": "Выбрать dbt-expectations -- уже есть dbt в стеке" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Composition of team определяет tool choice: (1) Python-only team -> GE: native Python API, 300+ expectations, Data Docs. (2) Mixed team (engineers + analysts + steward) -> Soda: YAML SodaCL понятен аналитику и steward, не требует Python. (3) DataTech mixed (3 eng + 2 analysts + 1 steward) -> Soda для warehouse (YAML checks), GE для raw data (CSV валидация, Airflow integration). Feature count (A) irrelevant если team не может использовать. YAML-only (B) ignores raw data. dbt-expectations (D) -- subset, не покрывает raw data. Повторите урок 3 (GE vs Soda comparison).",
+      "hint": "3 Engineers (Python) + 2 Analysts (SQL/YAML) + 1 Steward (non-technical). Кто будет писать quality checks? Все или только Engineers?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите урок 3 (сравнение GE, Soda, dbt-expectations -- когда какой выбирать)"
+    },
+    {
+      "id": "dg-exam-m09-q8",
+      "type": "multiple-choice",
+      "question": "DataTech готовит Docker Compose для governance stack. Data Engineer забыл добавить named volumes для PostgreSQL. После перезапуска docker compose down && docker compose up -- все метаданные каталога потеряны. Какой принцип нарушен?",
+      "options": [
+        { "id": "a", "text": "Нужно использовать Kubernetes вместо Docker Compose" },
+        { "id": "b", "text": "Named volumes обеспечивают persistence данных между перезапусками контейнеров. Без volumes данные хранятся в container layer -- уничтожаются при docker compose down. PostgreSQL data, Elasticsearch indices, Airflow DAGs должны быть в named volumes" },
+        { "id": "c", "text": "Docker Compose не поддерживает persistence" },
+        { "id": "d", "text": "Нужно делать backup перед каждым перезапуском" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Docker volumes -- механизм persistence: (1) Named volumes (pg_data:/var/lib/postgresql/data) переживают docker compose down/up. (2) Container layer (без volume) уничтожается при docker compose down. (3) Governance stack хранит: метаданные каталога (PostgreSQL), search indices (Elasticsearch), DAG definitions (Airflow). Потеря любого -- часы/дни recovery. Kubernetes (A) имеет PersistentVolumes, но не решает проблему 'забыл volume'. Docker Compose поддерживает persistence (C) -- через volumes. Backup (D) -- дополнительная мера, не замена volumes. Повторите урок 4 (Docker Compose rules).",
+      "hint": "docker compose down -> container layer удалён. Данные PostgreSQL были в container layer (без volume). Результат?",
+      "bloomLevel": "applied",
+      "studyHint": "Повторите урок 4 (Docker Compose правила: healthchecks, named volumes, network isolation)"
+    },
+    {
+      "id": "dg-exam-m09-q9",
+      "type": "multiple-choice",
+      "question": "FinSecure хочет добавить real-time quality validation на Kafka streaming данные (транзакции). Текущие batch checks (Spark, раз в сутки) обнаруживают проблемы с задержкой 24 часа. Какой архитектурный паттерн решает задачу?",
+      "options": [
+        { "id": "a", "text": "Увеличить частоту Spark batch до каждого часа" },
+        { "id": "b", "text": "Заменить Spark на Monte Carlo для real-time monitoring" },
+        { "id": "c", "text": "CDC + streaming quality: Debezium captures changes -> Kafka -> quality validation consumer (custom Kafka Streams / Flink app) -> immediate alert при violation. Batch checks сохранить для comprehensive daily validation. Real-time + batch = layered quality" },
+        { "id": "d", "text": "Real-time quality невозможна для финансовых транзакций" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Layered quality pattern: (1) Real-time (streaming): CDC (Debezium) captures changes -> Kafka -> quality consumer validates rules in near-real-time (seconds). Catches: null transaction_id, negative amount, unknown currency -- immediate alert. (2) Batch (daily): Spark checks для comprehensive validation (distribution analysis, cross-table consistency, historical trends). Catches: slowly emerging patterns. Hourly Spark (A) -- expensive, still not real-time. Monte Carlo (B) -- SaaS, ML-based anomaly detection, not custom rules. Real-time impossible (D) -- false: Kafka Streams и Flink позволяют real-time validation. Повторите урок 4 (CDC/streaming в governance).",
+      "hint": "Real-time: Debezium -> Kafka -> validation consumer -> immediate alert. Batch: daily comprehensive checks. Оба уровня нужны.",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите урок 4 (DataOps toolchain, CDC/streaming, cross-course reference Debezium)"
+    },
+    {
+      "id": "dg-exam-m09-q10",
+      "type": "multiple-choice",
+      "question": "DataTech завершила evaluation: OpenMetadata выбран как каталог (score 4.2/5.0). CTO спрашивает: 'Нужен ли exit plan, если мы выбрали open-source?' Data Engineer отвечает: 'Open-source -- нет vendor lock-in, exit plan не нужен.' Верно ли утверждение Data Engineer?",
+      "options": [
+        { "id": "a", "text": "Верно: open-source = zero vendor lock-in, можно мигрировать в любой момент" },
+        { "id": "b", "text": "Неверно: vendor lock-in -- не единственный lock-in. Investment lock-in: через 12 месяцев -- 200+ datasets cataloged, custom integrations, team trained на OM API, quality results linked. Migration к DataHub = 3-6 месяцев, risk потери metadata, retraining. Exit plan документирует: migration trigger, timeline estimate, data export format, training budget" },
+        { "id": "c", "text": "Верно, но exit plan нужен только для commercial tools" },
+        { "id": "d", "text": "Неверно, потому что OpenMetadata может стать proprietary в будущем" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Open-source eliminates license lock-in, but NOT investment lock-in: (1) Data lock-in: 200+ datasets metadata, custom tags, quality scores -- format may not transfer. (2) Integration lock-in: Airflow -> OM API, GE -> OM ingestion, Slack alerting -- all need reconfiguration. (3) Knowledge lock-in: team trained on OM API, workflow built around OM UI. (4) Process lock-in: Steward workflows designed around OM collaboration features. Exit plan для любого tool (open-source или commercial): (1) Migration trigger (when to migrate). (2) Data export plan (OM backup -> import format). (3) Timeline estimate (3-6 months). (4) Budget (retraining, parallel run). Повторите урок 5 (migration planning, common mistakes).",
+      "hint": "Investment lock-in: 12 месяцев metadata + integrations + training + workflows. Vendor lock-in -- только один вид lock-in.",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите урок 5 (migration planning, 6 common selection mistakes: no exit plan)"
     }
   ]
 }

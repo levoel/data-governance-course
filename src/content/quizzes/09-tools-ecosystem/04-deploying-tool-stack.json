@@ -1,0 +1,93 @@
+{
+  "lessonSlug": "09-tools-ecosystem/04-deploying-tool-stack",
+  "moduleId": "09-tools-ecosystem",
+  "_meta": {
+    "idPrefix": "dg-m09-04",
+    "description": "Use IDs: dg-m09-04-q1 through dg-m09-04-q4, dg-m09-04-code-1 (CC-38 YAML Docker Compose)"
+  },
+  "questions": [
+    {
+      "id": "dg-m09-04-q1",
+      "type": "multiple-choice",
+      "question": "DataTech развёртывает governance stack в Docker Compose: PostgreSQL + Elasticsearch + OpenMetadata + Airflow. OpenMetadata стартует раньше PostgreSQL и падает с 'connection refused'. Что не хватает в docker-compose.yml?",
+      "options": [
+        { "id": "a", "text": "Не хватает restart: always -- контейнер перезапустится автоматически" },
+        { "id": "b", "text": "Не хватает healthcheck на PostgreSQL и depends_on с condition: service_healthy. depends_on без healthcheck гарантирует только запуск контейнера, но не готовность сервиса принимать подключения" },
+        { "id": "c", "text": "Не хватает sleep 30 в entrypoint OpenMetadata" },
+        { "id": "d", "text": "Не хватает network: same -- контейнеры не видят друг друга" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "depends_on (без condition) гарантирует только порядок запуска контейнеров, но не готовность сервиса. PostgreSQL может стартовать за 5-10 секунд (initialization, WAL recovery), а OpenMetadata попытается подключиться через 1 секунду после запуска контейнера PostgreSQL. Healthcheck (pg_isready) проверяет, что PostgreSQL действительно принимает подключения. depends_on + condition: service_healthy = OpenMetadata стартует только когда PostgreSQL ready. restart: always (A) -- workaround, не решение (crash loop). sleep (C) -- fragile, hardcoded timing. network (D) -- Docker Compose создаёт default network автоматически. Повторите урок 4 (Docker Compose rules).",
+      "hint": "depends_on без healthcheck = 'контейнер запущен' != 'сервис готов'. Как проверить, что PostgreSQL принимает подключения?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m09-04-q2",
+      "type": "multiple-choice",
+      "question": "DataTech настроил интеграцию: Airflow DAG -> dbt run + dbt test -> results -> OpenMetadata API -> Slack alert. При failure dbt test -- alert приходит в Slack. Какое преимущество перед прямым 'dbt test -> Slack alert'?",
+      "options": [
+        { "id": "a", "text": "Нет преимущества -- прямой alert быстрее" },
+        { "id": "b", "text": "Через OpenMetadata alert содержит контекст: dataset owner, classification, business description, lineage. Slack alert без каталога -- 'dbt test failed on orders' без контекста. С каталогом -- 'dbt test failed on orders (owner: DataSteward, PII: yes, downstream: 3 dashboards)'" },
+        { "id": "c", "text": "OpenMetadata архивирует alerts для compliance" },
+        { "id": "d", "text": "OpenMetadata быстрее отправляет alerts" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Governance integration pattern: Quality -> Catalog -> Alert. Каталог обогащает alert контекстом: (1) Owner -- кто отвечает за dataset. (2) Classification -- есть ли PII (приоритет remediation). (3) Lineage -- какие downstream dashboards затронуты. (4) Business description -- что означает этот dataset для бизнеса. Без каталога alert -- голый текст 'test failed'. С каталогом -- actionable notification с полным контекстом для принятия решения. Compliance (C) -- побочное преимущество, не основное. Скорость (D) -- OpenMetadata добавляет latency, не убирает. Повторите урок 4 (integration patterns).",
+      "hint": "Alert 'test failed on orders' vs alert 'test failed on orders (owner: Anna, PII: yes, 3 dashboards affected)'. Что actionable?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m09-04-q3",
+      "type": "multiple-choice",
+      "question": "DataTech хочет добавить real-time quality checks на streaming данные (Kafka). Batch-only tools (GE, dbt) не подходят. Какой компонент governance infrastructure решает эту задачу?",
+      "options": [
+        { "id": "a", "text": "Увеличить частоту batch checks до каждых 5 минут" },
+        { "id": "b", "text": "CDC (Change Data Capture) + streaming quality: Debezium captures changes -> Kafka -> quality validation consumer -> alert. Real-time propagation изменений позволяет quality checks в near-real-time" },
+        { "id": "c", "text": "Monte Carlo -- SaaS observability платформа для streaming" },
+        { "id": "d", "text": "Streaming quality невозможна -- quality проверяется только в batch" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "CDC (Change Data Capture) расширяет governance в real-time: (1) Debezium captures changes из PostgreSQL/MySQL -> Kafka. (2) Quality validation consumer читает Kafka topic и применяет rules в near-real-time. (3) При violation -- immediate alert (seconds, не hours). Batch с высокой частотой (A) -- resource-intensive, не true real-time. Monte Carlo (C) -- SaaS с ML-based anomaly detection, не custom validation rules. Streaming quality (D) -- возможна и практикуется (Kafka Streams, Flink + custom validators). Повторите урок 4 (CDC/streaming в governance).",
+      "hint": "CDC = Change Data Capture. Debezium captures changes в real-time. Что делать с captured changes для quality?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m09-04-q4",
+      "type": "true-false",
+      "question": "Docker Compose подходит только для dev/test environments. Для production governance stack обязателен Kubernetes.",
+      "correctAnswer": false,
+      "explanation": "Docker Compose подходит для production в малых командах (до 20 пользователей) с acceptable downtime window. DataTech (7 человек, 1 сервер) -- Docker Compose в production оправдан: (1) Lower operational complexity (нет K8s-экспертизы). (2) Sufficient для 200+ таблиц и 45 DAGs. (3) Backup через volume snapshots. Kubernetes обязателен при: (1) HA requirements (zero downtime). (2) Масштабирование (50+ concurrent users). (3) Multi-environment isolation. 'Обязателен K8s' -- распространённый миф для команд без K8s-экспертизы. Повторите урок 4 (deployment patterns).",
+      "hint": "DataTech -- 7 человек, 1 сервер. Оправдана ли сложность Kubernetes для такого масштаба?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m09-04-code-1",
+      "type": "code-challenge",
+      "question": "Создайте Docker Compose файл (YAML) для governance tool stack: PostgreSQL (metadata store), Elasticsearch (search), OpenMetadata (catalog) и Airflow (orchestration). Каждый сервис должен иметь: image, environment variables, ports, volumes (где применимо) и healthcheck. OpenMetadata и Airflow должны зависеть от PostgreSQL через depends_on с condition: service_healthy.",
+      "language": "yaml",
+      "starterCode": "version: \"3.9\"\n\nservices:\n  postgresql:\n    image: # TODO: postgres:15.4 with SHA\n    environment:\n      # TODO: POSTGRES_USER, PASSWORD, DB\n    ports:\n      # TODO\n    volumes:\n      # TODO\n    healthcheck:\n      # TODO: pg_isready\n\n  elasticsearch:\n    image: # TODO: elasticsearch with SHA\n    environment:\n      # TODO: single-node, Java opts\n    ports:\n      # TODO\n    volumes:\n      # TODO\n    healthcheck:\n      # TODO: curl cluster health\n\n  openmetadata:\n    image: # TODO: openmetadata/server with SHA\n    environment:\n      # TODO: cluster name, DB host, ES host\n    ports:\n      # TODO\n    depends_on:\n      # TODO: postgresql and elasticsearch with healthcheck\n\n  airflow:\n    image: # TODO: apache/airflow with SHA\n    environment:\n      # TODO: executor, DB connection\n    ports:\n      # TODO\n    depends_on:\n      # TODO: postgresql with healthcheck\n    volumes:\n      # TODO\n\nvolumes:\n  # TODO: named volumes",
+      "solutionCode": "version: \"3.9\"\n\nservices:\n  postgresql:\n    image: \"postgres:15.4@sha256:abcdef1234567890\"\n    environment:\n      POSTGRES_USER: openmetadata\n      POSTGRES_PASSWORD: openmetadata\n      POSTGRES_DB: openmetadata_db\n    ports:\n      - \"5432:5432\"\n    volumes:\n      - pg_data:/var/lib/postgresql/data\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U openmetadata\"]\n      interval: 10s\n      timeout: 5s\n      retries: 5\n\n  elasticsearch:\n    image: \"docker.elastic.co/elasticsearch/elasticsearch:7.17.15@sha256:abcdef1234567890\"\n    environment:\n      discovery.type: single-node\n      ES_JAVA_OPTS: \"-Xms512m -Xmx512m\"\n    ports:\n      - \"9200:9200\"\n    volumes:\n      - es_data:/usr/share/elasticsearch/data\n    healthcheck:\n      test: [\"CMD-SHELL\", \"curl -s http://localhost:9200/_cluster/health | grep -q '\\\"status\\\":\\\"green\\\\|yellow\\\"'\"]\n      interval: 15s\n      timeout: 10s\n      retries: 5\n\n  openmetadata:\n    image: \"openmetadata/server:1.2.0@sha256:abcdef1234567890\"\n    environment:\n      OPENMETADATA_CLUSTER_NAME: openmetadata\n      DB_HOST: postgresql\n      DB_PORT: 5432\n      ELASTICSEARCH_HOST: elasticsearch\n    ports:\n      - \"8585:8585\"\n    depends_on:\n      postgresql:\n        condition: service_healthy\n      elasticsearch:\n        condition: service_healthy\n\n  airflow:\n    image: \"apache/airflow:2.7.3@sha256:abcdef1234567890\"\n    environment:\n      AIRFLOW__CORE__EXECUTOR: LocalExecutor\n      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: \"postgresql+psycopg2://airflow:airflow@postgresql:5432/airflow_db\"\n    ports:\n      - \"8080:8080\"\n    depends_on:\n      postgresql:\n        condition: service_healthy\n    volumes:\n      - airflow_dags:/opt/airflow/dags\n\nvolumes:\n  pg_data:\n  es_data:\n  airflow_dags:",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Validate YAML structure has correct service definitions with required fields",
+          "expectedOutput": "Valid Docker Compose: 4 services (postgresql, elasticsearch, openmetadata, airflow) with image, environment, ports defined"
+        },
+        {
+          "id": "tc2",
+          "description": "Validate healthchecks and depends_on with service_healthy condition",
+          "expectedOutput": "Healthchecks: postgresql (pg_isready), elasticsearch (curl). depends_on: openmetadata -> postgresql (healthy) + elasticsearch (healthy), airflow -> postgresql (healthy)"
+        },
+        {
+          "id": "tc3",
+          "description": "Validate named volumes and port mappings",
+          "expectedOutput": "Volumes: pg_data, es_data, airflow_dags. Ports: 5432, 9200, 8585, 8080 mapped correctly",
+          "hidden": true
+        }
+      ],
+      "explanation": "Docker Compose для governance stack требует: (1) Healthchecks на infrastructure services (PostgreSQL, Elasticsearch). (2) depends_on с condition: service_healthy для application services (OpenMetadata, Airflow). (3) Named volumes для persistence. (4) Environment variables для конфигурации (не hardcoded в image).",
+      "hint": "4 сервиса: postgresql (pg_isready healthcheck), elasticsearch (curl healthcheck), openmetadata (depends_on обоих), airflow (depends_on postgresql). Named volumes для данных: pg_data, es_data, airflow_dags.",
+      "bloomLevel": "applied"
+    }
+  ]
+}

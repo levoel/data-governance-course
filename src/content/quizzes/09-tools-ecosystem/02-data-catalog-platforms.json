@@ -1,0 +1,63 @@
+{
+  "lessonSlug": "09-tools-ecosystem/02-data-catalog-platforms",
+  "moduleId": "09-tools-ecosystem",
+  "_meta": {
+    "idPrefix": "dg-m09-02",
+    "description": "Use IDs: dg-m09-02-q1 through dg-m09-02-q4"
+  },
+  "questions": [
+    {
+      "id": "dg-m09-02-q1",
+      "type": "multiple-choice",
+      "question": "FinSecure (Level 3) использует OpenMetadata 1.2 с 40% каталогизацией. CTO хочет перейти на DataHub для column-level lineage. Data Engineer говорит: 'мы потеряем 6 месяцев инвестиций'. Какой фактор определяет решение?",
+      "options": [
+        { "id": "a", "text": "Column-level lineage -- must-have для GDPR, значит DataHub однозначно" },
+        { "id": "b", "text": "Сначала оценить: может ли OpenMetadata 1.5.x предоставить column-level lineage? Если да -- upgrade (3-4 недели) vs migration (3-6 месяцев). Принцип: upgrade before migrate" },
+        { "id": "c", "text": "Сохранить OpenMetadata -- migration никогда не оправдана" },
+        { "id": "d", "text": "Перейти на Collibra -- enterprise tool для enterprise organisation" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Принцип 'upgrade before migrate': migration -- дорогая операция (3-6 месяцев, risk потери metadata, retraining). OpenMetadata 1.5.x предлагает column-level lineage (beta). Правильный подход: (1) Upgrade OM 1.2 -> 1.5.x (3-4 недели). (2) Оценить beta lineage для GDPR compliance (3 месяца trial). (3) Если не satisfies -- тогда DataHub migration с documented exit plan. Collibra (D) -- $100K+/год, overkill. Migration never justified (C) -- неверно, иногда оправдана, но last resort. Повторите урок 2 (migration risk).",
+      "hint": "6 месяцев инвестиций в OpenMetadata. Upgrade = 3-4 недели. Migration = 3-6 месяцев. Что дешевле попробовать первым?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m09-02-q2",
+      "type": "multiple-choice",
+      "question": "DataTech выбирает между OpenMetadata и DataHub. OpenMetadata требует 4-6 GB RAM (4-5 контейнеров). DataHub -- 8-16 GB RAM (14+ контейнеров, включая Kafka). У DataTech сервер 16 GB. Какой deployment-фактор решающий?",
+      "options": [
+        { "id": "a", "text": "DataHub мощнее, значит лучше -- 16 GB хватит" },
+        { "id": "b", "text": "На 16 GB сервере DataHub (8-16 GB) не оставит ресурсов для Airflow, PostgreSQL, Elasticsearch. OpenMetadata (4-6 GB) оставляет 10 GB для остального governance stack" },
+        { "id": "c", "text": "Количество контейнеров не важно -- Docker управляет ресурсами автоматически" },
+        { "id": "d", "text": "Оба подходят -- 16 GB хватит для любого" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Governance stack -- это не только каталог. DataTech нужны: PostgreSQL (2 GB), Elasticsearch (2 GB), каталог (OpenMetadata 4 GB или DataHub 8 GB), Airflow (2 GB), GE (1 GB). С OpenMetadata: 4+2+2+2+1 = 11 GB, остаётся 5 GB для OS. С DataHub: 8+2+2+2+1 = 15 GB, остаётся 1 GB -- неработоспособно (OOM kills). Количество контейнеров (C) важно: 14+ контейнеров = 14+ процессов, context switching, networking overhead. Повторите урок 2 (deployment models).",
+      "hint": "16 GB сервер. Каталог -- не единственный сервис. PostgreSQL + Elasticsearch + Airflow + GE тоже нужны RAM.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m09-02-q3",
+      "type": "multiple-choice",
+      "question": "Какой критерий наиболее важен при выборе каталога данных для governance (а не просто для data discovery)?",
+      "options": [
+        { "id": "a", "text": "Количество коннекторов (metadata ingestion)" },
+        { "id": "b", "text": "Качество UI и пользовательский опыт" },
+        { "id": "c", "text": "Governance features: classification, policies, quality integration, access control -- превращающие каталог из metadata repository в governance platform" },
+        { "id": "d", "text": "Стоимость лицензии" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Data discovery каталог (Amundsen) отвечает на 'какие данные есть?'. Governance каталог (OpenMetadata, Collibra) отвечает на 'какие данные есть + кто owner + какой classification + какое качество + кто имеет доступ?'. Governance features превращают каталог из справочника в центральную платформу управления. Коннекторы (A) важны, но бесполезны без governance features. UI (B) -- nice-to-have. Стоимость (D) -- constraint, не критерий качества. Повторите урок 2 (критерии оценки каталогов).",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m09-02-q4",
+      "type": "true-false",
+      "question": "Amundsen -- лучший выбор для новых проектов в 2025 году, потому что он был pioneer в data discovery (создан Lyft в 2019).",
+      "correctAnswer": false,
+      "explanation": "Amundsen был pioneer (2019, Lyft), но development замедлился: community мигрировало к DataHub и OpenMetadata. Lineage ограничен (нет auto-lineage из Airflow/dbt), governance features отсутствуют (нет classification, quality integration). Для новых проектов в 2025 году OpenMetadata или DataHub -- более зрелые варианты с активным community и governance features. Amundsen оправдан только для legacy deployment или если организация уже инвестировала в Neo4j graph backend. Повторите урок 2 (обзор платформ).",
+      "hint": "Pioneer != current best choice. Оцените: community activity, feature set, development cadence в 2025.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

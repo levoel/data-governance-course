@@ -1,0 +1,93 @@
+{
+  "lessonSlug": "09-tools-ecosystem/05-evaluating-selecting-tools",
+  "moduleId": "09-tools-ecosystem",
+  "_meta": {
+    "idPrefix": "dg-m09-05",
+    "description": "Use IDs: dg-m09-05-q1 through dg-m09-05-q4, dg-m09-05-code-1 (CC-39 YAML Tool Matrix)"
+  },
+  "questions": [
+    {
+      "id": "dg-m09-05-q1",
+      "type": "multiple-choice",
+      "question": "DataTech начинает оценку каталога данных. VP Engineering хочет пригласить вендоров на demo и выбрать по результатам презентаций. Почему это анти-паттерн?",
+      "options": [
+        { "id": "a", "text": "Вендоры всегда обманывают на demo" },
+        { "id": "b", "text": "Demo-driven selection оценивает UI и presentation skills вендора, а не соответствие вашим requirements. Без предварительного списка must-have/nice-to-have критериев вы оцениваете 'нравится ли мне demo', а не 'решает ли инструмент мои проблемы'" },
+        { "id": "c", "text": "Demo бесполезны -- нужно сразу покупать и пробовать" },
+        { "id": "d", "text": "Только open-source инструменты заслуживают evaluation, вендорские demo не нужны" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Demo-driven selection -- ошибка #1 в evaluation process. Правильный порядок: (1) Requirements gathering (must-have, nice-to-have, constraints). (2) Shortlist по must-have фильтру. (3) PoC с реальными данными. (4) Scoring matrix + TCO. Demo полезны как часть Phase 2 (shortlisting), но не как основа для decision. DataTech без requirements может выбрать Collibra ($200K/год) потому что 'demo красивее, чем OpenMetadata'. Повторите урок 5 (structured evaluation process).",
+      "hint": "Порядок: Requirements -> Shortlist -> PoC -> Decision. Где в этом процессе demo?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m09-05-q2",
+      "type": "multiple-choice",
+      "question": "DataTech завершила PoC: OpenMetadata -- 4.2/5.0, DataHub -- 4.0/5.0. CTO (приоритет: TCO) выбирает OpenMetadata. Data Engineer (приоритет: lineage) выбирает DataHub. Как разрешить?",
+      "options": [
+        { "id": "a", "text": "CTO -- руководитель, его решение final" },
+        { "id": "b", "text": "Data Engineer -- пользователь, его мнение важнее" },
+        { "id": "c", "text": "Stakeholder alignment workshop: определить вес lineage для DataTech (must-have или nice-to-have?), оценить TCO разницу, документировать exit plan. Консенсус через единую scoring matrix с agreed весами" },
+        { "id": "d", "text": "Выбрать третий вариант -- Amundsen, чтобы никто не был недоволен" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Stakeholder alignment -- Phase 4 evaluation process. Разные роли оценивают по разным критериям: CTO -- TCO и scalability, Engineer -- API и deployment simplicity. Процесс: (1) Определить вес lineage: для DataTech Level 1 без regulatory pressure -- nice-to-have (0.10), не must-have. (2) TCO: DataHub 14+ контейнеров = +$30K infra. (3) Exit plan: OpenMetadata сейчас, DataHub как option если lineage станет must-have. (4) Workshop: единая матрица с agreed весами. CTO decides (A) -- autocracy, engineer resists. Engineer decides (B) -- ignores budget. Third option (D) -- compromise fallacy. Повторите урок 5 (stakeholder alignment).",
+      "hint": "Разные stakeholders -- разные приоритеты. Как формализовать консенсус? Единая scoring matrix с agreed весами.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m09-05-q3",
+      "type": "multiple-choice",
+      "question": "DataTech считает TCO для OpenMetadata: $0 лицензия + $15K/год инфраструктура + $50K/год ops (0.5 FTE). 3-year TCO = $195K. CFO говорит: 'OpenMetadata бесплатный, TCO должен быть 0'. В чём ошибка CFO?",
+      "options": [
+        { "id": "a", "text": "CFO прав: open-source = бесплатно" },
+        { "id": "b", "text": "CFO учитывает только лицензию ($0), игнорируя 4 других компонента TCO: инфраструктура, операционная поддержка, training, migration risk. 0.5 FTE на support = $50K/год -- это $150K за 3 года, largest TCO component" },
+        { "id": "c", "text": "CFO ошибается в расчётах -- infra стоит больше $15K" },
+        { "id": "d", "text": "TCO не применим к open-source -- только к commercial" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "TCO = 5 компонентов: (1) Лицензия: $0 (open-source). (2) Инфраструктура: $15K/год (cloud VM). (3) Операционная поддержка: $50K/год (0.5 FTE: обновления, мониторинг, troubleshooting). (4) Training: $5K (self-study). (5) Migration risk: $20-50K (если потребуется). Ops -- largest component: 77% TCO для open-source. Для commercial: лицензия -- largest (87% для Collibra). CFO должен сравнивать полный TCO, а не лицензию. Повторите урок 5 (TCO analysis).",
+      "hint": "TCO = лицензия + инфраструктура + ops + training + migration. Open-source: $0 лицензия, но ops -- 0.5 FTE = $50K/год.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m09-05-q4",
+      "type": "true-false",
+      "question": "Migration между governance инструментами (например, OpenMetadata -> DataHub) обычно занимает 2-4 недели и проходит без потерь данных.",
+      "correctAnswer": false,
+      "explanation": "Migration -- одна из самых дорогих операций: (1) Preparation (inventory metadata, integrations): 2-4 недели. (2) Parallel run (новый + старый): 4-8 недель. (3) Migration (перенос metadata, users): 2-4 недели. (4) Cutover + stabilization: 3-6 недель. Total: 11-22 недели (3-5 месяцев). Правило: migration всегда занимает 2x от плана. Риски потерь: custom metadata не transferable, user workflows broken, integration reconfiguration. Поэтому: 'upgrade before migrate' -- upgrade текущего инструмента дешевле, чем migration. Повторите урок 5 (migration planning).",
+      "hint": "Migration включает: preparation + parallel run + migration + cutover + stabilization. Сколько это недель?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m09-05-code-1",
+      "type": "code-challenge",
+      "question": "Создайте YAML tool comparison matrix для оценки 4 каталогов данных (OpenMetadata, DataHub, Apache Atlas, Amundsen). Определите 6 критериев оценки с весами (сумма = 1.0). Каждый инструмент оценивается по шкале 1-5. Рассчитайте weighted score и укажите recommendation с rationale.",
+      "language": "yaml",
+      "starterCode": "tool_comparison:\n  category: Data Catalog\n  evaluation_date: \"2025-12-01\"\n  evaluator: Data Governance Team\n\n  criteria:\n    - name: metadata_ingestion\n      weight: 0.20\n      description: # TODO\n    - name: lineage_support\n      weight: 0.20\n      description: # TODO\n    - name: data_classification\n      weight: # TODO\n      description: # TODO\n    - name: collaboration\n      weight: # TODO\n      description: # TODO\n    - name: deployment_complexity\n      weight: # TODO\n      description: # TODO\n    - name: license\n      weight: # TODO\n      description: # TODO\n\n  tools:\n    - name: OpenMetadata\n      scores:\n        # TODO: score each criterion 1-5\n      weighted_score: # TODO\n\n    - name: DataHub\n      scores:\n        # TODO\n      weighted_score: # TODO\n\n    - name: Apache Atlas\n      scores:\n        # TODO\n      weighted_score: # TODO\n\n    - name: Amundsen\n      scores:\n        # TODO\n      weighted_score: # TODO\n\n  recommendation:\n    winner: # TODO\n    rationale: # TODO\n    runner_up: # TODO\n    runner_up_rationale: # TODO",
+      "solutionCode": "tool_comparison:\n  category: Data Catalog\n  evaluation_date: \"2025-12-01\"\n  evaluator: Data Governance Team\n\n  criteria:\n    - name: metadata_ingestion\n      weight: 0.20\n      description: \"Breadth and ease of metadata connectors\"\n    - name: lineage_support\n      weight: 0.20\n      description: \"Automated and manual lineage tracking\"\n    - name: data_classification\n      weight: 0.15\n      description: \"PII detection, sensitivity tagging\"\n    - name: collaboration\n      weight: 0.15\n      description: \"Comments, ownership, tasks, notifications\"\n    - name: deployment_complexity\n      weight: 0.15\n      description: \"Infrastructure requirements, operational overhead\"\n    - name: license\n      weight: 0.15\n      description: \"Open-source availability, vendor lock-in risk\"\n\n  tools:\n    - name: OpenMetadata\n      scores:\n        metadata_ingestion: 4\n        lineage_support: 4\n        data_classification: 3\n        collaboration: 4\n        deployment_complexity: 4\n        license: 5\n      weighted_score: 4.00\n\n    - name: DataHub\n      scores:\n        metadata_ingestion: 5\n        lineage_support: 5\n        data_classification: 4\n        collaboration: 3\n        deployment_complexity: 2\n        license: 5\n      weighted_score: 4.10\n\n    - name: Apache Atlas\n      scores:\n        metadata_ingestion: 3\n        lineage_support: 3\n        data_classification: 3\n        collaboration: 2\n        deployment_complexity: 2\n        license: 5\n      weighted_score: 2.95\n\n    - name: Amundsen\n      scores:\n        metadata_ingestion: 3\n        lineage_support: 2\n        data_classification: 2\n        collaboration: 3\n        deployment_complexity: 3\n        license: 5\n      weighted_score: 2.85\n\n  recommendation:\n    winner: OpenMetadata\n    rationale: \"Best balance of features and operational simplicity; 4-6 GB RAM vs 8+ GB for DataHub; stronger collaboration features than Atlas/Amundsen\"\n    runner_up: DataHub\n    runner_up_rationale: \"Strongest metadata/lineage but highest infrastructure requirements (14+ containers)\"",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Validate YAML structure: 6 criteria with weights summing to 1.0, 4 tools with scores",
+          "expectedOutput": "Valid tool_comparison: 6 criteria (weights sum to 1.0), 4 tools with all criteria scored (1-5)"
+        },
+        {
+          "id": "tc2",
+          "description": "Validate weighted scores are calculated correctly and recommendation is present",
+          "expectedOutput": "Weighted scores present for all 4 tools. Recommendation has winner, rationale, runner_up, runner_up_rationale"
+        },
+        {
+          "id": "tc3",
+          "description": "Validate all criterion names match between criteria definitions and tool scores",
+          "expectedOutput": "All 6 criterion names appear in every tool's scores section",
+          "hidden": true
+        }
+      ],
+      "explanation": "Tool comparison matrix -- формализованный метод оценки инструментов. Критерии с весами обеспечивают объективность: вес отражает приоритет организации. Weighted score = сумма (score * weight) по всем критериям. Recommendation основана на scores + qualitative analysis (не только числа, но и контекст: deployment complexity, team capabilities).",
+      "hint": "6 критериев, веса суммируются до 1.0. 4 инструмента, каждый оценён 1-5 по каждому критерию. weighted_score = сумма(score * weight). recommendation -- winner + rationale.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

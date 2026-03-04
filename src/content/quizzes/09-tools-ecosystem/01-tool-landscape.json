@@ -1,0 +1,63 @@
+{
+  "lessonSlug": "09-tools-ecosystem/01-tool-landscape",
+  "moduleId": "09-tools-ecosystem",
+  "_meta": {
+    "idPrefix": "dg-m09-01",
+    "description": "Use IDs: dg-m09-01-q1 through dg-m09-01-q4"
+  },
+  "questions": [
+    {
+      "id": "dg-m09-01-q1",
+      "type": "multiple-choice",
+      "question": "DataTech (Level 1, команда 7 человек) решает, с какой категории governance-инструментов начать. VP Engineering предлагает Data Observability (Monte Carlo). Data Engineer предлагает Data Catalog (OpenMetadata). Кто прав и почему?",
+      "options": [
+        { "id": "a", "text": "VP Engineering: observability обнаружит все проблемы автоматически, без ручной работы" },
+        { "id": "b", "text": "Data Engineer: каталог -- фундамент governance stack. Без каталога (visibility) некуда отправлять результаты quality checks, lineage, classification. Observability без каталога -- alert'ы без контекста" },
+        { "id": "c", "text": "Оба неправы: нужно начинать с Policy Engine для формализации политик" },
+        { "id": "d", "text": "Оба правы: можно внедрять параллельно, если бюджет позволяет" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Каталог данных (Data Catalog) -- Layer 1 governance stack. Все остальные инструменты отправляют результаты в каталог: quality results, lineage, classification, alerts. Monte Carlo (observability) обнаруживает аномалии, но куда отправлять alert? Без каталога -- в Slack, без контекста (кто owner, какой бизнес-impact?). С каталогом -- alert привязан к dataset, owner получает notification с полным контекстом. Для Level 1: каталог первым (visibility), quality вторым (measurement), observability при масштабировании. Повторите урок 1 (приоритизация).",
+      "hint": "Каталог -- это фундамент. Куда отправлять результаты quality checks и alerts без каталога?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m09-01-q2",
+      "type": "multiple-choice",
+      "question": "При выборе governance-инструмента что важнее: функциональность одного инструмента или интеграция между инструментами?",
+      "options": [
+        { "id": "a", "text": "Функциональность: лучший инструмент в каждой категории = лучший governance" },
+        { "id": "b", "text": "Интеграция: governance -- cross-cutting concern. Каталог, который не видит результаты quality checks и не связан с access control, бесполезен для governance. API и коннекторы важнее feature set" },
+        { "id": "c", "text": "Стоимость: самый дешёвый вариант всегда лучше" },
+        { "id": "d", "text": "Зависит от размера команды: маленькая -- функциональность, большая -- интеграция" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Governance -- cross-cutting concern: качество данных нужно видеть в каталоге, lineage связывает источники с дашбордами, access control применяется на основе classification из каталога. Лучший в мире каталог без интеграции с quality и access -- это изолированный CMDB, а не governance-инструмент. При выборе: API completeness, connector ecosystem, и webhook support важнее количества UI features. Повторите урок 1 (интеграция как дифференциатор).",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m09-01-q3",
+      "type": "multiple-choice",
+      "question": "DataTech рассматривает три варианта для Data Quality: Build (custom Python scripts), Adopt (Great Expectations open-source), Buy (Monte Carlo SaaS). Какой вариант оптимален для команды из 7 человек с бюджетом 0 на лицензии?",
+      "options": [
+        { "id": "a", "text": "Build: полный контроль, идеальное соответствие требованиям DataTech" },
+        { "id": "b", "text": "Buy: Monte Carlo автоматически обнаруживает аномалии без ручной работы" },
+        { "id": "c", "text": "Adopt: Great Expectations -- open-source, 300+ expectations, интеграция с Airflow. Zero license cost, community support, 1-2 дня на setup" },
+        { "id": "d", "text": "Не выбирать: DataTech слишком мала для формального data quality tooling" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Adopt (open-source) -- правильный выбор для 80% команд до 50 человек. Build (A): custom scripts требуют 3-6 месяцев разработки, ongoing maintenance, нет Data Docs, нет community. Buy (B): Monte Carlo $50K+/год -- выходит за бюджет. Adopt (C): Great Expectations -- $0 лицензия, 300+ expectations, Data Docs, Airflow integration, 9K+ GitHub stars, active community. DataTech (D) не мала -- 7 человек с 200+ таблицами и 15% дубликатов нуждаются в tooling. Повторите урок 1 (build vs buy framework).",
+      "hint": "Бюджет $0, команда 7 человек. Build -- дорого по времени. Buy -- дорого по деньгам. Что остаётся?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m09-01-q4",
+      "type": "true-false",
+      "question": "Open-source governance инструменты всегда дешевле коммерческих, потому что лицензия бесплатна.",
+      "correctAnswer": false,
+      "explanation": "Лицензия $0, но TCO включает: инфраструктуру ($5K-20K/год cloud VM), операционную поддержку (0.5-1 FTE: $50K-100K/год), обновления (вы несёте ответственность за migration между версиями), training ($5K self-study). 3-year TCO open-source может составить $170K+ (DataTech пример). Для команды из 100+ человек с dedicated ops team -- open-source дешевле. Для команды из 3 человек без ops-экспертизы -- SaaS может быть дешевле, потому что 0.1 FTE ops vs 0.5 FTE. Повторите урок 1 (open-source vs commercial tradeoffs).",
+      "hint": "TCO = лицензия + инфраструктура + ops + training + migration. Лицензия -- только один из 5 компонентов.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

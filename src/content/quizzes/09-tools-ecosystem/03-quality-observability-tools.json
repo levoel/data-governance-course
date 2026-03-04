@@ -1,0 +1,63 @@
+{
+  "lessonSlug": "09-tools-ecosystem/03-quality-observability-tools",
+  "moduleId": "09-tools-ecosystem",
+  "_meta": {
+    "idPrefix": "dg-m09-03",
+    "description": "Use IDs: dg-m09-03-q1 through dg-m09-03-q4"
+  },
+  "questions": [
+    {
+      "id": "dg-m09-03-q1",
+      "type": "multiple-choice",
+      "question": "DataTech внедряет dbt tests (unique, not_null) на 120 моделей в ClickHouse и обнаруживает 15% дубликатов. Но CSV-файлы от партнёров загружаются в PostgreSQL без проверки. Какой инструмент добавить и почему?",
+      "options": [
+        { "id": "a", "text": "Monte Carlo -- автоматически обнаружит проблемы в CSV без ручной работы" },
+        { "id": "b", "text": "Great Expectations -- валидирует CSV-данные до загрузки в PostgreSQL. Python API, 300+ expectations, интеграция с Airflow pipeline" },
+        { "id": "c", "text": "Soda -- YAML-first, проще для команды аналитиков" },
+        { "id": "d", "text": "Не нужен дополнительный инструмент -- dbt tests достаточно" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "dbt tests работают только с данными внутри dbt pipeline (warehouse). CSV от партнёров не проходят через dbt -- нужен инструмент для raw data validation. Great Expectations: (1) Python -- DataTech data engineers используют Python. (2) Валидация до загрузки -- предотвращает попадание dirty data в PostgreSQL. (3) Airflow integration -- GE checkpoint как task в DAG. Monte Carlo (A) -- $50K+ SaaS, observability (пассивный), не validation (активный). Soda (C) -- хороший вариант, но DataTech -- Python-команда, GE лучше интегрируется. dbt-only (D) -- не покрывает raw data. Повторите урок 3 (quality vs observability).",
+      "hint": "CSV от партнёров не проходят через dbt. Какой инструмент валидирует данные любого формата (CSV, API, S3)?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m09-03-q2",
+      "type": "multiple-choice",
+      "question": "В чём ключевое различие между Data Quality tools (Great Expectations, Soda) и Data Observability platforms (Monte Carlo, Bigeye)?",
+      "options": [
+        { "id": "a", "text": "Quality tools дороже, observability дешевле" },
+        { "id": "b", "text": "Quality tools -- активная проверка (вы пишете правила, инструмент проверяет). Observability -- пассивный мониторинг (ML обнаруживает аномалии без ручных правил). Quality catches known issues, observability catches unknown issues" },
+        { "id": "c", "text": "Quality tools для engineers, observability для analysts" },
+        { "id": "d", "text": "Различия нет -- это маркетинговые термины для одного и того же" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Аналогия: Quality tools = unit tests для данных (вы определяете, что правильно). Observability = monitoring для данных (система обнаруживает, что изменилось). Quality: вы пишете 'expect_column_values_to_be_in_set(currency, [RUB, USD, EUR])' -- known rule. Observability: ML обучается на исторических паттернах и обнаруживает 'объём данных упал на 40% vs среднее' -- unknown issue. Они комплементарны: quality catches known, observability catches unknown. Зрелая организация использует оба. Повторите урок 3 (quality vs observability distinction).",
+      "bloomLevel": "conceptual"
+    },
+    {
+      "id": "dg-m09-03-q3",
+      "type": "multiple-choice",
+      "question": "FinSecure (Level 3) хочет добавить Data Observability к существующим Spark batch checks. Какой паттерн интеграции наиболее эффективен?",
+      "options": [
+        { "id": "a", "text": "Заменить все Spark checks на Monte Carlo -- observability покрывает всё" },
+        { "id": "b", "text": "Full stack: сохранить Spark checks (known rules) + dbt-expectations для Snowflake + Monte Carlo для anomaly detection. Quality results -> OpenMetadata catalog -> unified dashboard" },
+        { "id": "c", "text": "Добавить только dbt-expectations -- достаточно для Snowflake" },
+        { "id": "d", "text": "Не менять -- Spark checks покрывают 60%, этого достаточно" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Full stack pattern для Level 3 организации: (1) Spark checks -- сохранить (60% critical pipelines, proven). (2) dbt-expectations -- расширить на Snowflake warehouse (300+ моделей, zero new tooling). (3) Monte Carlo / Datafold -- anomaly detection для unknown issues (800+ таблиц Oracle + Snowflake). (4) Интеграция: все quality results -> OpenMetadata catalog -> unified view. Замена Spark checks (A) рискованна: 60% coverage потеряна во время migration. dbt-only (C) не покрывает Oracle. 60% (D) недостаточно для Level 3. Повторите урок 3 (интеграционные паттерны).",
+      "hint": "Level 3 организация с 800+ таблицами. Один инструмент не покроет всё. Full stack = quality + observability + integration.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m09-03-q4",
+      "type": "true-false",
+      "question": "dbt-expectations -- полноценная замена Great Expectations, потому что портирует GE expectations в dbt YAML формат.",
+      "correctAnswer": false,
+      "explanation": "dbt-expectations портирует подмножество GE expectations (60 vs 300+) в dbt-native YAML. Ключевые ограничения: (1) Только warehouse data -- dbt limitation (нет CSV, API, S3 validation). (2) Нет Data Docs (HTML-отчётность). (3) Нет data profiling. (4) Нет anomaly detection. dbt-expectations -- отличный инструмент для dbt-centric teams, но не замена GE для организаций с raw data validation needs. Комбинация dbt-expectations (warehouse) + GE (raw data) = полное покрытие. Повторите урок 3 (dbt-expectations ограничения).",
+      "hint": "dbt-expectations работает только внутри dbt pipeline. А данные вне dbt (CSV, API)?",
+      "bloomLevel": "analytical"
+    }
+  ]
+}
