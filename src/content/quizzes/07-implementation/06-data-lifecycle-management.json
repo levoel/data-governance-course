@@ -1,0 +1,64 @@
+{
+  "lessonSlug": "07-implementation/06-data-lifecycle-management",
+  "moduleId": "07-implementation",
+  "_meta": {
+    "idPrefix": "dg-m07-06",
+    "description": "Use IDs: dg-m07-06-q1 through dg-m07-06-q4"
+  },
+  "questions": [
+    {
+      "id": "dg-m07-06-q1",
+      "type": "multiple-choice",
+      "question": "Аудит DataTech обнаружил: 2 TB данных о клиентах в PostgreSQL, возраст 4 года, доступ 2 аналитиков ежемесячно, никогда не рассматривалось для архивирования. Стоимость хранения $500/месяц. Какой lifecycle governance failure это раскрывает?",
+      "options": [
+        { "id": "a", "text": "Отсутствие Data Owner -- некому принять решение о данных" },
+        { "id": "b", "text": "Отсутствие Archive trigger -- данные должны были перейти из 'Use' в 'Archive' по правилу access-frequency, но trigger не определён. Без lifecycle governance данные накапливаются в дорогом hot storage бесконечно" },
+        { "id": "c", "text": "Отсутствие quality checks -- данные могут быть некачественными" },
+        { "id": "d", "text": "Отсутствие encryption -- данные хранятся незащищёнными" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Отсутствие Archive trigger -- governance-правила перехода данных из стадии 'Use' в стадию 'Archive'. Данные с низкой частотой доступа (2 запроса/месяц) и возрастом 4 года должны были сработать trigger: (1) Access frequency < 10 запросов/мес. в течение 6 мес. -> archive review. (2) Age > 2 лет без active use case -> archive review. (3) Data Owner review каждые 12 мес. для hot-storage данных. Fix: определить access-frequency threshold и age-based trigger, мигрировать в cold storage (S3 Glacier), сохранив метаданные. Экономия: $500/мес. -> ~$50/мес. в cold storage. Повторите урок 06 (Archive stage governance).",
+      "hint": "Данные 4 года в hot storage, access 2 раза в месяц, $500/мес. Какой governance-механизм должен был сработать?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-06-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure: финансовые транзакции должны храниться 7 лет (regulatory requirement), но GDPR-клиент запрашивает полное удаление данных. Данные в стадии 'Store'. Какой lifecycle governance mechanism разрешает конфликт?",
+      "options": [
+        { "id": "a", "text": "Удалить данные по запросу GDPR -- права субъекта приоритетны" },
+        { "id": "b", "text": "Отказать в удалении -- банковский регулятор важнее GDPR" },
+        { "id": "c", "text": "Classification-driven lifecycle rules: финансовые транзакции получают классификацию 'regulatory retention' (GDPR Art. 17(3)(b) -- исключение для legal obligation). PII-поля псевдонимизируются, транзакционные записи сохраняются" },
+        { "id": "d", "text": "Перенести данные в архив и сообщить клиенту, что данные удалены" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Classification-driven lifecycle rules разрешают конфликт: (1) GDPR Art. 17(3)(b) предусматривает исключение из права на удаление при наличии legal obligation (банковское регулирование). (2) Lifecycle governance: данные классифицируются как 'regulatory retention' при создании. (3) Компромисс: PII-поля (имя, email, телефон) псевдонимизируются, удовлетворяя дух GDPR (data minimization). Транзакционные записи (суммы, даты, контрагенты) сохраняются для regulatory compliance. (4) Document legal basis на стадии 'Store'. Полное удаление (A) нарушает банковское законодательство. Полный отказ (B) не учитывает GDPR. Ложная информация (D) -- нарушение обоих законов. Повторите урок 06 (classification-driven lifecycle rules) и M05 (GDPR).",
+      "hint": "GDPR Art. 17(3)(b) предусматривает исключения из права на удаление. Какое исключение применимо для банковских транзакций?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-06-q3",
+      "type": "multiple-choice",
+      "question": "В RACI-матрице data lifecycle: кто является Accountable (A) за стадию 'Destroy' (уничтожение данных)?",
+      "options": [
+        { "id": "a", "text": "Data Engineer -- технический исполнитель уничтожения" },
+        { "id": "b", "text": "Security Team -- обеспечивает безопасное удаление" },
+        { "id": "c", "text": "Data Owner (бизнес) -- уничтожение является бизнес-решением с regulatory implications. Data Owner авторизует уничтожение, Data Engineer выполняет, Legal консультирует" },
+        { "id": "d", "text": "CDO -- все governance-решения проходят через CDO" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Data Owner является Accountable за 'Destroy' стадию: (1) Уничтожение -- бизнес-решение: Owner понимает, нужны ли данные для бизнес-процессов. (2) Regulatory implications: Owner знает regulatory retention requirements своего домена. (3) Data Engineer (R -- Responsible) выполняет техническое удаление: cryptographic erasure или physical destruction. (4) Legal (C -- Consulted) верифицирует отсутствие legal holds и compliance с retention requirements. (5) CDO (I -- Informed) получает уведомление для oversight. Engineer не должен самостоятельно решать, какие данные уничтожать. Повторите урок 06 (RACI across lifecycle stages).",
+      "hint": "Уничтожение данных -- техническое действие или бизнес-решение? Кто несёт ответственность за последствия?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m07-06-q4",
+      "type": "true-false",
+      "question": "Data Lifecycle Management -- это отдельная governance-дисциплина, которая заменяет Data Quality, Privacy и Security governance.",
+      "correctAnswer": false,
+      "explanation": "Lifecycle Management -- не замена, а синтез. Это framework, который связывает существующие governance-дисциплины по временной оси жизни данных: (1) Quality governance применяется на стадиях 'Create' (quality gates при ingestion) и 'Use' (continuous monitoring). (2) Privacy governance -- на стадиях 'Share' (consent verification) и 'Destroy' (право на удаление). (3) Security governance -- на ВСЕХ стадиях (access control, encryption, audit). (4) Metadata governance -- на стадиях 'Create' (classification), 'Archive' (metadata preservation). Lifecycle Management показывает, как эти дисциплины взаимодействуют и дополняют друг друга. Без DLM каждая дисциплина работает изолированно, создавая gaps (например, данные качественные, но хранятся дольше retention period). Повторите урок 06 (unified lifecycle framework).",
+      "hint": "DLM объединяет или заменяет Quality, Privacy, Security? Что значит 'синтез'?",
+      "bloomLevel": "conceptual"
+    }
+  ]
+}

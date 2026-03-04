@@ -1,0 +1,64 @@
+{
+  "lessonSlug": "07-implementation/08-governance-communication",
+  "moduleId": "07-implementation",
+  "_meta": {
+    "idPrefix": "dg-m07-08",
+    "description": "Use IDs: dg-m07-08-q1 through dg-m07-08-q4"
+  },
+  "questions": [
+    {
+      "id": "dg-m07-08-q1",
+      "type": "multiple-choice",
+      "question": "CEO DataTech запросил 1-page governance summary для board meeting. У governance team: catalog coverage 85%, quality score 92%, 3 incidents в квартале, 15% duplicate reduction, policy compliance 78%. Как структурировать отчёт?",
+      "options": [
+        { "id": "a", "text": "Таблица всех 5 метрик с числовыми значениями и трендами" },
+        { "id": "b", "text": "Business impact first: 'Программа сэкономила ~2.3M RUB (duplicates), сократила incidents на 75% QoQ, 22% customer records at risk без classification.' Метрики как supporting evidence. Action items: 1-2 рекомендации для board решения" },
+        { "id": "c", "text": "Только положительные метрики (85% coverage, 92% quality) без проблемных (78% compliance)" },
+        { "id": "d", "text": "Подробный 10-page report с root cause analysis каждого KPI" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Board-level reporting: Business Impact -> Metrics (supporting) -> Actions. (1) Lead with money: '2.3M RUB saved' понятнее CEO, чем '15% duplicate reduction'. (2) Translate incidents: '3 incidents (was 12)' -> '75% reduction in data incidents, reducing customer-facing errors'. (3) Frame risks in business terms: '22% customer records at risk' вместо '78% policy compliance'. (4) Action items: конкретные решения для board ('approve 1 FTE for lifecycle governance'). Только метрики (A) -- CEO скажет 'И что?'. Только позитив (C) -- потеря доверия при обнаружении проблем. 10 pages (D) -- CEO не прочитает. Повторите урок 08 (board-level reporting).",
+      "hint": "CEO имеет 5-10 минут. Что он хочет знать: числа метрик или бизнес-impact?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-08-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure governance team сообщает board: 'Data completeness: 99.2%.' Board member: 'So what?' Как перевести метрику в бизнес-термины?",
+      "options": [
+        { "id": "a", "text": "'99.2% -- это хороший результат, выше industry average'" },
+        { "id": "b", "text": "'0.8% incomplete = ~4,000 customer records без required risk scoring. Regulatory exposure: incomplete risk scoring -- потенциальное нарушение Basel III (неадекватные capital reserves). Business impact: fine до 50M RUB + reputational damage. Remediation: 500K RUB pipeline fix. ROI of fix: 500K предотвращает 50M risk'" },
+        { "id": "c", "text": "'Мы работаем над улучшением до 99.9%'" },
+        { "id": "d", "text": "'99.2% означает, что 99.2% всех полей заполнены корректно'" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Translation formula: Metric -> Affected Records -> Business Impact -> Currency. (1) 99.2% completeness -> 0.8% incomplete -> ~4,000 records. (2) Business impact: records без risk scoring = potential Basel III violation для банка. (3) Currency: regulatory fine до 50M RUB. (4) Remediation cost: 500K RUB. (5) ROI: 500K fix / 50M risk = 100x return. Board member теперь понимает: 0.8% gap = 50M risk, fix стоит 500K. Решение очевидно. Сравнение с industry (A) не объясняет impact. 'Работаем' (C) не отвечает на 'So what?' Техническое определение (D) -- то, что вызвало вопрос. Повторите урок 08 (translating quality scores).",
+      "hint": "Формула: Metric -> Affected Records -> Business Impact -> Currency Amount. Примените к 99.2% completeness в банковском контексте.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-08-q3",
+      "type": "multiple-choice",
+      "question": "Какой подход к коммуникации ROI governance наиболее эффективен со скептичным руководством?",
+      "options": [
+        { "id": "a", "text": "Гипотетические прогнозы: 'Если мы продолжим governance, то через 3 года сэкономим 50M RUB'" },
+        { "id": "b", "text": "Industry benchmarks: 'Аналогичные компании инвестируют X в governance'" },
+        { "id": "c", "text": "Incident cost comparison: 'Без governance: 3 инцидента стоили X RUB. С governance: ~9 инцидентов предотвращено, сэкономлено Y RUB. Программа стоит W RUB. Net benefit: Y-W.' Конкретные числа на основе реальных инцидентов" },
+        { "id": "d", "text": "Compliance argument: 'Без governance нас оштрафуют'" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Скептичное руководство доверяет фактам, не прогнозам: (1) Incident cost comparison использует РЕАЛЬНЫЕ данные: фактические инциденты (не гипотетические), их documented cost, trend (12 -> 3 per quarter). (2) 'Предотвращённые инциденты' рассчитываются от baseline: если до governance было 12/квартал, сейчас 3/квартал, предотвращено ~9 * avg cost. (3) Net benefit = Value - Cost -- простая арифметика, понятная CFO. Гипотетические прогнозы (A) не убеждают скептиков -- 'откуда вы знаете?' Benchmarks (B) -- 'мы не аналогичная компания'. Compliance (D) -- fear-based, не строит support. Повторите урок 08 (ROI communication).",
+      "hint": "Скептик доверяет фактам, не прогнозам. Какой источник данных для ROI наиболее убедителен?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m07-08-q4",
+      "type": "true-false",
+      "question": "Governance storytelling -- это приукрашивание результатов для получения бюджета, и оно противоречит принципам прозрачности.",
+      "correctAnswer": false,
+      "explanation": "Governance storytelling -- перевод технических метрик на язык бизнес-аудитории, не fabrication. '85% catalog coverage' и 'аналитики находят данные на 40% быстрее, экономя 600K RUB/год' описывают ОДНУ И ТУ ЖЕ реальность -- второе формулировке comprehensible для нетехнических stakeholders. Прозрачность означает accurate data: если catalog coverage 85%, не говорить 95%. Storytelling означает appropriate communication: CEO не нужно знать, что catalog использует OpenMetadata 1.2 с PostgreSQL backend -- CEO нужно знать, что аналитики быстрее находят данные и это экономит деньги. Повторите урок 08 (governance value storytelling и anti-patterns).",
+      "hint": "'85% catalog coverage' и 'аналитики находят данные на 40% быстрее' -- это разные факты или одна реальность в разных формулировках?",
+      "bloomLevel": "conceptual"
+    }
+  ]
+}

@@ -3,7 +3,7 @@
   "moduleId": "07-implementation",
   "_meta": {
     "idPrefix": "dg-exam-m07",
-    "description": "Use IDs: dg-exam-m07-q1 through dg-exam-m07-q10 (10 analytical questions)"
+    "description": "Use IDs: dg-exam-m07-q1 through dg-exam-m07-q13 (13 analytical questions)"
   },
   "questions": [
     {
@@ -148,6 +148,51 @@
       "correctAnswer": "b",
       "explanation": "Green KPIs не означают, что governance 'самоподдерживается'. Каждый green KPI -- результат ongoing effort: (1) Quality Score 95% -- quality checks обновляются при каждом изменении пайплайна. Новые модели без checks -> деградация. (2) Catalog Coverage 90% -- новые таблицы создаются регулярно. Без каталогизации -> coverage падает. (3) Policy Compliance 90% -- новые процессы и сотрудники. Без обучения и enforcement -> compliance падает. Governance -- continuous process, не one-time project. Сокращение на 50% приведёт к 'governance debt', аналогичному technical debt. Повторите уроки 4 (maturity model -- Level 4/5 требуют ongoing investment) и 5 (leading indicators предскажут деградацию).",
       "hint": "Quality Score 95% -- результат чего? Что произойдёт с новыми пайплайнами, если quality checks перестанут обновляться?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m07-q11",
+      "type": "multiple-choice",
+      "question": "DataTech строит первую data lifecycle policy. Аудит данных показал: 40% production данных никогда не классифицированы, 25% старше 2 лет без retention policy, 10% переданы внешним партнёрам без формальных соглашений. Какая стадия lifecycle требует НАИБОЛЕЕ срочного governance-вмешательства?",
+      "options": [
+        { "id": "a", "text": "Share (10%): передача без соглашений -- compliance risk" },
+        { "id": "b", "text": "Store (25%): данные без retention policy -- растущие затраты" },
+        { "id": "c", "text": "Create (40%): неклассифицированные данные -- governance fails на первой стадии. Без классификации невозможно определить retention, sharing rules или disposal policies для 40% данных" },
+        { "id": "d", "text": "Destroy: нужно немедленно удалить данные старше 2 лет" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Create stage -- фундамент lifecycle governance: (1) 40% неклассифицированных данных -- наибольший объём проблемы. (2) Без классификации невозможно: определить retention period (какой класс -> какой срок), определить sharing rules (можно ли передавать партнёрам), определить disposal trigger (когда уничтожать). (3) Fix: implement classification at creation (ingestion-time tagging, M03 урок 06 auto-tagging), затем backfill существующих данных. Share (A, 10%) -- urgent для compliance, но affects меньше данных. Store (B, 25%) -- важно, но без classification невозможно определить правильный retention. Destroy (D) -- нельзя уничтожать без classification и legal hold verification. Повторите уроки 06 (lifecycle stages) + M03 (auto-tagging) + M05 (classification).",
+      "hint": "40% данных без классификации. Без классификации можно ли определить retention? sharing rules? disposal trigger?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m07-q12",
+      "type": "multiple-choice",
+      "question": "BioGenesis обнаружила: внешний лабораторный вендор отправлял результаты пациентов с 15% error rate в течение 6 месяцев. 200 клинических анализов использовали эти данные. Какова governance remediation sequence?",
+      "options": [
+        { "id": "a", "text": "Расторгнуть контракт с вендором немедленно и найти замену" },
+        { "id": "b", "text": "(1) Quarantine вендорного feed, (2) Impact assessment: какие из 200 анализов использовали contaminated данные, (3) Notify affected clinical teams + regulatory compliance, (4) Require vendor root cause analysis + corrective action, (5) Re-validate affected analyses, (6) Update vendor SLA с quality gates при ingestion" },
+        { "id": "c", "text": "Переписать 200 анализов с исключением вендорных данных" },
+        { "id": "d", "text": "Добавить quality checks на ingestion и продолжить приём данных" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Governance remediation -- последовательный process: (1) Quarantine: немедленно остановить загрузку новых данных от вендора. (2) Impact assessment: не все 200 анализов могут быть затронуты -- определить, какие использовали ошибочные записи. (3) Notification: clinical teams должны знать о потенциальных ошибках; regulatory compliance оценивает reporting obligations. (4) Vendor accountability: root cause analysis от вендора -- что сломалось и почему 6 месяцев не обнаруживалось. (5) Re-validation: затронутые анализы проверяются с corrected data. (6) Prevention: quality gates при ingestion предотвратят повторение. Расторжение (A) -- premature, сначала нужно assessment и remediation. Переписать всё (C) -- wasteful, если часть анализов не затронута. Только quality checks (D) -- не address existing damage. Повторите уроки 07 (third-party governance) + M04 (detecting quality violations).",
+      "hint": "200 анализов, 6 месяцев contaminated данных. Что сначала: остановить bleeding или наказать вендора?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m07-q13",
+      "type": "multiple-choice",
+      "question": "DataTech governance-программе 12 месяцев. CFO: 'Мы потратили 8M RUB на governance tools и команду. Я не вижу ROI.' Governance team имеет: catalog coverage 85%, quality score 72% -> 92%, incidents 12 -> 3/квартал, duplicate marketing elimination (estimated 2.3M RUB savings). Как governance lead должен ответить?",
+      "options": [
+        { "id": "a", "text": "'Governance -- не про ROI, это compliance requirement'" },
+        { "id": "b", "text": "'ROI будет через 2-3 года, нужно больше времени'" },
+        { "id": "c", "text": "Lead with money: 'Savings 2.3M (duplicates) + prevented incidents ~9 * 1.5M = 13.5M + analyst productivity 40% faster = 2 FTE = 4M. Total value: ~19.8M vs 8M cost = 2.5x ROI.' Follow with risk: 'Без governance, breach cost 50M+ RUB -- вопрос времени'" },
+        { "id": "d", "text": "'Quality Score вырос с 72% до 92% -- это значительное improvement'" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "CFO мыслит деньгами. Ответ должен быть на языке CFO: (1) Direct savings: 2.3M RUB (measurable, from duplicate elimination). (2) Prevented losses: ~9 prevented incidents * 1.5M avg cost = 13.5M RUB (calculated from baseline 12 incidents/quarter -> 3/quarter). (3) Productivity: analysts find data 40% faster = 2 FTE equivalent = ~4M RUB/год. (4) Total: 19.8M value vs 8M cost = 2.5x ROI. (5) Risk framing: breach prevention as insurance ('FinSecure-style breach costs 50M+'). Compliance argument (A) -- CFO не убеждает 'we have to'. Time argument (B) -- CFO needs ROI now, not promises. Quality Score (D) -- 'И что?' на языке CFO. Повторите уроки 08 (ROI communication) + 05 (KPIs to business outcomes).",
+      "hint": "CFO говорит на языке денег. 'Quality Score 92%' vs '19.8M RUB value' -- что убедительнее?",
       "bloomLevel": "analytical"
     }
   ]

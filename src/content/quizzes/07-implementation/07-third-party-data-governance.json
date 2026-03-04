@@ -1,0 +1,64 @@
+{
+  "lessonSlug": "07-implementation/07-third-party-data-governance",
+  "moduleId": "07-implementation",
+  "_meta": {
+    "idPrefix": "dg-m07-07",
+    "description": "Use IDs: dg-m07-07-q1 through dg-m07-07-q4"
+  },
+  "questions": [
+    {
+      "id": "dg-m07-07-q1",
+      "type": "multiple-choice",
+      "question": "BioGenesis получает еженедельные CSV-файлы от внешней лаборатории. 12% записей имеют null patient_id, 8% -- invalid date formats. SLA вендора: '99% data quality.' Как BioGenesis должна реагировать?",
+      "options": [
+        { "id": "a", "text": "Принять данные как есть -- вендор гарантирует 99% quality" },
+        { "id": "b", "text": "Отклонить весь batch -- quality ниже SLA" },
+        { "id": "c", "text": "Formal SLA dispute с evidence (метрики показывают ~80% quality, не 99%). Require vendor validation at source, установить quarantine для invalid records, определить exit criteria (quality < 95% за 90 дней -> vendor replacement)" },
+        { "id": "d", "text": "Написать internal fix pipeline для исправления данных вендора" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Governance response включает: (1) Formal SLA dispute: документированные метрики (12% null patient_id + 8% invalid dates = ~80% quality, не 99% по SLA). (2) Require vendor to fix at source: validation rules перед отправкой. (3) Quarantine process: invalid records изолируются, не попадают в production. (4) Exit criteria: если quality не улучшится до 95% за 90 дней -- trigger vendor replacement process. Принять (A) -- загрязняет clinical analyses downstream. Отклонить всё (B) -- теряет 80% valid данных без процесса. Internal fix (D) -- маскирует проблему вендора, не устраняет root cause, BioGenesis несёт cost fix. Повторите урок 07 (vendor data governance).",
+      "hint": "SLA говорит 99%, реальность -- ~80%. Документированные метрики -- основание для formal dispute. Что дальше?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-07-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure EU subsidiary (Франкфурт) передаёт данные клиентов в российский HQ для консолидированной отчётности по рискам. GDPR применяется к данным EU. Какой пункт Data Sharing Agreement НАИБОЛЕЕ критичен?",
+      "options": [
+        { "id": "a", "text": "Purpose limitation -- данные только для risk reporting" },
+        { "id": "b", "text": "Retention period -- срок хранения в российском HQ" },
+        { "id": "c", "text": "Legal basis для cross-border transfer (GDPR Chapter V): Standard Contractual Clauses (SCCs) или Binding Corporate Rules (BCRs). Без legal transfer mechanism вся передача незаконна" },
+        { "id": "d", "text": "Security requirements -- encryption при передаче" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Без legal basis для cross-border transfer все остальные пункты DSA бессмысленны -- передача незаконна в принципе. GDPR Chapter V требует: (1) Adequacy decision (Россия не имеет) ИЛИ (2) Standard Contractual Clauses (SCCs) -- стандартные контрактные условия, утверждённые European Commission ИЛИ (3) Binding Corporate Rules (BCRs) -- для внутрикорпоративных передач. FinSecure использует BCRs (intra-group transfer) с дополнительными мерами: encryption, pseudonymization, data minimization. Purpose limitation (A), retention (B) и security (D) важны, но являются элементами DSA, который без legal transfer mechanism не имеет юридической силы. Повторите урок 07 (data sharing agreements) и M05 (GDPR cross-border).",
+      "hint": "GDPR Chapter V: cross-border data transfer. Россия не имеет adequacy decision. Какой mechanism нужен для intra-group transfer?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-07-q3",
+      "type": "multiple-choice",
+      "question": "Что является ПЕРВЫМ шагом при создании программы governance данных третьих сторон?",
+      "options": [
+        { "id": "a", "text": "Написать Data Sharing Agreement template" },
+        { "id": "b", "text": "Провести risk assessment всех вендоров" },
+        { "id": "c", "text": "Inventory: составить реестр всех third-party data sources -- кто отправляет данные, какие данные, через какой канал, на основании какого соглашения" },
+        { "id": "d", "text": "Установить quality monitoring на все внешние data feeds" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Невозможно управлять тем, что не инвентаризировано. Первый шаг -- inventory всех third-party data sources: (1) Кто: список вендоров, партнёров, API-провайдеров. (2) Что: какие данные поступают (PII? financial? health?). (3) Как: канал (API, SFTP, email CSV, marketplace). (4) На каком основании: есть ли DSA, контракт, SLA? BioGenesis обнаружила 8 внешних источников без governance-соглашений -- но сначала нужно было НАЙТИ все 8. DSA template (A), risk assessment (B) и quality monitoring (D) -- следующие шаги, но без inventory они не могут быть адресными. Повторите урок 07 (third-party risk assessment framework).",
+      "hint": "Нельзя управлять тем, что не знаешь. Что нужно сделать до risk assessment?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m07-07-q4",
+      "type": "true-false",
+      "question": "Если данные поступают от внешнего поставщика, ответственность за их качество лежит на поставщике, а не на принимающей организации.",
+      "correctAnswer": false,
+      "explanation": "Вендор отвечает за quality per SLA, но принимающая организация отвечает за governance на boundary: (1) Validation at ingestion -- проверка качества данных при поступлении. (2) Quarantine для failed records -- изоляция некачественных данных. (3) Предотвращение propagation -- недопуск некачественных данных downstream. BioGenesis не может обвинить вендора Lab #3, если invalid lab data (12% null patient_id) попадает в клинические анализы -- ingestion governance это ответственность BioGenesis. Аналогия: ресторан не может обвинить поставщика, если испорченные продукты попали к клиентам -- входной контроль качества обязателен. Повторите урок 07 (vendor data governance) и урок 06 (Create stage governance).",
+      "hint": "BioGenesis получает данные с 12% null patient_id. Данные попадают в clinical analysis. Кто виноват?",
+      "bloomLevel": "conceptual"
+    }
+  ]
+}
