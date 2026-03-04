@@ -51,7 +51,7 @@ import { ComplianceChecklist, PolicyTemplate } from '../../../components/diagram
 
 > **Для сравнения: FinSecure Bank (ФинСекьюр Банк)**
 >
-> FinSecure получает данные кредитного скоринга от внешнего бюро. SLA: accuracy >= 99.5%, delivery <= 6 часов после запроса, completeness 100% для обязательных полей. Penalty: если accuracy < 99.5% три месяца подряд -> расторжение контракта. Audit right: FinSecure проверяет scoring модель вендора ежегодно. Exit strategy: данные в стандартном MISMO формате, transition period 180 дней.
+> FinSecure получает данные кредитного скоринга от внешнего бюро. SLA: accuracy {'>='} 99.5%, delivery {'<='} 6 часов после запроса, completeness 100% для обязательных полей. Penalty: если accuracy {'<'} 99.5% три месяца подряд -- расторжение контракта. Audit right: FinSecure проверяет scoring модель вендора ежегодно. Exit strategy: данные в стандартном MISMO формате, transition period 180 дней.
 
 ## Data Sharing Agreements
 
