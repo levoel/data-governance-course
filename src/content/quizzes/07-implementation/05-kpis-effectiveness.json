@@ -1,0 +1,93 @@
+{
+  "lessonSlug": "07-implementation/05-kpis-effectiveness",
+  "moduleId": "07-implementation",
+  "_meta": {
+    "idPrefix": "dg-m07-05",
+    "description": "Use IDs: dg-m07-05-q1 through dg-m07-05-q4, dg-m07-05-code-1 (CC-33 YAML KPIs)"
+  },
+  "questions": [
+    {
+      "id": "dg-m07-05-q1",
+      "type": "multiple-choice",
+      "question": "DataTech отслеживает KPI 'Количество каталогизированных таблиц: 150'. VP Engineering доволен прогрессом. Data Steward Мария считает метрику бесполезной. Кто прав и почему?",
+      "options": [
+        { "id": "a", "text": "VP Engineering прав -- 150 таблиц это значительный прогресс" },
+        { "id": "b", "text": "Мария права -- это vanity metric: без контекста (150 из скольких? с каким quality метаданных?) число не информативно. Actionable KPI: '% critical production datasets с full metadata >= 90%'" },
+        { "id": "c", "text": "Оба правы -- число полезно для executive reporting, процент для operational" },
+        { "id": "d", "text": "Оба неправы -- нужно отслеживать только lagging indicators" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "150 каталогизированных таблиц -- vanity metric: (1) Не показывает coverage: 150 из 200 = 75%, но 150 из 500 = 30%. (2) Не различает critical и non-critical: все 50 необработанных могут быть critical PII-таблицы. (3) Не учитывает completeness: таблица 'в каталоге' с пустым description -- не каталогизирована. Actionable KPI: '% critical production datasets с full metadata (description, owner, classification, lineage) >= 90%'. Включает focus (critical), quality requirement (full metadata), target (90%), measurement (percentage). Повторите урок 5 (vanity metrics).",
+      "hint": "Абсолютное число без контекста (из скольких? какого качества?) -- vanity metric. Как добавить контекст?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-05-q2",
+      "type": "multiple-choice",
+      "question": "DataTech dashboard показывает Data Quality Score 92% (target 95%, amber). Какой следующий шаг для Data Council?",
+      "options": [
+        { "id": "a", "text": "Немедленно эскалировать к CEO -- target не достигнут" },
+        { "id": "b", "text": "Drill-down в KPI: определить какие модели не проходят checks, назначить owner для каждой проблемы, установить remediation deadline" },
+        { "id": "c", "text": "Изменить target на 90%, чтобы KPI стал green" },
+        { "id": "d", "text": "Игнорировать -- amber не критичен, подождать до следующего месяца" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Amber -- 'remediation zone': ниже target, но не критично. Правильные действия: (1) Drill-down: какие конкретно модели fail (например, 3 модели с freshness issues). (2) Root cause: почему (stale data? broken pipeline? missing check?). (3) Owner: кто исправит (Data Engineer Алексей -- freshness, Steward Мария -- metadata completeness). (4) Deadline: когда будет green (2 недели для 3 моделей). Эскалация к CEO (A) -- overreaction для amber. Снижение target (C) -- подрыв доверия к метрикам. Игнорирование (D) -- amber может стать red. Повторите урок 5 (threshold levels).",
+      "hint": "Amber = remediation plan. Не ignore, не panic. Drill-down -> root cause -> owner -> deadline.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-05-q3",
+      "type": "multiple-choice",
+      "question": "VP Engineering DataTech просит показать ROI governance-программы для CEO. Какая связь governance KPI -> business outcome наиболее убедительна?",
+      "options": [
+        { "id": "a", "text": "'Catalog Coverage вырос с 0% до 85%' -- показывает прогресс каталогизации" },
+        { "id": "b", "text": "'Duplicate Rate снизился с 15% до 2%, что эквивалентно экономии 3.25M RUB/год на маркетинговых кампаниях и операционных затратах'" },
+        { "id": "c", "text": "'Провели 12 заседаний Data Council и написали 7 политик' -- демонстрирует активность" },
+        { "id": "d", "text": "'100% PII-таблиц классифицированы' -- показывает compliance-прогресс" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "CEO интересует бизнес-impact, не governance-метрики. 'Catalog Coverage 85%' (A) -- governance metric без бизнес-контекста (CEO спросит: 'И что?'). '12 заседаний и 7 политик' (C) -- activities, not outcomes. '100% PII classified' (D) -- compliance metric, но без финансового impact. 'Duplicate Rate 15% -> 2% = 3.25M RUB/год экономии' (B) -- governance KPI, привязанный к бизнес-outcome через конкретную сумму. Формула: 500K клиентов * (15%-2%) * 50 RUB/операция = 3.25M. Повторите урок 5 (connecting KPIs to business outcomes).",
+      "hint": "CEO не знает, что такое Catalog Coverage. CEO понимает 'экономия 3.25M RUB/год'. Как связать?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-05-q4",
+      "type": "true-false",
+      "question": "Leading indicators (опережающие показатели) менее ценны, чем lagging indicators (запаздывающие), потому что не показывают реальные результаты.",
+      "correctAnswer": false,
+      "explanation": "Leading indicators не менее ценны -- они дополняют lagging indicators. Leading позволяют предотвратить проблемы: если Catalog Coverage (leading) падает с 85% до 70%, это предсказывает рост Time to Data (lagging) через 1-2 месяца. Если Training Completion (leading) = 60%, предсказывает рост Policy Violations (lagging). Отслеживать только lagging -- это 'management by rear-view mirror': узнаёте о проблеме после того, как она произошла. Эффективная программа: 50% leading + 50% lagging indicators. Повторите урок 5 (leading vs lagging).",
+      "hint": "Leading предсказывает. Lagging фиксирует. Если вы хотите предотвращать проблемы, а не только фиксировать -- какой тип нужен?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-05-code-1",
+      "type": "code-challenge",
+      "question": "Создайте YAML-файл с governance KPI definitions для DataTech. Определите минимум 6 KPIs, покрывающих категории: quality, metadata, privacy, security. Каждый KPI должен содержать: id, name, category, description, formula, data_source, target, thresholds (green/amber/red), owner и frequency.",
+      "language": "yaml",
+      "starterCode": "governance_kpis:\n  version: \"1.0\"\n  review_cycle: quarterly\n\n  kpis:\n    - id: KPI-01\n      name: # TODO\n      category: quality\n      description: # TODO\n      formula: # TODO\n      data_source: # TODO\n      target: # TODO\n      thresholds:\n        green: # TODO\n        amber: # TODO\n        red: # TODO\n      owner: # TODO\n      frequency: # TODO\n\n    # TODO: Add 5+ more KPIs covering metadata, privacy, security categories",
+      "solutionCode": "governance_kpis:\n  version: \"1.0\"\n  review_cycle: quarterly\n\n  kpis:\n    - id: KPI-01\n      name: Data Quality Score\n      category: quality\n      description: \"Weighted average of quality dimension scores across critical datasets\"\n      formula: \"sum(dimension_score * weight) / sum(weights)\"\n      data_source: \"Great Expectations validation results\"\n      target: 0.95\n      thresholds:\n        green: \">= 0.95\"\n        amber: \">= 0.85\"\n        red: \"< 0.85\"\n      owner: Data Steward\n      frequency: weekly\n\n    - id: KPI-02\n      name: Catalog Coverage\n      category: metadata\n      description: \"Percentage of production datasets registered in data catalog with complete metadata\"\n      formula: \"cataloged_datasets / total_production_datasets\"\n      data_source: \"OpenMetadata API + infrastructure inventory\"\n      target: 0.90\n      thresholds:\n        green: \">= 0.90\"\n        amber: \">= 0.70\"\n        red: \"< 0.70\"\n      owner: Data Steward\n      frequency: monthly\n\n    - id: KPI-03\n      name: PII Inventory Completeness\n      category: privacy\n      description: \"Percentage of data assets containing PII that are identified and classified\"\n      formula: \"classified_pii_assets / total_pii_assets\"\n      data_source: \"Data catalog PII scan results\"\n      target: 1.00\n      thresholds:\n        green: \">= 0.95\"\n        amber: \">= 0.80\"\n        red: \"< 0.80\"\n      owner: DPO\n      frequency: monthly\n\n    - id: KPI-04\n      name: Access Review Compliance\n      category: security\n      description: \"Percentage of access reviews completed on schedule\"\n      formula: \"completed_reviews / scheduled_reviews\"\n      data_source: \"Access management system audit log\"\n      target: 1.00\n      thresholds:\n        green: \">= 0.95\"\n        amber: \">= 0.80\"\n        red: \"< 0.80\"\n      owner: Security Team\n      frequency: quarterly\n\n    - id: KPI-05\n      name: Incident Response Time\n      category: security\n      description: \"Average time from data incident detection to resolution\"\n      formula: \"avg(resolution_time - detection_time)\"\n      data_source: \"Incident management system\"\n      target: 24\n      unit: hours\n      thresholds:\n        green: \"<= 24\"\n        amber: \"<= 48\"\n        red: \"> 48\"\n      owner: CDO\n      frequency: per-incident\n\n    - id: KPI-06\n      name: Policy Compliance Rate\n      category: governance\n      description: \"Percentage of data processes that comply with published governance policies\"\n      formula: \"compliant_processes / audited_processes\"\n      data_source: \"Governance audit results\"\n      target: 0.90\n      thresholds:\n        green: \">= 0.90\"\n        amber: \">= 0.75\"\n        red: \"< 0.75\"\n      owner: CDO\n      frequency: quarterly",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "File defines at least 6 KPIs with all required fields",
+          "expectedOutput": "Valid KPI definitions: >= 6 KPIs, each with id, name, category, description, formula, data_source, target, thresholds, owner, frequency"
+        },
+        {
+          "id": "tc2",
+          "description": "KPIs cover at least 4 categories and all thresholds have green, amber, red levels",
+          "expectedOutput": "Valid categories: >= 4 distinct categories. All KPIs have green, amber, red thresholds"
+        },
+        {
+          "id": "tc3",
+          "description": "Each KPI has a non-empty formula and specific data_source",
+          "expectedOutput": "Valid formulas: all KPIs have non-empty formula and data_source fields",
+          "hidden": true
+        }
+      ],
+      "explanation": "Governance KPI definitions -- формальные определения метрик для мониторинга эффективности программы. Каждый KPI включает: измеримую формулу, конкретный источник данных, target и thresholds (traffic light). 4 категории обеспечивают покрытие всех аспектов governance: quality, metadata, privacy, security.",
+      "hint": "Минимум 6 KPIs. Каждый: id (KPI-01..06), name, category (quality/metadata/privacy/security/governance), description, formula (как вычисляется), data_source (откуда данные), target, thresholds (green/amber/red), owner, frequency.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "lessonSlug": "07-implementation/04-implementation-roadmap",
+  "moduleId": "07-implementation",
+  "_meta": {
+    "idPrefix": "dg-m07-04",
+    "description": "Use IDs: dg-m07-04-q1 through dg-m07-04-q4, dg-m07-04-code-1 (CC-32 YAML Roadmap)"
+  },
+  "questions": [
+    {
+      "id": "dg-m07-04-q1",
+      "type": "multiple-choice",
+      "question": "DataTech CTO предлагает 'big bang' подход: за 3 месяца внедрить каталог данных, quality checks, RBAC, compliance-процессы и обучение. VP Engineering считает это нереалистичным. Почему 'big bang' -- анти-паттерн?",
+      "options": [
+        { "id": "a", "text": "Big bang требует слишком большой команды -- DataTech не может нанять 10 человек" },
+        { "id": "b", "text": "Параллельное внедрение всех компонентов приводит к тому, что ни один не доводится до рабочего состояния, команда выгорает, stakeholders теряют доверие" },
+        { "id": "c", "text": "Big bang невозможен технически -- инструменты нельзя развернуть параллельно" },
+        { "id": "d", "text": "Big bang подходит только для организаций Level 3+" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Big bang -- самая распространённая причина провала governance-программ: (1) Ресурсы размазываются по 5+ инициативам -- ни одна не получает достаточно внимания. (2) Нет quick wins -- stakeholders не видят прогресса 3 месяца, теряют доверие. (3) Команда из 7 человек (DataTech) не может параллельно внедрять каталог, quality, RBAC, compliance и проводить обучение. (4) Нет baseline для измерения прогресса. Фазированный подход: Phase 1 (charter + quick wins) -> Phase 2 (catalog + quality) -> Phase 3 (security + compliance) -> Phase 4 (optimization). Повторите урок 4 (common pitfalls).",
+      "hint": "Команда DataTech -- 7 человек. Сколько инициатив они могут вести параллельно без потери качества?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-04-q2",
+      "type": "multiple-choice",
+      "question": "DataTech планирует Phase 2 (Core). Milestone 'Data Catalog launched' имеет dependency на milestone 'Data Stewards assigned' из Phase 1. Почему эта зависимость критична?",
+      "options": [
+        { "id": "a", "text": "Технически: каталог нельзя установить без Steward'а" },
+        { "id": "b", "text": "Организационно: без назначенных Stewards некому определить стандарты метаданных, приоритизировать datasets для каталогизации и обеспечить качество контента" },
+        { "id": "c", "text": "Бюджетно: Stewards одобряют закупку каталога" },
+        { "id": "d", "text": "Зависимость не критична -- Data Engineer может запустить каталог самостоятельно" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Каталог без Stewards -- технически работающий, но бесполезный инструмент. Stewards определяют: (1) Стандарты метаданных (какие поля обязательны: description, owner, classification, lineage). (2) Приоритет каталогизации (сначала 50 critical datasets, не все 200). (3) Качество контента (review описаний, корректность classification). Data Engineer (D) может deploy каталог, но не может принимать решения о бизнес-метаданных. Без Stewards каталог заполнится техническими метаданными (column types) без бизнес-контекста. Повторите урок 4 (dependencies).",
+      "hint": "Каталог -- это не только technology (deploy), но и content (метаданные). Кто отвечает за качество контента?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-04-q3",
+      "type": "multiple-choice",
+      "question": "FinSecure потратил 3 года на путь от Level 1 к Level 3. DataTech планирует тот же путь за 12 месяцев. Какой фактор НЕ объясняет разницу в сроках?",
+      "options": [
+        { "id": "a", "text": "Масштаб: DataTech 500 сотрудников vs FinSecure 2000+" },
+        { "id": "b", "text": "Инструменты: OpenMetadata и dbt стали зрелее, не существовали в начале пути FinSecure" },
+        { "id": "c", "text": "Бюджет: DataTech инвестирует больше денег в программу" },
+        { "id": "d", "text": "Обучение на ошибках: DataTech избегает анти-паттернов FinSecure (47 политик без enforcement)" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "DataTech инвестирует 1.5M RUB/год -- скромный бюджет по сравнению с FinSecure (enterprise Collibra, 5 full-time stewards, DGO из 5 человек). Бюджет DataTech меньше, но сроки короче, потому что: (1) Масштаб меньше: 200 таблиц vs 800+, 7 человек vs 30. (2) Инструменты зрелее: open-source OpenMetadata, dbt, GE не требуют enterprise-лицензий. (3) DataTech учится на ошибках FinSecure: начинает с 5-7 политик, а не 20+. Повторите урок 4 (maturity model и industry patterns).",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-04-q4",
+      "type": "true-false",
+      "question": "DataTech (e-commerce) и FinSecure (fintech) должны начинать governance-программу с одинаковых Phase 1 активностей, потому что governance универсален.",
+      "correctAnswer": false,
+      "explanation": "Governance-программа должна начинать с biggest pain point организации. DataTech (e-commerce, value-driven): Phase 1 фокусируется на quality (15% дубликатов стоят 3.75M RUB/год). FinSecure (fintech, regulatory-driven): Phase 1 фокусируется на compliance (152-ФЗ аудит, лицензионный риск). Универсальные элементы (charter, stewards) присутствуют в обеих Phase 1, но приоритеты и quick wins различаются. Повторите урок 4 (industry-specific patterns).",
+      "hint": "E-commerce страдает от дубликатов (деньги). Fintech страдает от compliance-рисков (лицензия). Одинаковые ли приоритеты?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-04-code-1",
+      "type": "code-challenge",
+      "question": "Создайте YAML governance implementation roadmap для DataTech Solutions с 4 фазами (Foundation, Core, Advanced, Optimization). Каждая фаза должна содержать минимум 2 milestones с deliverables, responsible role, success criteria и dependencies. Зависимости должны ссылаться на существующие milestone ID. Фазы должны быть последовательными по quarters.",
+      "language": "yaml",
+      "starterCode": "roadmap:\n  organization: DataTech Solutions\n  start_date: \"2025-Q1\"\n  end_date: \"2026-Q2\"\n\n  phases:\n    - name: Foundation\n      quarter: \"2025-Q1\"\n      milestones:\n        - id: F1\n          name: # TODO\n          deliverables: []\n          responsible: # TODO\n          success_criteria: # TODO\n        - id: F2\n          name: # TODO\n          deliverables: []\n          responsible: # TODO\n          success_criteria: # TODO\n          depends_on: []\n\n    - name: Core\n      quarter: \"2025-Q2\"\n      milestones:\n        # TODO: Add milestones\n\n    - name: Advanced\n      quarter: \"2025-Q3\"\n      milestones:\n        # TODO: Add milestones\n\n    - name: Optimization\n      quarter: \"2026-Q1\"\n      milestones:\n        # TODO: Add milestones",
+      "solutionCode": "roadmap:\n  organization: DataTech Solutions\n  start_date: \"2025-Q1\"\n  end_date: \"2026-Q2\"\n\n  phases:\n    - name: Foundation\n      quarter: \"2025-Q1\"\n      milestones:\n        - id: F1\n          name: Governance charter approved\n          deliverables:\n            - Charter document\n            - RACI matrix\n          responsible: CDO\n          success_criteria: \"Charter signed by all council members\"\n        - id: F2\n          name: Data steward roles assigned\n          deliverables:\n            - Role descriptions\n            - Steward training plan\n          responsible: CDO\n          success_criteria: \"3+ stewards assigned and trained\"\n          depends_on: [F1]\n\n    - name: Core\n      quarter: \"2025-Q2\"\n      milestones:\n        - id: C1\n          name: Data catalog launched\n          deliverables:\n            - Catalog platform deployed\n            - Top 50 datasets cataloged\n          responsible: Data Steward\n          success_criteria: \"50+ datasets with complete metadata\"\n          depends_on: [F2]\n        - id: C2\n          name: Quality monitoring active\n          deliverables:\n            - Quality checks on critical pipelines\n            - Alert configuration\n          responsible: Data Engineer\n          success_criteria: \"95%+ quality on critical datasets\"\n          depends_on: [C1]\n\n    - name: Advanced\n      quarter: \"2025-Q3\"\n      milestones:\n        - id: A1\n          name: Privacy compliance verified\n          deliverables:\n            - PII inventory complete\n            - Consent management active\n          responsible: DPO\n          success_criteria: \"152-FZ audit passed\"\n          depends_on: [C1, C2]\n        - id: A2\n          name: Access control automated\n          deliverables:\n            - RBAC policies in production\n            - Audit logging active\n          responsible: Data Engineer\n          success_criteria: \"Zero unauthorized access incidents\"\n          depends_on: [A1]\n\n    - name: Optimization\n      quarter: \"2026-Q1\"\n      milestones:\n        - id: O1\n          name: Governance metrics dashboard\n          deliverables:\n            - KPI dashboard live\n            - Monthly reporting automated\n          responsible: Business Analyst\n          success_criteria: \"All 4 charter KPIs tracked automatically\"\n          depends_on: [A2]\n        - id: O2\n          name: Program maturity assessment\n          deliverables:\n            - Maturity model self-assessment\n            - Improvement plan for Level 3\n          responsible: CDO\n          success_criteria: \"Level 2 achieved; Level 3 plan approved\"\n          depends_on: [O1]",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Roadmap has 4 phases, each with at least 2 milestones with required fields",
+          "expectedOutput": "Valid roadmap: 4 phases, each with >= 2 milestones containing id, name, deliverables, responsible, success_criteria"
+        },
+        {
+          "id": "tc2",
+          "description": "Dependencies reference existing milestone IDs and phases are sequential by quarter",
+          "expectedOutput": "Valid dependencies: all depends_on references exist as milestone IDs. Phases are in chronological quarter order"
+        },
+        {
+          "id": "tc3",
+          "description": "Each milestone has at least 2 deliverables and a non-empty success criteria",
+          "expectedOutput": "Valid content: all milestones have >= 2 deliverables and non-empty success_criteria",
+          "hidden": true
+        }
+      ],
+      "explanation": "Implementation Roadmap -- пошаговый план внедрения governance. 4 фазы: Foundation (люди и процессы), Core (инфраструктура), Advanced (расширение), Optimization (зрелость). Dependencies обеспечивают правильную последовательность: нельзя запускать каталог без назначенных Stewards.",
+      "hint": "4 фазы по quarters. Каждая фаза -- минимум 2 milestones. Каждый milestone: id (F1, C1, A1, O1...), name, deliverables (список), responsible, success_criteria. depends_on ссылается на ID из предыдущих фаз.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

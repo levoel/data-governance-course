@@ -1,0 +1,92 @@
+{
+  "lessonSlug": "07-implementation/03-governance-charter",
+  "moduleId": "07-implementation",
+  "_meta": {
+    "idPrefix": "dg-m07-03",
+    "description": "Use IDs: dg-m07-03-q1 through dg-m07-03-q4, dg-m07-03-code-1 (CC-31 JSON Charter)"
+  },
+  "questions": [
+    {
+      "id": "dg-m07-03-q1",
+      "type": "multiple-choice",
+      "question": "DataTech создаёт Governance Charter. VP Engineering написал Mission: 'Улучшить данные компании'. Какая проблема с этой формулировкой и как её исправить?",
+      "options": [
+        { "id": "a", "text": "Формулировка неизмерима и неконкретна. Правильно: 'Обеспечить качество, безопасность и compliance данных DataTech для data-driven решений'" },
+        { "id": "b", "text": "Формулировка слишком короткая. Нужно написать 2-3 абзаца о целях программы" },
+        { "id": "c", "text": "Mission должна содержать конкретные KPI targets (95% quality, 90% coverage)" },
+        { "id": "d", "text": "Проблемы нет -- Mission должна быть краткой и общей" }
+      ],
+      "correctAnswer": "a",
+      "explanation": "'Улучшить данные' -- не mission, а пожелание. Mission должна содержать: (1) что делаем (обеспечить качество, безопасность, compliance), (2) для кого (DataTech Solutions), (3) зачем (для data-driven решений). KPI targets (C) -- это секция Metrics, не Mission. Длинное описание (B) -- это Scope, не Mission. Mission -- одно чёткое предложение. Повторите урок 3 (компоненты Charter).",
+      "hint": "Mission -- одно предложение с 'что', 'для кого' и 'зачем'. KPI targets -- отдельная секция.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m07-03-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure имеет 47 governance-политик, 12 из которых не обновлялись более 2 лет, а 8 противоречат друг другу. Какой принципиальный governance-процесс отсутствует?",
+      "options": [
+        { "id": "a", "text": "Scheduled Review Process: ежегодный полный пересмотр + event-driven updates при изменениях. С semantic versioning для отслеживания изменений" },
+        { "id": "b", "text": "Автоматический enforcement всех 47 политик через Policy-as-Code" },
+        { "id": "c", "text": "Наём дополнительных Data Stewards для поддержки политик" },
+        { "id": "d", "text": "Удаление устаревших политик и сокращение до 10 ключевых" }
+      ],
+      "correctAnswer": "a",
+      "explanation": "Root cause -- отсутствие Scheduled Review Process. 12 политик устарели, потому что нет механизма регулярного пересмотра. 8 противоречий, потому что нет cross-check при создании новых политик. Решение: (1) Ежегодный полный пересмотр каждой политики. (2) Event-driven review при изменениях (новый регулятор, M&A, инцидент). (3) Semantic versioning (major/minor/patch) для отслеживания. (4) Owner каждой политики отвечает за актуальность. Policy-as-Code (B) важен, но не решает проблему устаревания. Повторите урок 3 (версионирование).",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-03-q3",
+      "type": "multiple-choice",
+      "question": "В Escalation Process DataTech определены 4 уровня: L1 (Steward, 24ч), L2 (CDO, 48ч), L3 (Council, 1 неделя), L4 (Executive Sponsor, 2 недели). Какой уровень эскалации для ситуации: маркетинг и инженеры спорят о naming convention для customer_id vs client_id?",
+      "options": [
+        { "id": "a", "text": "L1 -- Data Steward решает за 24 часа, это его ответственность" },
+        { "id": "b", "text": "L2 -- CDO решает кросс-функциональный конфликт за 48 часов" },
+        { "id": "c", "text": "L3 -- Governance Council обсуждает на ежемесячном заседании" },
+        { "id": "d", "text": "L4 -- Executive Sponsor утверждает стандарт" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Naming convention conflict между доменами (маркетинг vs инженеры) -- это L2: кросс-функциональный конфликт, не решаемый одним Steward. CDO (или и.о. VP Engineering) имеет полномочия принять решение за обе стороны в течение 48 часов. L1 (A) -- Steward не имеет полномочий над другим доменом. L3 (C) -- Council заседает ежемесячно, ждать слишком долго для naming convention. L4 (D) -- Executive Sponsor для бюджетных и организационных решений, не технических стандартов. Повторите урок 3 (Escalation Process).",
+      "hint": "Кросс-функциональный конфликт между доменами -- какой уровень имеет полномочия над обоими доменами?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m07-03-q4",
+      "type": "true-false",
+      "question": "DataTech должна создать минимум 20 governance-политик в Phase 1, чтобы обеспечить полное покрытие всех доменов данных.",
+      "correctAnswer": false,
+      "explanation": "20 политик в Phase 1 -- это anti-pattern 'Governance for Governance's Sake'. FinSecure создал 47 политик за 5 лет и обнаружил, что 12 устарели, а 8 противоречат. Рекомендация для DataTech на Phase 1: 5-7 ключевых политик, каждая решающая конкретную бизнес-проблему (classification, naming, quality thresholds, access, incident response). Каждая политика -- с automated enforcement. Лучше 5 работающих политик, чем 20 бумажных. Повторите урок 3 (policy writing лучшие практики).",
+      "hint": "Вспомните FinSecure: 47 политик, но enforcement неоднородный. Количество политик = качество governance?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-03-code-1",
+      "type": "code-challenge",
+      "question": "Создайте JSON-структуру Governance Charter для DataTech Solutions. Charter должен включать все обязательные секции: mission, scope (in_scope и out_of_scope), principles (минимум 4), organizational_structure (governance_council, data_stewards, meeting_cadence), decision_rights (минимум 3 домена), escalation_process (минимум 3 уровня), metrics (минимум 3 KPIs) и review_schedule.",
+      "language": "json",
+      "starterCode": "{\n  \"charter\": {\n    \"organization\": \"\",\n    \"version\": \"\",\n    \"effective_date\": \"\",\n    \"mission\": \"\",\n    \"scope\": {},\n    \"principles\": [],\n    \"organizational_structure\": {},\n    \"decision_rights\": [],\n    \"escalation_process\": {},\n    \"metrics\": [],\n    \"review_schedule\": \"\"\n  }\n}",
+      "solutionCode": "{\n  \"charter\": {\n    \"organization\": \"DataTech Solutions\",\n    \"version\": \"1.0\",\n    \"effective_date\": \"2025-01-01\",\n    \"mission\": \"Establish enterprise-wide data governance to ensure data quality, security, and compliance while enabling data-driven decision making\",\n    \"scope\": {\n      \"in_scope\": [\"All production databases\", \"Analytics warehouse\", \"ML model training data\", \"Customer-facing data\"],\n      \"out_of_scope\": [\"Development/sandbox environments\", \"Third-party SaaS data\"]\n    },\n    \"principles\": [\n      \"Data is a shared organizational asset\",\n      \"Data quality is everyone's responsibility\",\n      \"Privacy by design in all data systems\",\n      \"Minimum necessary access principle\",\n      \"Transparency in data usage and lineage\"\n    ],\n    \"organizational_structure\": {\n      \"governance_council\": {\"chair\": \"CDO\", \"members\": [\"VP Engineering\", \"VP Analytics\", \"Legal Counsel\", \"DPO\"]},\n      \"data_stewards\": {\"reporting_to\": \"CDO\", \"embedded_in\": [\"Engineering\", \"Analytics\", \"Marketing\"]},\n      \"meeting_cadence\": \"monthly\"\n    },\n    \"decision_rights\": [\n      {\"domain\": \"Data classification\", \"decision_maker\": \"Data Steward\", \"approver\": \"CDO\"},\n      {\"domain\": \"Access requests\", \"decision_maker\": \"Data Steward\", \"approver\": \"DPO\"},\n      {\"domain\": \"Quality thresholds\", \"decision_maker\": \"Data Engineer\", \"approver\": \"Data Steward\"},\n      {\"domain\": \"Policy changes\", \"decision_maker\": \"CDO\", \"approver\": \"Governance Council\"}\n    ],\n    \"escalation_process\": {\n      \"levels\": [\n        {\"level\": 1, \"handler\": \"Data Steward\", \"sla_hours\": 24},\n        {\"level\": 2, \"handler\": \"CDO\", \"sla_hours\": 48},\n        {\"level\": 3, \"handler\": \"Governance Council\", \"sla_hours\": 168}\n      ]\n    },\n    \"metrics\": [\n      {\"name\": \"Data quality score\", \"target\": \">= 0.95\", \"frequency\": \"weekly\"},\n      {\"name\": \"Policy compliance rate\", \"target\": \">= 0.90\", \"frequency\": \"monthly\"},\n      {\"name\": \"Catalog coverage\", \"target\": \">= 0.80\", \"frequency\": \"quarterly\"},\n      {\"name\": \"Incident response time\", \"target\": \"<= 24 hours\", \"frequency\": \"per-incident\"}\n    ],\n    \"review_schedule\": \"annual\"\n  }\n}",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Charter has all required sections with non-empty values",
+          "expectedOutput": "{\"valid\":true,\"required_sections\":[\"mission\",\"scope\",\"principles\",\"organizational_structure\",\"decision_rights\",\"escalation_process\",\"metrics\",\"review_schedule\"]}"
+        },
+        {
+          "id": "tc2",
+          "description": "Charter has minimum content: 4+ principles, 3+ decision rights, 3+ escalation levels, 3+ metrics",
+          "expectedOutput": "{\"valid\":true,\"minimums\":{\"principles\":\">=4\",\"decision_rights\":\">=3\",\"escalation_levels\":\">=3\",\"metrics\":\">=3\"}}"
+        },
+        {
+          "id": "tc3",
+          "description": "Escalation levels are sequential and have SLA hours",
+          "expectedOutput": "{\"valid\":true,\"escalation_sequential\":true,\"all_have_sla\":true}",
+          "hidden": true
+        }
+      ],
+      "explanation": "Governance Charter -- формальный документ, закрепляющий основу governance-программы. Все секции обязательны: mission определяет цель, scope -- границы, principles -- философию, organizational_structure -- кто участвует, decision_rights -- кто решает, escalation -- как разрешать конфликты, metrics -- как измерять успех, review_schedule -- когда пересматривать.",
+      "hint": "Заполните все секции. Mission -- одно предложение. Scope включает in_scope и out_of_scope. Principles -- минимум 4. Decision rights -- domain, decision_maker, approver. Escalation -- levels с handler и sla_hours.",
+      "bloomLevel": "applied"
+    }
+  ]
+}

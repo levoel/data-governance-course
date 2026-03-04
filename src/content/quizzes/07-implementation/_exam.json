@@ -3,34 +3,152 @@
   "moduleId": "07-implementation",
   "_meta": {
     "idPrefix": "dg-exam-m07",
-    "description": "Use IDs: dg-exam-m07-q1, dg-exam-m07-q2, ... (8-12 analytical questions)"
+    "description": "Use IDs: dg-exam-m07-q1 through dg-exam-m07-q10 (10 analytical questions)"
   },
   "questions": [
     {
-      "id": "dg-exam-07-implementation-placeholder",
+      "id": "dg-exam-m07-q1",
       "type": "multiple-choice",
-      "question": "Placeholder -- будет заменён в следующих фазах",
+      "question": "DataTech (Level 1, 500 сотрудников) запускает governance-программу. VP Engineering предлагает top-down с наймом CDO. Data Engineer Алексей предлагает bottom-up с документированием таблиц. CEO готов выделить бюджет, но хочет результаты за 3 месяца. Какая стратегия оптимальна?",
       "options": [
-        {
-          "id": "a",
-          "text": "Вариант A"
-        },
-        {
-          "id": "b",
-          "text": "Вариант B"
-        },
-        {
-          "id": "c",
-          "text": "Вариант C"
-        },
-        {
-          "id": "d",
-          "text": "Вариант D"
-        }
+        { "id": "a", "text": "Top-down: нанять CDO, создать DGO, утвердить 20 политик, внедрить каталог за 3 месяца" },
+        { "id": "b", "text": "Bottom-up: Алексей документирует таблицы и добавляет quality checks, без формальной программы" },
+        { "id": "c", "text": "Гибридный: VP Engineering как и.о. CDO (top-down sponsorship) + Алексей начинает quick wins (bottom-up практика): quality checks за 2 недели -> обнаружение дубликатов -> бизнес-кейс для CEO" },
+        { "id": "d", "text": "Отложить на 6 месяцев: сначала нанять CDO, затем начинать" }
       ],
-      "correctAnswer": "a",
-      "explanation": "Placeholder question -- будет заменён полноценным содержанием.",
-      "bloomLevel": "conceptual"
+      "correctAnswer": "c",
+      "explanation": "Гибридный подход решает все constraint'ы: (1) CEO хочет результаты за 3 месяца -- quick wins (обнаружение 15% дубликатов) дадут результат за 2-4 недели. (2) Бюджет есть -- VP Eng формализуется как и.о. CDO. (3) Алексей готов -- начинает bottom-up немедленно. Top-down (A) требует 6+ месяцев на найм CDO + big bang за 3 месяца = провал. Bottom-up (B) без executive sponsorship не обеспечит кросс-функциональность. Повторите уроки 1 (подходы) и 2 (stakeholder engagement).",
+      "hint": "CEO хочет результаты за 3 месяца. Quick wins дают результат за 2-4 недели. Кто обеспечит executive sponsorship?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m07-q2",
+      "type": "multiple-choice",
+      "question": "DataTech создаёт RACI-матрицу. На активность 'Внедрение каталога данных' назначены: CDO (A), Data Steward (R), Data Engineer (R), Legal (I), Marketing (C). Нарушены ли правила RACI?",
+      "options": [
+        { "id": "a", "text": "Нарушены: два Responsible (Steward и Engineer) на одну активность" },
+        { "id": "b", "text": "Не нарушены: может быть несколько Responsible, если один Accountable. CDO (A) несёт конечную ответственность, Steward и Engineer делят исполнение" },
+        { "id": "c", "text": "Нарушены: CDO не может быть Accountable за техническую задачу" },
+        { "id": "d", "text": "Нарушены: Marketing не должен быть Consulted для каталога" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Правила RACI: (1) ровно один A на активность -- выполнено (CDO). (2) Хотя бы один R -- выполнено (два R: Steward + Engineer). Несколько R допустимы: Steward отвечает за бизнес-метаданные (descriptions, classification), Engineer -- за техническое развёртывание (OpenMetadata deploy, connectors). CDO как A (C неверно) -- корректно: CDO несёт ответственность за результат каталогизации. Marketing как C -- корректно: маркетинг консультируется о потребностях в данных клиентов. Повторите урок 2 (RACI правила).",
+      "hint": "Перечислите правила RACI: (1) один A, (2) минимум один R. Может ли быть несколько R?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m07-q3",
+      "type": "multiple-choice",
+      "question": "FinSecure обнаружил, что 8 из 47 governance-политик противоречат друг другу: Policy #14 требует хранить данные клиентов 7 лет, Policy #31 -- 5 лет. Какая root cause и как исправить?",
+      "options": [
+        { "id": "a", "text": "Root cause: слишком много политик. Решение: сократить до 10" },
+        { "id": "b", "text": "Root cause: отсутствие scheduled review process и cross-check при создании новых политик. Решение: ежегодный полный review + semantic versioning + cross-reference matrix" },
+        { "id": "c", "text": "Root cause: разные авторы политик. Решение: один автор для всех политик" },
+        { "id": "d", "text": "Root cause: юридический отдел не проверял политики. Решение: все политики через Legal" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Противоречия возникают когда политики создаются изолированно, без проверки на consistency с существующими. Root cause: (1) Нет scheduled review -- 12 политик не обновлялись 2+ лет. (2) Нет cross-check -- новая политика не проверяется на противоречия с существующими. Решение: (1) Ежегодный review каждой политики с обязательным пересмотром. (2) Semantic versioning (major/minor/patch) для отслеживания. (3) Cross-reference matrix: таблица пересечений между политиками для выявления конфликтов. Сокращение (A) -- может потерять нужные политики. Один автор (C) -- бутылочное горлышко. Повторите урок 3 (версионирование и обслуживание).",
+      "hint": "8 противоречий + 12 не обновлялись = отсутствие какого процесса?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m07-q4",
+      "type": "multiple-choice",
+      "question": "DataTech в Phase 2 внедряет каталог данных. Data Steward ещё не назначен (Phase 1 задержалась). Data Engineer предлагает: 'Давайте запустим каталог без Steward -- я загружу все 200 таблиц.' Почему это рискованно?",
+      "options": [
+        { "id": "a", "text": "Технический риск: каталог не будет работать без Steward" },
+        { "id": "b", "text": "Организационный риск: без Steward нет стандартов метаданных, приоритизации datasets, review качества контента. Каталог заполнится техническими метаданными (column types) без бизнес-контекста" },
+        { "id": "c", "text": "Бюджетный риск: Steward должен одобрить покупку каталога" },
+        { "id": "d", "text": "Compliance-риск: без Steward каталог нарушает 152-ФЗ" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Каталог без Steward -- технически работающий, но бесполезный инструмент: (1) Нет стандартов метаданных: Engineer загрузит column names и types, но не descriptions, не classification, не owner. (2) Нет приоритизации: 200 таблиц -- какие первые? Без Steward Engineer каталогизирует по алфавиту, а не по критичности. (3) Нет quality review: метаданные не проверяются на корректность. Зависимость Phase 2 от Phase 1 (Stewards) -- не бюрократия, а обеспечение ценности. Повторите уроки 2 (roles) и 4 (dependencies).",
+      "hint": "Каталог = technology + content. Engineer обеспечит technology. Кто обеспечит quality content?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m07-q5",
+      "type": "multiple-choice",
+      "question": "DataTech dashboard показывает: Data Quality Score 92% (amber), Catalog Coverage 85% (amber), PII Classification 100% (green), Policy Compliance 88% (amber). Три KPI в amber. Как Data Council должен приоритизировать remediation?",
+      "options": [
+        { "id": "a", "text": "Все три одновременно -- amber не критичен, можно работать параллельно" },
+        { "id": "b", "text": "Policy Compliance первый -- без compliance нет governance" },
+        { "id": "c", "text": "Data Quality Score первый -- ближе всего к target (92% vs 95%), быстрее достигается green. Затем Catalog Coverage, затем Policy Compliance" },
+        { "id": "d", "text": "Catalog Coverage первый -- это leading indicator, улучшение которого потянет за собой quality и compliance" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Приоритизация по proximity-to-target и impact: (1) Data Quality Score: 92% -> 95% (gap 3%) -- наименьший gap, быстрый win. Root cause: 3 модели с freshness issues -- fix за 1-2 недели. (2) Catalog Coverage: 85% -> 90% (gap 5%) -- 10 таблиц нужно каталогизировать. (3) Policy Compliance: 88% -> 90% (gap 2%) -- но compliance fix обычно требует изменения процессов, не быстрый. Quick green на Quality Score поддерживает momentum. Параллельная работа (A) размывает фокус. Catalog как leading (D) -- логично, но Quality Score ближе к green. Повторите урок 5 (dashboard и remediation).",
+      "hint": "Какой KPI ближе всего к green? Быстрый win поддерживает momentum команды.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m07-q6",
+      "type": "multiple-choice",
+      "question": "FinSecure (fintech, regulatory-driven) начал governance с compliance: classification, access control, audit trail. DataTech (e-commerce, value-driven) начал с quality: дубликаты, quality checks, catalog. BioGenesis (healthcare, data-driven) начинает governance-программу. С чего BioGenesis должна начать Phase 1?",
+      "options": [
+        { "id": "a", "text": "С compliance, как FinSecure -- здравоохранение тоже зарегулировано (323-ФЗ, IRB)" },
+        { "id": "b", "text": "С quality, как DataTech -- качество данных универсально важно" },
+        { "id": "c", "text": "С quality и consent management: качество клинических данных критично для исследований, а consent management -- для IRB compliance" },
+        { "id": "d", "text": "С security -- медицинские данные требуют максимальной защиты" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "BioGenesis -- healthcare, data-driven: (1) Quality клинических данных -- existential requirement: исследования на некачественных данных не пройдут peer review и IRB. (2) Consent management -- IRB требует документированное согласие каждого пациента. Это не просто compliance -- без consent нет легальных данных для исследований. FinSecure-подход (A) -- compliance без quality не решает core problem BioGenesis. DataTech-подход (B) -- quality без consent не покрывает IRB requirements. Security (D) важен, но не biggest pain point. Повторите урок 4 (industry-specific patterns).",
+      "hint": "BioGenesis -- healthcare. Что является biggest pain point: compliance, quality или оба? Какой IRB requirement нельзя обойти?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m07-q7",
+      "type": "multiple-choice",
+      "question": "DataTech VP Engineering представляет quarterly executive report CEO. Какой формат наиболее эффективен?",
+      "options": [
+        { "id": "a", "text": "30-slide presentation со всеми 15 governance KPIs, trend charts и техническими деталями" },
+        { "id": "b", "text": "One-page executive summary: 5 key KPIs (traffic light), ROI calculation (governance KPI -> business outcome), 3 achievements, 2 risks, 1 decision required" },
+        { "id": "c", "text": "Email с таблицей KPIs без визуализации" },
+        { "id": "d", "text": "Verbal update на board meeting без документации" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "CEO имеет 5-10 минут на governance-обновление. One-page executive summary: (1) 5 KPIs с traffic light -- мгновенная оценка здоровья программы. (2) ROI: 'Duplicate Rate 15% -> 2% = 3.25M RUB/год экономии' -- бизнес-язык, понятный CEO. (3) Achievements -- momentum. (4) Risks -- transparency. (5) Decision required -- actionable. 30 slides (A) -- information overload, CEO потеряет внимание. Email (C) -- нет визуализации, трудно считывать status. Verbal (D) -- нет documentation, нет accountability. Повторите урок 5 (reporting cadence).",
+      "hint": "CEO имеет 5-10 минут. Какой формат максимизирует impact за минимальное время?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m07-q8",
+      "type": "true-false",
+      "question": "Если governance-программа DataTech достигла Level 3 за 12 месяцев, дальнейшие инвестиции в governance не нужны -- программа 'зрелая'.",
+      "correctAnswer": false,
+      "explanation": "Level 3 (Defined) -- не конечная точка, а этап. FinSecure на Level 3 имеет: (1) 12 устаревших политик, (2) enforcement неоднородный, (3) 2 Steward на 800+ таблиц. Level 3 означает 'стандартизированные процессы', но не 'оптимальные'. Level 4 (Measured) добавляет quantitative management, Level 5 (Optimizing) -- continuous improvement. Governance -- непрерывный процесс, не проект с финишной линией. Без продолжения инвестиций программа деградирует: политики устареют, quality checks перестанут обновляться, новые сотрудники не пройдут обучение. Повторите уроки 4 (maturity model) и 5 (KPIs).",
+      "hint": "Level 3 -- 'Defined'. А Level 4 -- 'Measured', Level 5 -- 'Optimizing'. Есть ли куда расти?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m07-q9",
+      "type": "multiple-choice",
+      "question": "DataTech планирует внедрить governance за 12 месяцев. В месяце 4 уходит VP Engineering (и.о. CDO). CEO не готов назначить нового CDO. Какое влияние на roadmap и как минимизировать risk?",
+      "options": [
+        { "id": "a", "text": "Программа закрывается -- без Executive Sponsor governance невозможен" },
+        { "id": "b", "text": "Roadmap задерживается на 6 месяцев до найма нового CDO" },
+        { "id": "c", "text": "Lead Data Engineer временно принимает governance leadership. Council продолжает работу. CEO информируется о risk. Roadmap Phase 2 продолжается, Phase 3 может задержаться из-за потери executive sponsorship" },
+        { "id": "d", "text": "Governance продолжается без изменений -- Council самодостаточен" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Потеря CDO -- серьёзный risk, но не фатальный, если: (1) Charter определил Escalation Process и Decision Rights -- процессы продолжают работать. (2) Lead Data Engineer принимает тактическое leadership: Phase 2 (catalog + quality) -- техническая работа, не требующая executive authority. (3) Council продолжает ежемесячные заседания. (4) CEO становится Executive Sponsor напрямую. Risk: Phase 3 (compliance, security) требует executive authority для кросс-функциональных изменений -- может задержаться. Закрытие (A) -- overreaction. 6-месячная задержка (B) -- теряет momentum. Без изменений (D) -- нереалистично, кто-то должен возглавить. Повторите уроки 1-3 (roles, sponsorship, charter).",
+      "hint": "Charter определил Decision Rights и Escalation. Какие решения может принимать Council без CDO? Какие -- нет?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m07-q10",
+      "type": "multiple-choice",
+      "question": "DataTech через 12 месяцев: Quality Score 95% (green), Catalog Coverage 90% (green), Policy Compliance 90% (green). Все KPIs в green. VP Engineering предлагает сократить ресурсы governance на 50%. Правильное ли это решение?",
+      "options": [
+        { "id": "a", "text": "Правильное -- KPIs достигнуты, governance работает автоматически" },
+        { "id": "b", "text": "Неправильное -- governance требует ongoing investment. Green KPIs -- результат текущих усилий. Сокращение на 50% приведёт к деградации за 3-6 месяцев: политики устареют, quality checks не обновятся, новые datasets не каталогизируются" },
+        { "id": "c", "text": "Частично правильное -- можно сократить на 30%, оставив минимальный maintenance" },
+        { "id": "d", "text": "Правильное -- но только если нанять внешнего consultant для maintenance" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Green KPIs не означают, что governance 'самоподдерживается'. Каждый green KPI -- результат ongoing effort: (1) Quality Score 95% -- quality checks обновляются при каждом изменении пайплайна. Новые модели без checks -> деградация. (2) Catalog Coverage 90% -- новые таблицы создаются регулярно. Без каталогизации -> coverage падает. (3) Policy Compliance 90% -- новые процессы и сотрудники. Без обучения и enforcement -> compliance падает. Governance -- continuous process, не one-time project. Сокращение на 50% приведёт к 'governance debt', аналогичному technical debt. Повторите уроки 4 (maturity model -- Level 4/5 требуют ongoing investment) и 5 (leading indicators предскажут деградацию).",
+      "hint": "Quality Score 95% -- результат чего? Что произойдёт с новыми пайплайнами, если quality checks перестанут обновляться?",
+      "bloomLevel": "analytical"
     }
   ]
 }

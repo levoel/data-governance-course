@@ -1,0 +1,92 @@
+{
+  "lessonSlug": "07-implementation/02-stakeholder-engagement",
+  "moduleId": "07-implementation",
+  "_meta": {
+    "idPrefix": "dg-m07-02",
+    "description": "Use IDs: dg-m07-02-q1 through dg-m07-02-q4, dg-m07-02-code-1 (CC-30 JSON RACI)"
+  },
+  "questions": [
+    {
+      "id": "dg-m07-02-q1",
+      "type": "multiple-choice",
+      "question": "Head of Marketing DataTech -- скептик с средним влиянием. После внедрения quality checks обнаружены 3,000 дубликатов клиентов, искажавших маркетинговую аналитику. Как это меняет позицию Head of Marketing в stakeholder map?",
+      "options": [
+        { "id": "a", "text": "Остаётся скептиком -- дубликаты не его проблема" },
+        { "id": "b", "text": "Переходит в 'сторонник' -- governance решил конкретную проблему маркетинга (искажённая аналитика)" },
+        { "id": "c", "text": "Переходит в 'чемпион' -- немедленно становится лидером governance" },
+        { "id": "d", "text": "Влияние увеличивается, но позиция не меняется" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Quick wins -- стратегия конвертации скептиков в сторонников. Обнаружение 3,000 дубликатов напрямую повлияло на маркетинг: ROI кампаний искажался (рассылки отправлялись дубликатам). Head of Marketing видит конкретную бизнес-ценность governance. 'Чемпион' (C) -- слишком сильная трансформация за один quick win; чемпионство требует активного продвижения программы. Повторите урок 2 (quick wins и change management).",
+      "hint": "Quick win должен решить конкретную проблему stakeholder'а. Дубликаты клиентов -- чья это проблема?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-02-q2",
+      "type": "multiple-choice",
+      "question": "В RACI-матрице DataTech на активность 'Проведение Privacy Impact Assessment' Legal назначен Accountable, а Marketing -- Responsible. Какая проблема с таким распределением?",
+      "options": [
+        { "id": "a", "text": "Marketing не имеет компетенций для проведения PIA -- Responsible должен быть Data Steward или DPO" },
+        { "id": "b", "text": "Legal не может быть Accountable -- только CDO несёт конечную ответственность" },
+        { "id": "c", "text": "На PIA нужен только один участник -- RACI избыточна" },
+        { "id": "d", "text": "Проблемы нет -- Marketing собирает данные клиентов, поэтому логично быть Responsible" }
+      ],
+      "correctAnswer": "a",
+      "explanation": "Privacy Impact Assessment (PIA) -- специализированная процедура, требующая знания 152-ФЗ, GDPR, классификации данных, оценки рисков. Marketing может быть Consulted (предоставить информацию о маркетинговых данных), но не Responsible (исполнитель). Responsible должен быть DPO или Data Steward с privacy-экспертизой. Legal как Accountable -- корректно: Legal несёт конечную ответственность за compliance. Повторите урок 2 (RACI правила).",
+      "hint": "Responsible -- тот, кто выполняет работу. PIA требует специализированных знаний. Есть ли у маркетинга такие знания?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-02-q3",
+      "type": "multiple-choice",
+      "question": "DataTech обнаруживает культурное сопротивление: DBA Игорь (7 лет опыта) отказывается заполнять метаданные таблиц в каталоге, называя это 'бюрократией'. Какая стратегия наиболее эффективна?",
+      "options": [
+        { "id": "a", "text": "Приказать через VP Engineering -- governance обязателен" },
+        { "id": "b", "text": "Назначить Игоря Domain Steward домена Products и показать, как каталог упростит его работу DBA (меньше ad-hoc запросов 'где эта таблица?')" },
+        { "id": "c", "text": "Игнорировать -- не все должны участвовать в governance" },
+        { "id": "d", "text": "Автоматизировать заполнение метаданных, чтобы Игорь не участвовал" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Назначение скептика экспертом -- мощная стратегия change management: (1) Игорь получает ownership (Domain Steward), что трансформирует восприятие из 'бюрократия мне' в 'моя ответственность'. (2) Показать бизнес-ценность: каталог сократит ad-hoc запросы к DBA (BI-аналитики найдут данные сами). (3) Экспертиза DBA (7 лет) незаменима для security и access control инициатив. Приказ (A) создаёт compliance без engagement. Игнорирование (C) теряет ключевого эксперта. Автоматизация (D) полезна, но не решает проблему вовлечённости.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m07-02-q4",
+      "type": "true-false",
+      "question": "Executive Sponsor governance-программы обязательно должен быть CDO. Если в организации нет CDO, программу нельзя запускать.",
+      "correctAnswer": false,
+      "explanation": "Executive Sponsor -- не обязательно CDO. Любой C-level руководитель с достаточным влиянием может выступить спонсором: CTO (DataTech), CEO (в малых компаниях), VP Engineering (как и.о. CDO). Ключевое -- полномочия и бюджет, а не конкретная должность. DataTech успешно запустила программу с VP Engineering как и.о. CDO и CEO как Executive Sponsor. Ожидание найма CDO задержало бы старт на 6+ месяцев. Повторите урок 2 (Executive Sponsorship).",
+      "hint": "Вспомните DataTech: кто выступил Executive Sponsor? Был ли CDO?",
+      "bloomLevel": "conceptual"
+    },
+    {
+      "id": "dg-m07-02-code-1",
+      "type": "code-challenge",
+      "question": "Создайте JSON RACI-матрицу для governance implementation activities DataTech. Определите 5 ролей (CDO, Data Steward, Data Engineer, DPO, Business Analyst) и 5 governance-активностей. Валидируйте: ровно один Accountable на активность, хотя бы один Responsible, все роли задействованы, нет пустых активностей.",
+      "language": "json",
+      "starterCode": "{\n  \"raci_matrix\": {\n    \"title\": \"\",\n    \"roles\": [],\n    \"activities\": []\n  }\n}",
+      "solutionCode": "{\n  \"raci_matrix\": {\n    \"title\": \"Data Governance Implementation RACI\",\n    \"roles\": [\"CDO\", \"Data Steward\", \"Data Engineer\", \"DPO\", \"Business Analyst\"],\n    \"activities\": [\n      {\n        \"name\": \"Define data classification policy\",\n        \"assignments\": {\"CDO\": \"A\", \"Data Steward\": \"R\", \"Data Engineer\": \"C\", \"DPO\": \"C\", \"Business Analyst\": \"I\"}\n      },\n      {\n        \"name\": \"Implement data catalog\",\n        \"assignments\": {\"CDO\": \"I\", \"Data Steward\": \"A\", \"Data Engineer\": \"R\", \"DPO\": \"I\", \"Business Analyst\": \"C\"}\n      },\n      {\n        \"name\": \"Configure quality checks\",\n        \"assignments\": {\"CDO\": \"I\", \"Data Steward\": \"C\", \"Data Engineer\": \"R\", \"DPO\": \"I\", \"Business Analyst\": \"A\"}\n      },\n      {\n        \"name\": \"Conduct privacy impact assessment\",\n        \"assignments\": {\"CDO\": \"I\", \"Data Steward\": \"C\", \"Data Engineer\": \"C\", \"DPO\": \"A\", \"Business Analyst\": \"R\"}\n      },\n      {\n        \"name\": \"Define data access policies\",\n        \"assignments\": {\"CDO\": \"A\", \"Data Steward\": \"R\", \"Data Engineer\": \"C\", \"DPO\": \"R\", \"Business Analyst\": \"I\"}\n      }\n    ]\n  },\n  \"validation\": {\n    \"single_accountable_per_activity\": true,\n    \"at_least_one_responsible_per_activity\": true,\n    \"all_roles_assigned\": true,\n    \"no_empty_activities\": true,\n    \"is_valid\": true\n  }\n}",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Policy has at least 5 rules with conditions and effects",
+          "expectedOutput": "{\"valid\":true,\"rules_count\":\">=5\",\"required_fields\":[\"id\",\"description\",\"effect\",\"conditions\"]}"
+        },
+        {
+          "id": "tc2",
+          "description": "Policy has both allow and deny effects and default_effect",
+          "expectedOutput": "{\"valid\":true,\"effects\":[\"allow\",\"deny\"],\"has_default\":true}"
+        },
+        {
+          "id": "tc3",
+          "description": "Rules reference user, resource, and environment attributes",
+          "expectedOutput": "{\"valid\":true,\"attribute_categories\":[\"user\",\"resource\",\"environment\"]}",
+          "hidden": true
+        }
+      ],
+      "explanation": "RACI-матрица -- инструмент для чёткого распределения ролей в governance. Правила валидации: (1) ровно один Accountable (A) на каждую активность -- нельзя размывать ответственность. (2) Хотя бы один Responsible (R) -- кто-то должен выполнять работу. (3) Все роли должны быть задействованы хотя бы в одной активности. (4) Нет пустых активностей.",
+      "hint": "Создайте минимум 5 активностей. Каждая должна иметь ровно одну роль с 'A' и хотя бы одну с 'R'. Все 5 ролей должны появиться хотя бы раз. Используйте значения: R, A, C, I.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}
