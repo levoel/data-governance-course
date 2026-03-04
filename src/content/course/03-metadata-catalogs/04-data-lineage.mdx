@@ -94,6 +94,18 @@ Pipeline-level lineage отвечает на вопрос: "в каком пор
   answer="Column-level lineage. Он покажет все downstream модели, где используется эта колонка: stg_customers.email_clean, mart_customers.email, и все отчёты. Table-level lineage покажет связанные таблицы, но не скажет, затронута ли конкретная колонка. Для этого изменения (расширение типа) column-level lineage покажет, что downstream модели не сломаются (VARCHAR(255) совместим с VARCHAR(100))."
 />
 
+> **Hands-On Lab: Catalog Lab**
+>
+> Practice these concepts with a real OpenMetadata instance and e-commerce dataset:
+>
+> ```bash
+> cd labs/catalog && cp .env.example .env && docker compose up -d
+> ```
+>
+> Open JupyterLab at [http://localhost:18888](http://localhost:18888) and complete **Notebook 04: Search and Lineage** -- explore table relationships, add lineage edges, and practice impact analysis in the catalog.
+>
+> **Requirements:** Docker Desktop with 6+ GB RAM allocated. See `labs/catalog/README.md` for full setup.
+
 ## Построение графа lineage
 
 Граф lineage -- это направленный ациклический граф (DAG), где:

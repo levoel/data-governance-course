@@ -32,6 +32,18 @@ import { AccessMatrix } from '../../../components/diagrams/governance';
 
 Оптимальный подход -- **гибридный**: автоматическое тегирование для baseline + ручной review для edge cases.
 
+> **Hands-On Lab: Catalog Lab**
+>
+> Practice these concepts with a real OpenMetadata instance and e-commerce dataset:
+>
+> ```bash
+> cd labs/catalog && cp .env.example .env && docker compose up -d
+> ```
+>
+> Open JupyterLab at [http://localhost:18888](http://localhost:18888) and complete **Notebook 03: Tagging and Classification** -- tag columns as PII, apply Tier classifications, and query tagged assets across the catalog.
+>
+> **Requirements:** Docker Desktop with 6+ GB RAM allocated. See `labs/catalog/README.md` for full setup.
+
 ## Rule-based тегирование
 
 Простейший подход -- правила на основе паттернов в именах колонок и таблиц:

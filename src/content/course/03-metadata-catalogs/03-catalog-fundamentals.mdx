@@ -60,6 +60,18 @@ import { ToolDeepDive } from '../../../components/diagrams/governance';
   />
 </FlowRow>
 
+> **Hands-On Lab: Catalog Lab**
+>
+> Practice these concepts with a real OpenMetadata instance and e-commerce dataset:
+>
+> ```bash
+> cd labs/catalog && cp .env.example .env && docker compose up -d
+> ```
+>
+> Open JupyterLab at [http://localhost:18888](http://localhost:18888) and complete **Notebook 01: Catalog Exploration** -- navigate the OpenMetadata UI, set up a PostgreSQL connector, and discover table metadata.
+>
+> **Requirements:** Docker Desktop with 6+ GB RAM allocated. See `labs/catalog/README.md` for full setup.
+
 ### Ingestion: автоматический сбор метаданных
 
 Каталог подключается к источникам данных через **коннекторы (connectors)**:
