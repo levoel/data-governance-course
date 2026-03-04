@@ -3,7 +3,7 @@
   "moduleId": "01-foundations",
   "_meta": {
     "idPrefix": "dg-exam-m01",
-    "description": "Use IDs: dg-exam-m01-q1 through dg-exam-m01-q10 (8-12 analytical questions)"
+    "description": "Use IDs: dg-exam-m01-q1 through dg-exam-m01-q11 (11 analytical questions)"
   },
   "questions": [
     {
@@ -147,6 +147,21 @@
       "correctAnswer": "b",
       "explanation": "CEO нужны измеримые бизнес-метрики, привязанные к исходным проблемам: DQ Score показывает снижение дубликатов (15% -> целевой 5%), Metadata Coverage показывает доступность данных (0% -> 80%), Time to Data показывает ускорение работы (3 недели -> 24 часа). Варианты A и C -- 'input metrics' (что мы вложили), а не 'outcome metrics' (что получили). Вариант D -- субъективная оценка. Для подготовки повторите урок 5 (метрики ROI) этого модуля.",
       "hint": "Вспомните исходные проблемы DataTech: дубликаты (15%), отсутствие каталога, 3 недели на onboarding. Какие метрики покажут прогресс по каждой из этих проблем?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m01-q11",
+      "type": "multiple-choice",
+      "question": "DataTech (Level 1, 500 сотрудников) обнаружила 15% дубликатов клиентов в 3 системах (CRM, billing, web analytics). VP Engineering предлагает сразу внедрить Centralized MDM Hub -- единый system of record для всех клиентских данных. Data Steward Алексей предлагает начать с Registry-модели. Учитывая зрелость DataTech на Level 1, какой подход правильный и почему?",
+      "options": [
+        { "id": "a", "text": "VP Engineering прав: Centralized Hub решит проблему дубликатов раз и навсегда" },
+        { "id": "b", "text": "Алексей прав: Registry -- lightweight паттерн (cross-reference без перемещения данных), не требующий зрелых governance-процессов, и создающий основу для будущей Consolidation" },
+        { "id": "c", "text": "Оба неправы: DataTech должна начать с Coexistence для двунаправленной синхронизации" },
+        { "id": "d", "text": "MDM не нужен на Level 1 -- сначала нужно достичь Level 3" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Level 1 означает: нет установленных governance-процессов, нет выделенной MDM-команды, нет baseline качества данных, нет определённых survivorship rules. Centralized Hub (A) требует зрелого data stewardship, формализованных survivorship rules, постоянного обслуживания -- всё это отсутствует на Level 1. Registry -- самый лёгкий паттерн: создаёт cross-reference индекс (CRM ID = Billing ID = Web ID) без перемещения данных, даёт видимость дубликатов без изменений в источниках, и служит фундаментом для перехода к Consolidation на Level 2. Coexistence (C) ещё сложнее Centralized Hub -- двусторонняя синхронизация при отсутствии governance. MDM (D) можно начинать на любом уровне -- Registry именно для этого создан. Для подготовки повторите уроки 07 (MDM-паттерны и MDM-зрелость) и 05 (оценка зрелости) этого модуля.",
+      "hint": "Подумайте: какие ресурсы и процессы нужны для Centralized Hub? Survivorship rules, MDM-команда, governance-процессы. Есть ли они у DataTech на Level 1?",
       "bloomLevel": "analytical"
     }
   ]

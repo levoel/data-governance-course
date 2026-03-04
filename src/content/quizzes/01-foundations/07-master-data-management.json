@@ -1,0 +1,126 @@
+{
+  "lessonSlug": "01-foundations/07-master-data-management",
+  "moduleId": "01-foundations",
+  "_meta": {
+    "idPrefix": "dg-m01-07",
+    "description": "Use IDs: dg-m01-07-q1 through dg-m01-07-q4, dg-m01-07-code-1 (CC-46), dg-m01-07-code-2 (CC-47)"
+  },
+  "questions": [
+    {
+      "id": "dg-m01-07-q1",
+      "type": "multiple-choice",
+      "question": "FinSecure Bank (Level 3, 2000+ сотрудников) имеет Oracle (800+ таблиц core banking) и 15 микросервисов на PostgreSQL. Необходимо создать единое представление клиента (unified customer view) без нарушения работы ни Oracle, ни микросервисов. Какой MDM-паттерн наиболее подходит?",
+      "options": [
+        { "id": "a", "text": "Registry -- создать перекрёстный индекс между Oracle и микросервисами" },
+        { "id": "b", "text": "Consolidation -- копировать данные в MDM-хаб для аналитики, источники не трогать" },
+        { "id": "c", "text": "Coexistence -- двунаправленная синхронизация между MDM-хабом, Oracle и микросервисами" },
+        { "id": "d", "text": "Centralized Hub -- перенести все клиентские данные в единый MDM-хаб как system of record" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Coexistence -- единственный паттерн, обеспечивающий unified customer view С обратной синхронизацией в operational системы. Registry (A) создаёт только cross-reference без единого представления -- данные остаются в источниках, объединения не происходит. Consolidation (B) создаёт golden record, но только для аналитики -- изменения не распространяются в Oracle и микросервисы. Centralized Hub (D) требует полной миграции всех систем на MDM как единственный source -- слишком инвазивно для 800+ таблиц Oracle. Coexistence позволяет: golden record в MDM-хабе + двусторонняя синхронизация с Oracle и PostgreSQL, без disruption. Для подготовки повторите урок 07 (раздел 'Четыре архитектурных паттерна MDM') этого модуля.",
+      "hint": "Подумайте: какой паттерн позволяет И создать golden record, И обновлять данные обратно в Oracle и микросервисы?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m01-07-q2",
+      "type": "multiple-choice",
+      "question": "DataTech создаёт golden record клиента. CRM содержит имя 'Иванов Иван', billing -- 'Иванов И.И.', web -- 'ivanov_ivan@mail.ru' (имя = null). Survivorship rules: source priority CRM > billing > web для имени, most complete для адреса, most recent для email. Какое значение будет в поле name golden record?",
+      "options": [
+        { "id": "a", "text": "'Иванов И.И.' -- billing обновлён позже" },
+        { "id": "b", "text": "'ivanov_ivan@mail.ru' -- web содержит email вместо имени" },
+        { "id": "c", "text": "'Иванов Иван' -- CRM имеет наивысший приоритет (source priority)" },
+        { "id": "d", "text": "null -- web не содержит имени, это конфликт" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Для поля name применяется правило Source Priority: CRM > billing > web. CRM имеет наивысший приоритет, поэтому golden record получает 'Иванов Иван'. Важно: каждое поле имеет своё survivorship rule. Most Recent применяется к email (не к name). Most Complete -- к address. Billing обновлён позже (A), но правило для name -- Source Priority, а не Most Recent. Web (B) содержит email в поле name -- это data quality issue, не основание для выбора. Null из web (D) не создаёт конфликт: survivorship rules игнорируют null-значения из низкоприоритетных источников. Для подготовки повторите урок 07 (раздел 'Правила выживания') этого модуля.",
+      "hint": "Survivorship rule для name -- Source Priority. Какой источник имеет наивысший приоритет?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m01-07-q3",
+      "type": "multiple-choice",
+      "question": "DataTech имеет справочные данные: country_codes, currency_codes, product_categories. Эти справочники используются 4 доменными командами (CRM, Finance, Product, Analytics). Кто должен владеть governance справочных данных?",
+      "options": [
+        { "id": "a", "text": "Каждая доменная команда владеет своей копией справочника" },
+        { "id": "b", "text": "Централизованный Data Steward -- справочные данные пересекают все домены и требуют единого владельца" },
+        { "id": "c", "text": "IT-отдел -- справочники являются техническими артефактами" },
+        { "id": "d", "text": "Никто -- справочные данные стабильны и не требуют governance" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Reference data (справочные данные) -- подмножество master data, пересекающее все домены. Если каждая команда ведёт свою копию (A), возникает несогласованность: CRM использует 'Russia', Finance -- 'RU', Analytics -- 'ru-RU'. IT-отдел (C) может хранить справочники технически, но governance-решения (добавление нового значения, изменение формата) -- бизнес-ответственность, не техническая. Справочные данные 'стабильны' (D), но требуют: версионирования (ISO обновляет коды стран), change management (новый продукт = новая категория), единого канонического формата. Централизованный Data Steward обеспечивает единый источник правды для всех доменов. Для подготовки повторите урок 07 (раздел 'Governance справочных данных') этого модуля.",
+      "hint": "Что произойдёт, если каждая из 4 команд ведёт свой справочник country_codes? Сколько 'разных стран' появится в аналитике?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m01-07-q4",
+      "type": "true-false",
+      "question": "MDM -- это то же самое, что дедупликация: если убрать дубликаты, задача MDM решена.",
+      "correctAnswer": false,
+      "explanation": "Дедупликация (Match/Merge) -- лишь один этап жизненного цикла golden record. MDM как governance-дисциплина включает: (1) governance-процессы -- кто имеет право создавать мастер-записи, (2) survivorship rules -- какое значение 'побеждает' при конфликтах, (3) reference data management -- единые справочники для всех систем, (4) distribution -- публикация golden records в consuming системы, (5) ongoing monitoring -- мониторинг новых дубликатов и quality degradation. Дедупликация без governance-процессов приводит к re-duplication: новые дубликаты появляются быстрее, чем удаляются старые. Для подготовки повторите урок 07 (разделы 'Жизненный цикл Golden Record' и 'MDM-зрелость') этого модуля.",
+      "hint": "Подумайте: что произойдёт после дедупликации, если процесс создания записей в CRM, billing и web не изменился?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m01-07-code-1",
+      "type": "code-challenge",
+      "question": "Реализуйте функцию build_golden_record(records), которая принимает список из 5 клиентских записей из 3 источников (CRM, billing, web) и создаёт golden record, применяя survivorship rules:\n- name: Source Priority (CRM > billing > web)\n- email: Most Recent (по timestamp)\n- address: Most Complete (highest completeness_score)\n- phone: First Non-Null (по source priority: CRM > billing > web)\n\nФункция должна напечатать golden record в формате:\nGolden Record:\n  name: [значение]\n  email: [значение]\n  address: [значение]\n  phone: [значение]",
+      "language": "python",
+      "starterCode": "def build_golden_record(records):\n    # Survivorship rules:\n    # name: Source Priority (CRM > billing > web)\n    # email: Most Recent (по timestamp)\n    # address: Most Complete (highest completeness_score)\n    # phone: First Non-Null (по source priority: CRM > billing > web)\n    \n    source_priority = {\"crm\": 1, \"billing\": 2, \"web\": 3}\n    \n    # TODO: Implement survivorship rules\n    golden_name = \"\"\n    golden_email = \"\"\n    golden_address = \"\"\n    golden_phone = \"\"\n    \n    print(\"Golden Record:\")\n    print(f\"  name: {golden_name}\")\n    print(f\"  email: {golden_email}\")\n    print(f\"  address: {golden_address}\")\n    print(f\"  phone: {golden_phone}\")\n\n\nrecords = [\n    {\"source_system\": \"crm\", \"customer_name\": \"Иванов Иван Петрович\", \"email\": \"ivanov@crm.datatech.ru\", \"address\": \"Москва, ул. Тверская, д. 10, кв. 5\", \"phone\": \"+7-495-100-2030\", \"timestamp\": \"2025-11-15T10:00:00\", \"completeness_score\": 0.85},\n    {\"source_system\": \"billing\", \"customer_name\": \"Иванов И.П.\", \"email\": \"ivanov.ip@billing.datatech.ru\", \"address\": \"Москва\", \"phone\": None, \"timestamp\": \"2025-12-01T14:30:00\", \"completeness_score\": 0.60},\n    {\"source_system\": \"web\", \"customer_name\": \"ivanov_ivan\", \"email\": \"ivan.ivanov@gmail.com\", \"address\": None, \"phone\": None, \"timestamp\": \"2026-01-10T09:15:00\", \"completeness_score\": 0.40},\n    {\"source_system\": \"crm\", \"customer_name\": \"Иванов Иван Петрович\", \"email\": \"i.ivanov@datatech.ru\", \"address\": \"Москва, ул. Тверская, д. 10\", \"phone\": \"+7-495-100-2030\", \"timestamp\": \"2026-02-01T11:00:00\", \"completeness_score\": 0.80},\n    {\"source_system\": \"billing\", \"customer_name\": \"Иванов Иван\", \"email\": \"ivanov@fin.datatech.ru\", \"address\": \"г. Москва, Тверская 10\", \"phone\": \"+7-495-200-3040\", \"timestamp\": \"2026-02-15T16:45:00\", \"completeness_score\": 0.70}\n]\n\nbuild_golden_record(records)",
+      "solutionCode": "def build_golden_record(records):\n    source_priority = {\"crm\": 1, \"billing\": 2, \"web\": 3}\n    \n    # name: Source Priority (CRM > billing > web) -- lowest priority number wins\n    name_candidates = [(r[\"customer_name\"], source_priority[r[\"source_system\"]]) for r in records if r[\"customer_name\"]]\n    name_candidates.sort(key=lambda x: x[1])\n    golden_name = name_candidates[0][0]\n    \n    # email: Most Recent (по timestamp)\n    email_candidates = [(r[\"email\"], r[\"timestamp\"]) for r in records if r[\"email\"]]\n    email_candidates.sort(key=lambda x: x[1], reverse=True)\n    golden_email = email_candidates[0][0]\n    \n    # address: Most Complete (highest completeness_score)\n    address_candidates = [(r[\"address\"], r[\"completeness_score\"]) for r in records if r[\"address\"]]\n    address_candidates.sort(key=lambda x: x[1], reverse=True)\n    golden_address = address_candidates[0][0]\n    \n    # phone: First Non-Null (по source priority: CRM > billing > web)\n    phone_candidates = [(r[\"phone\"], source_priority[r[\"source_system\"]]) for r in records if r[\"phone\"]]\n    phone_candidates.sort(key=lambda x: x[1])\n    golden_phone = phone_candidates[0][0]\n    \n    print(\"Golden Record:\")\n    print(f\"  name: {golden_name}\")\n    print(f\"  email: {golden_email}\")\n    print(f\"  address: {golden_address}\")\n    print(f\"  phone: {golden_phone}\")\n\n\nrecords = [\n    {\"source_system\": \"crm\", \"customer_name\": \"Иванов Иван Петрович\", \"email\": \"ivanov@crm.datatech.ru\", \"address\": \"Москва, ул. Тверская, д. 10, кв. 5\", \"phone\": \"+7-495-100-2030\", \"timestamp\": \"2025-11-15T10:00:00\", \"completeness_score\": 0.85},\n    {\"source_system\": \"billing\", \"customer_name\": \"Иванов И.П.\", \"email\": \"ivanov.ip@billing.datatech.ru\", \"address\": \"Москва\", \"phone\": None, \"timestamp\": \"2025-12-01T14:30:00\", \"completeness_score\": 0.60},\n    {\"source_system\": \"web\", \"customer_name\": \"ivanov_ivan\", \"email\": \"ivan.ivanov@gmail.com\", \"address\": None, \"phone\": None, \"timestamp\": \"2026-01-10T09:15:00\", \"completeness_score\": 0.40},\n    {\"source_system\": \"crm\", \"customer_name\": \"Иванов Иван Петрович\", \"email\": \"i.ivanov@datatech.ru\", \"address\": \"Москва, ул. Тверская, д. 10\", \"phone\": \"+7-495-100-2030\", \"timestamp\": \"2026-02-01T11:00:00\", \"completeness_score\": 0.80},\n    {\"source_system\": \"billing\", \"customer_name\": \"Иванов Иван\", \"email\": \"ivanov@fin.datatech.ru\", \"address\": \"г. Москва, Тверская 10\", \"phone\": \"+7-495-200-3040\", \"timestamp\": \"2026-02-15T16:45:00\", \"completeness_score\": 0.70}\n]\n\nbuild_golden_record(records)",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Golden record name resolved by source priority (CRM wins)",
+          "expectedOutput": "Golden Record:\n  name: Иванов Иван Петрович\n  email: ivanov@fin.datatech.ru\n  address: Москва, ул. Тверская, д. 10, кв. 5\n  phone: +7-495-100-2030",
+          "hidden": false
+        },
+        {
+          "id": "tc2",
+          "description": "Golden record email resolved by most recent timestamp (billing 2026-02-15 wins)",
+          "expectedOutput": "Golden Record:\n  name: Иванов Иван Петрович\n  email: ivanov@fin.datatech.ru\n  address: Москва, ул. Тверская, д. 10, кв. 5\n  phone: +7-495-100-2030",
+          "hidden": false
+        },
+        {
+          "id": "tc3",
+          "description": "All fields combined: name=CRM priority, email=most recent, address=most complete, phone=first non-null CRM",
+          "expectedOutput": "Golden Record:\n  name: Иванов Иван Петрович\n  email: ivanov@fin.datatech.ru\n  address: Москва, ул. Тверская, д. 10, кв. 5\n  phone: +7-495-100-2030",
+          "hidden": true
+        }
+      ],
+      "explanation": "Survivorship rules определяют, какое значение каждого поля 'выживает' при создании golden record. Для name: Source Priority выбирает значение из источника с наивысшим приоритетом (CRM). Для email: Most Recent выбирает значение с последним timestamp (billing, 2026-02-15). Для address: Most Complete выбирает значение с наивысшим completeness_score (CRM, 0.85). Для phone: First Non-Null берёт первое непустое значение по source priority (CRM). Важно: разные поля используют разные правила.",
+      "hint": "Создайте отдельные списки кандидатов для каждого поля. Отсортируйте по критерию survivorship rule. Игнорируйте None/null значения.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m01-07-code-2",
+      "type": "code-challenge",
+      "question": "Создайте JSON-конфигурацию governance справочных данных для DataTech. Конфигурация должна содержать: organization, governance_owner и массив reference_lists с 3 справочниками (country_codes, currency_codes, product_categories). Каждый справочник включает: list_name, allowed_values, owner, version, last_reviewed.",
+      "language": "json",
+      "starterCode": "{\n  \"reference_data_governance\": {\n    \"organization\": \"\",\n    \"governance_owner\": \"\",\n    \"reference_lists\": [\n      {\n        \"list_name\": \"country_codes\",\n        \"allowed_values\": [],\n        \"owner\": \"\",\n        \"version\": \"\",\n        \"last_reviewed\": \"\"\n      },\n      {\n        \"list_name\": \"currency_codes\",\n        \"allowed_values\": [],\n        \"owner\": \"\",\n        \"version\": \"\",\n        \"last_reviewed\": \"\"\n      },\n      {\n        \"list_name\": \"product_categories\",\n        \"allowed_values\": [],\n        \"owner\": \"\",\n        \"version\": \"\",\n        \"last_reviewed\": \"\"\n      }\n    ]\n  }\n}",
+      "solutionCode": "{\n  \"reference_data_governance\": {\n    \"organization\": \"DataTech Solutions\",\n    \"governance_owner\": \"Data Steward\",\n    \"reference_lists\": [\n      {\n        \"list_name\": \"country_codes\",\n        \"allowed_values\": [\"RU\", \"US\", \"DE\", \"CN\", \"BR\"],\n        \"owner\": \"Operations Team\",\n        \"version\": \"1.0\",\n        \"last_reviewed\": \"2025-12-01\"\n      },\n      {\n        \"list_name\": \"currency_codes\",\n        \"allowed_values\": [\"RUB\", \"USD\", \"EUR\", \"CNY\", \"BRL\"],\n        \"owner\": \"Finance Team\",\n        \"version\": \"1.0\",\n        \"last_reviewed\": \"2025-12-01\"\n      },\n      {\n        \"list_name\": \"product_categories\",\n        \"allowed_values\": [\"electronics\", \"clothing\", \"food\", \"software\", \"services\"],\n        \"owner\": \"Product Team\",\n        \"version\": \"1.2\",\n        \"last_reviewed\": \"2026-01-15\"\n      }\n    ]\n  }\n}",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "JSON contains reference_data_governance with organization, governance_owner, and 3 reference_lists",
+          "expectedOutput": "{\"reference_data_governance\":{\"organization\":\"DataTech Solutions\",\"governance_owner\":\"Data Steward\",\"reference_lists\":[{\"list_name\":\"country_codes\",\"allowed_values\":[\"RU\",\"US\",\"DE\",\"CN\",\"BR\"],\"owner\":\"Operations Team\",\"version\":\"1.0\",\"last_reviewed\":\"2025-12-01\"},{\"list_name\":\"currency_codes\",\"allowed_values\":[\"RUB\",\"USD\",\"EUR\",\"CNY\",\"BRL\"],\"owner\":\"Finance Team\",\"version\":\"1.0\",\"last_reviewed\":\"2025-12-01\"},{\"list_name\":\"product_categories\",\"allowed_values\":[\"electronics\",\"clothing\",\"food\",\"software\",\"services\"],\"owner\":\"Product Team\",\"version\":\"1.2\",\"last_reviewed\":\"2026-01-15\"}]}}",
+          "hidden": false
+        },
+        {
+          "id": "tc2",
+          "description": "Each reference list has correct allowed_values, owner, version, and last_reviewed",
+          "expectedOutput": "{\"reference_data_governance\":{\"organization\":\"DataTech Solutions\",\"governance_owner\":\"Data Steward\",\"reference_lists\":[{\"list_name\":\"country_codes\",\"allowed_values\":[\"RU\",\"US\",\"DE\",\"CN\",\"BR\"],\"owner\":\"Operations Team\",\"version\":\"1.0\",\"last_reviewed\":\"2025-12-01\"},{\"list_name\":\"currency_codes\",\"allowed_values\":[\"RUB\",\"USD\",\"EUR\",\"CNY\",\"BRL\"],\"owner\":\"Finance Team\",\"version\":\"1.0\",\"last_reviewed\":\"2025-12-01\"},{\"list_name\":\"product_categories\",\"allowed_values\":[\"electronics\",\"clothing\",\"food\",\"software\",\"services\"],\"owner\":\"Product Team\",\"version\":\"1.2\",\"last_reviewed\":\"2026-01-15\"}]}}",
+          "hidden": false
+        },
+        {
+          "id": "tc3",
+          "description": "Complete structure validation with all nested objects",
+          "expectedOutput": "{\"reference_data_governance\":{\"organization\":\"DataTech Solutions\",\"governance_owner\":\"Data Steward\",\"reference_lists\":[{\"list_name\":\"country_codes\",\"allowed_values\":[\"RU\",\"US\",\"DE\",\"CN\",\"BR\"],\"owner\":\"Operations Team\",\"version\":\"1.0\",\"last_reviewed\":\"2025-12-01\"},{\"list_name\":\"currency_codes\",\"allowed_values\":[\"RUB\",\"USD\",\"EUR\",\"CNY\",\"BRL\"],\"owner\":\"Finance Team\",\"version\":\"1.0\",\"last_reviewed\":\"2025-12-01\"},{\"list_name\":\"product_categories\",\"allowed_values\":[\"electronics\",\"clothing\",\"food\",\"software\",\"services\"],\"owner\":\"Product Team\",\"version\":\"1.2\",\"last_reviewed\":\"2026-01-15\"}]}}",
+          "hidden": true
+        }
+      ],
+      "explanation": "Reference data governance обеспечивает единые справочные данные для всех систем. Конфигурация определяет: (1) organization -- организация-владелец, (2) governance_owner -- ответственный за governance всех справочников, (3) reference_lists -- массив справочников, каждый с list_name (идентификатор), allowed_values (допустимые значения), owner (команда-владелец), version (версия для change tracking), last_reviewed (дата последнего пересмотра). Без такой конфигурации каждая команда ведёт свой справочник: CRM использует 'Russia', Finance -- 'RU', Analytics -- 'ru-RU'.",
+      "hint": "country_codes: ISO 3166-1 alpha-2 коды (RU, US, DE, CN, BR). currency_codes: ISO 4217 коды (RUB, USD, EUR, CNY, BRL). product_categories: бизнес-категории DataTech (electronics, clothing, food, software, services).",
+      "bloomLevel": "applied"
+    }
+  ]
+}
