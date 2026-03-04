@@ -3,7 +3,7 @@
   "moduleId": "02-architecture",
   "_meta": {
     "idPrefix": "dg-exam-m02",
-    "description": "Use IDs: dg-exam-m02-q1 through dg-exam-m02-q12 (12 analytical questions)"
+    "description": "Use IDs: dg-exam-m02-q1 through dg-exam-m02-q13 (13 analytical questions)"
   },
   "questions": [
     {
@@ -178,6 +178,21 @@
       "correctAnswer": "b",
       "explanation": "classification: confidential -- это метка, но не enforcement. ODCS контракт должен дополнять classification ролевым доступом (roles section: кто может read card_number?) и quality rules для downstream (маскирование card_number_masked в аналитических витринах). Без этого card_number будет доступен всем потребителям контракта. retention 7 лет (A) стандартен для финансовых данных (ЦБ требования). 99.9% availability (C) реалистична для core banking. Для подготовки повторите уроки 5 (contracts) и 6 (ODCS) модуля M02, а также урок 6 модуля M06 (security).",
       "hint": "classification -- это метка. Что обеспечивает фактическое ограничение доступа к confidential данным?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m02-q13",
+      "type": "multiple-choice",
+      "question": "DataTech задеплоила Kafka producer, который добавил поле loyalty_tier в schema customer_events без проверки compatibility mode. Три consumer-сервиса крашатся, потому что используют strict десериализацию. Schema Registry DataTech была настроена на NONE (без проверки совместимости). Какие ДВА governance-изменения предотвратили бы этот инцидент?",
+      "options": [
+        { "id": "a", "text": "Переключить Schema Registry на FULL compatibility (максимальная защита) и добавить мониторинг consumer lag" },
+        { "id": "b", "text": "Установить BACKWARD compatibility (новые schema читаемы старыми consumers) и ввести обязательный schema change approval workflow (PR review затронутыми consumer-командами)" },
+        { "id": "c", "text": "Добавить документацию всех schema changes в Confluence и уведомлять команды через email" },
+        { "id": "d", "text": "Переключить на FORWARD compatibility и автоматически обновлять все consumers при изменении schema" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Два уровня защиты: (1) BACKWARD compatibility в Schema Registry -- технический enforcement: registry автоматически отклоняет schema, которая ломает существующих consumers. При BACKWARD новая schema должна быть совместима с consumers, использующими предыдущую версию. Поле loyalty_tier как optional было бы принято, а как required без default -- отклонено. (2) Schema change approval workflow -- организационный enforcement: PR с новой schema version проходит review от consumer-команд, которые подтверждают готовность. FULL compatibility (A) слишком рестриктивна -- блокирует даже безопасные additive changes. Документация (C) -- passive enforcement, не предотвращает инциденты. FORWARD (D) защищает producer, но не consumers. Для подготовки повторите уроки 06 (ODCS contract enforcement) и 07 (integration governance, schema registry) этого модуля.",
+      "hint": "Нужны два уровня: технический (автоматическое отклонение несовместимых schema) и организационный (review от затронутых команд).",
       "bloomLevel": "analytical"
     }
   ]

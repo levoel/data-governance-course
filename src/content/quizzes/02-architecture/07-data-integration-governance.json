@@ -1,0 +1,141 @@
+{
+  "lessonSlug": "02-architecture/07-data-integration-governance",
+  "moduleId": "02-architecture",
+  "_meta": {
+    "idPrefix": "dg-m02-07",
+    "description": "Use IDs: dg-m02-07-q1 through dg-m02-07-q5, dg-m02-07-code-1 (CC-48), dg-m02-07-code-2 (CC-49)"
+  },
+  "questions": [
+    {
+      "id": "dg-m02-07-q1",
+      "type": "multiple-choice",
+      "question": "У DataTech 45 недокументированных Airflow DAGs. В субботу DAG customer_sync падает, downstream-дашборды показывают устаревшие данные 48 часов. Никто не знает владельца DAG, какие данные он перемещает, и кто downstream-потребитель. Какое governance-улучшение даст наибольший немедленный эффект?",
+      "options": [
+        { "id": "a", "text": "Документировать все 45 DAGs: input/output, business logic, schedule" },
+        { "id": "b", "text": "Pipeline Ownership Registry: маппинг DAG -> owner с on-call rotation, чтобы при инциденте немедленно определить ответственного" },
+        { "id": "c", "text": "Добавить unit-тесты для всех трансформаций в DAGs" },
+        { "id": "d", "text": "Мигрировать с Airflow на managed ETL-платформу (Fivetran)" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "При инциденте первый вопрос -- 'кто владелец?'. Без Pipeline Ownership Registry невозможно назначить ответственного, и инцидент разрешается случайно. Ownership Registry (DAG -> owner + on-call) даёт немедленный эффект: при падении customer_sync система автоматически алертит владельца. Документация (A) полезна, но требует недель работы и не помогает в момент инцидента. Тесты (C) предотвращают будущие падения, но не решают проблему ownership. Миграция (D) -- архитектурное изменение, которое не решает governance-проблему: без ownership registry Fivetran DAGs будут также бесхозными.",
+      "hint": "Что мешает решить инцидент быстро? Отсутствие документации или отсутствие ответственного?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m02-07-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure имеет 200+ Kafka topics с Schema Registry в режиме BACKWARD compatibility. Producer team хочет добавить required поле risk_score в topic customer_events. Текущие consumers не отправляют risk_score. Что произойдёт?",
+      "options": [
+        { "id": "a", "text": "Schema будет принята -- BACKWARD позволяет любые добавления полей" },
+        { "id": "b", "text": "Schema будет отклонена -- BACKWARD compatibility означает, что новая schema должна быть читаема consumers со старой schema, а required поле без default нарушает это" },
+        { "id": "c", "text": "Schema будет принята, но consumers получат предупреждение" },
+        { "id": "d", "text": "Schema Registry не проверяет required/optional -- это ответственность application layer" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "BACKWARD compatibility означает: consumers, использующие старую schema, должны уметь читать данные, написанные по новой schema. Новое required поле risk_score нарушает это правило: старые producers не включают risk_score в сообщения, и consumers ожидающие required field не смогут десериализовать старые данные. Корректный подход: добавить risk_score как optional с default value. FORWARD compatibility (не BACKWARD) позволяет добавлять required поля, но тогда старые consumers не защищены. FULL compatibility запрещает и добавление required, и удаление полей.",
+      "hint": "BACKWARD = новые consumers читают старые данные. Сможет ли consumer с required risk_score прочитать старое сообщение без этого поля?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m02-07-q3",
+      "type": "multiple-choice",
+      "question": "BioGenesis получает еженедельные CSV от 5 внешних лабораторий. 12% записей fail quality validation (null patient_id, invalid date formats). Текущий процесс: reject entire file, request resend от vendor. Средняя задержка: 5 рабочих дней. Какое governance-улучшение сократит задержку без потери качества?",
+      "options": [
+        { "id": "a", "text": "Принять все записи без валидации -- 12% ошибок допустимо для ускорения" },
+        { "id": "b", "text": "Row-level quarantine: valid rows ingested immediately, invalid rows quarantined с автоматическим уведомлением vendor о конкретных нарушениях" },
+        { "id": "c", "text": "Перейти с CSV на API -- API предотвращает невалидные данные" },
+        { "id": "d", "text": "Увеличить частоту обмена с еженедельной до ежедневной" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Row-level quarantine решает обе проблемы: (1) 88% valid записей ingested немедленно -- бизнес-процессы не ждут 5 дней, (2) 12% invalid записей quarantined с конкретными violations (null patient_id rows 15, 42, 78; invalid date rows 3, 91) -- vendor получает actionable feedback вместо 'file rejected'. Full rejection (текущий процесс) задерживает все данные из-за 12% проблемных. Accept all (A) -- governance failure: null patient_id в clinical data может привести к ошибкам лечения. API (C) -- долгосрочное решение, но не все лаборатории готовы к API интеграции.",
+      "hint": "Зачем блокировать 88% корректных записей из-за 12% некорректных?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m02-07-q4",
+      "type": "multiple-choice",
+      "question": "DataTech предоставляет /api/v1/customers трём внутренним командам. Необходимо сделать breaking change: удалить поле middle_name. Какой правильный deprecation governance process?",
+      "options": [
+        { "id": "a", "text": "Удалить middle_name из v1 с уведомлением за 24 часа" },
+        { "id": "b", "text": "Создать /api/v2/customers без middle_name, объявить deprecation v1 с 90-дневным timeline, предоставить migration guide, мониторить v1 usage, retire v1 только при 0 consumers" },
+        { "id": "c", "text": "Добавить middle_name в v2 как deprecated field с warning в response" },
+        { "id": "d", "text": "Отправить email всем командам и удалить поле через неделю" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Полный deprecation process: (1) создать v2 с breaking changes, (2) объявить deprecation v1 с timeline (минимум 90 дней), (3) опубликовать migration guide (маппинг v1 endpoints -> v2), (4) мониторить v1 traffic ежедневно, (5) retire v1 только когда все consumers мигрировали. 24-часовое уведомление (A) -- слишком мало для миграции трёх команд. Email без timeline (D) -- passive notification без enforcement. Параллельный запуск v1 и v2 обеспечивает zero-downtime migration.",
+      "hint": "Сколько времени нужно трём командам для миграции на новый API? 24 часа достаточно?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m02-07-q5",
+      "type": "true-false",
+      "question": "ETL и ELT имеют одинаковые governance-требования, потому что оба перемещают данные из источника в target.",
+      "correctAnswer": false,
+      "explanation": "ETL и ELT имеют принципиально разные governance-требования. ETL трансформирует данные ДО загрузки: governance фокусируется на документации трансформационной логики и data quality при transform (PII можно маскировать до попадания в target). ELT загружает raw данные СНАЧАЛА, трансформирует в target: governance фокусируется на RBAC для raw layer (PII попадает в target без маскирования), audit trail трансформаций (dbt SQL -- полный audit trail), schema evolution в data lake. Разные паттерны создают разные governance challenges: ETL risk -- недокументированные трансформации (чёрный ящик), ELT risk -- неконтролируемый доступ к raw PII.",
+      "hint": "Где находятся raw данные с PII в ETL vs ELT? Как это влияет на access control?",
+      "bloomLevel": "conceptual"
+    },
+    {
+      "id": "dg-m02-07-code-1",
+      "type": "code-challenge",
+      "question": "Реализуйте функцию проверки backward compatibility двух JSON-схем. Функция должна обнаружить breaking changes: удалённые поля и изменённые типы. Верните dict с ключами compatible (bool) и breaking_changes (list строк).",
+      "language": "python",
+      "starterCode": "def check_backward_compatibility(old_schema, new_schema):\n    \"\"\"Check backward compatibility between two schemas.\n    \n    Args:\n        old_schema: dict mapping field names to types\n        new_schema: dict mapping field names to types\n    \n    Returns:\n        dict with 'compatible' (bool) and 'breaking_changes' (list of str)\n    \"\"\"\n    breaking_changes = []\n    \n    # TODO: Check for removed fields (in old but not in new)\n    \n    # TODO: Check for type changes (field exists in both but type differs)\n    \n    return {\n        \"compatible\": len(breaking_changes) == 0,\n        \"breaking_changes\": breaking_changes\n    }\n\n# Fixed test schemas\nold_schema = {\n    \"customer_id\": \"string\",\n    \"email\": \"string\",\n    \"name\": \"string\",\n    \"created_at\": \"string\"\n}\n\nnew_schema = {\n    \"customer_id\": \"string\",\n    \"email\": \"integer\",\n    \"address\": \"string\",\n    \"name\": \"string\"\n}\n\nresult = check_backward_compatibility(old_schema, new_schema)\nprint(result)\n",
+      "solutionCode": "def check_backward_compatibility(old_schema, new_schema):\n    \"\"\"Check backward compatibility between two schemas.\n    \n    Args:\n        old_schema: dict mapping field names to types\n        new_schema: dict mapping field names to types\n    \n    Returns:\n        dict with 'compatible' (bool) and 'breaking_changes' (list of str)\n    \"\"\"\n    breaking_changes = []\n    \n    # Check for removed fields (in old but not in new)\n    for field in old_schema:\n        if field not in new_schema:\n            breaking_changes.append(f\"Removed field: {field}\")\n    \n    # Check for type changes (field exists in both but type differs)\n    for field in old_schema:\n        if field in new_schema and old_schema[field] != new_schema[field]:\n            breaking_changes.append(\n                f\"Type changed: {field} ({old_schema[field]} -> {new_schema[field]})\"\n            )\n    \n    return {\n        \"compatible\": len(breaking_changes) == 0,\n        \"breaking_changes\": breaking_changes\n    }\n\n# Fixed test schemas\nold_schema = {\n    \"customer_id\": \"string\",\n    \"email\": \"string\",\n    \"name\": \"string\",\n    \"created_at\": \"string\"\n}\n\nnew_schema = {\n    \"customer_id\": \"string\",\n    \"email\": \"integer\",\n    \"address\": \"string\",\n    \"name\": \"string\"\n}\n\nresult = check_backward_compatibility(old_schema, new_schema)\nprint(result)\n",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Обнаружение удалённого поля created_at",
+          "expectedOutput": "{'compatible': False, 'breaking_changes': ['Removed field: created_at', 'Type changed: email (string -> integer)']}",
+          "hidden": false
+        },
+        {
+          "id": "tc2",
+          "description": "Обнаружение изменения типа email (string -> integer)",
+          "expectedOutput": "{'compatible': False, 'breaking_changes': ['Removed field: created_at', 'Type changed: email (string -> integer)']}",
+          "hidden": false
+        },
+        {
+          "id": "tc3",
+          "description": "Совместимые schema без breaking changes",
+          "expectedOutput": "{'compatible': True, 'breaking_changes': []}",
+          "hidden": true
+        }
+      ],
+      "explanation": "Backward compatibility проверяет: может ли consumer, ожидающий старую schema, читать данные по новой schema. Два типа breaking changes: (1) Removed field -- consumer ожидает поле, которого нет в новых данных. (2) Type change -- consumer ожидает string, получает integer. Добавление нового поля (address) -- NOT breaking: старый consumer просто игнорирует неизвестное поле. Эта логика лежит в основе schema registry compatibility checks (Confluent Schema Registry, AWS Glue Schema Registry).",
+      "hint": "Два типа breaking changes: удалённые поля (есть в old, нет в new) и изменённые типы (поле есть в обоих, но тип отличается).",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m02-07-code-2",
+      "type": "code-challenge",
+      "question": "Напишите YAML-спецификацию API governance policy для DataTech. Определите секции: versioning (стратегия, URL-паттерн), deprecation (срок уведомления, поддержка миграции), rate_limits (3 tier'а), ownership (команда, контакт, эскалация), monitoring (интервал, порог ошибок).",
+      "language": "yaml",
+      "starterCode": "# API Governance Policy для DataTech\n# Заполните все секции согласно best practices\n\napi_governance_policy:\n  versioning:\n    strategy: # TODO: тип версионирования (semantic)\n    url_pattern: # TODO: паттерн URL (/api/v{major}/)\n    supported_versions: # TODO: количество одновременно поддерживаемых версий\n  deprecation:\n    notification_days: # TODO: минимум дней уведомления\n    migration_support: # TODO: предоставляется ли migration guide?\n    minimum_support_versions: # TODO: минимум поддерживаемых версий\n  rate_limits:\n    default_tier: # TODO: лимит для обычных потребителей (req/min)\n    elevated_tier: # TODO: лимит для команд с обоснованием\n    critical_tier: # TODO: лимит для critical production pipelines\n    unit: # TODO: единица измерения\n  ownership:\n    team: # TODO: ответственная команда\n    contact: # TODO: email контакт\n    escalation: # TODO: эскалация\n  monitoring:\n    health_check_interval_seconds: # TODO: интервал проверки\n    alerting_threshold_error_rate: # TODO: порог error rate для алерта\n    dashboard: # TODO: наличие дашборда мониторинга\n",
+      "solutionCode": "api_governance_policy:\n  versioning:\n    strategy: semantic\n    url_pattern: /api/v{major}/\n    supported_versions: 2\n  deprecation:\n    notification_days: 90\n    migration_support: true\n    minimum_support_versions: 2\n  rate_limits:\n    default_tier: 100\n    elevated_tier: 1000\n    critical_tier: 10000\n    unit: requests_per_minute\n  ownership:\n    team: platform-engineering\n    contact: platform@datatech.ru\n    escalation: vp-engineering\n  monitoring:\n    health_check_interval_seconds: 30\n    alerting_threshold_error_rate: 0.05\n    dashboard: true\n",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "API governance policy содержит все 5 секций с правильными значениями",
+          "expectedOutput": "{\"api_governance_policy\":{\"versioning\":{\"strategy\":\"semantic\",\"url_pattern\":\"/api/v{major}/\",\"supported_versions\":2},\"deprecation\":{\"notification_days\":90,\"migration_support\":true,\"minimum_support_versions\":2},\"rate_limits\":{\"default_tier\":100,\"elevated_tier\":1000,\"critical_tier\":10000,\"unit\":\"requests_per_minute\"},\"ownership\":{\"team\":\"platform-engineering\",\"contact\":\"platform@datatech.ru\",\"escalation\":\"vp-engineering\"},\"monitoring\":{\"health_check_interval_seconds\":30,\"alerting_threshold_error_rate\":0.05,\"dashboard\":true}}}",
+          "hidden": false
+        },
+        {
+          "id": "tc2",
+          "description": "Rate limits имеют правильную прогрессию: 100 -> 1000 -> 10000",
+          "expectedOutput": "{\"api_governance_policy\":{\"versioning\":{\"strategy\":\"semantic\",\"url_pattern\":\"/api/v{major}/\",\"supported_versions\":2},\"deprecation\":{\"notification_days\":90,\"migration_support\":true,\"minimum_support_versions\":2},\"rate_limits\":{\"default_tier\":100,\"elevated_tier\":1000,\"critical_tier\":10000,\"unit\":\"requests_per_minute\"},\"ownership\":{\"team\":\"platform-engineering\",\"contact\":\"platform@datatech.ru\",\"escalation\":\"vp-engineering\"},\"monitoring\":{\"health_check_interval_seconds\":30,\"alerting_threshold_error_rate\":0.05,\"dashboard\":true}}}",
+          "hidden": false
+        },
+        {
+          "id": "tc3",
+          "description": "Policy parseable с корректными типами данных",
+          "expectedOutput": "{\"api_governance_policy\":{\"versioning\":{\"strategy\":\"semantic\",\"url_pattern\":\"/api/v{major}/\",\"supported_versions\":2},\"deprecation\":{\"notification_days\":90,\"migration_support\":true,\"minimum_support_versions\":2},\"rate_limits\":{\"default_tier\":100,\"elevated_tier\":1000,\"critical_tier\":10000,\"unit\":\"requests_per_minute\"},\"ownership\":{\"team\":\"platform-engineering\",\"contact\":\"platform@datatech.ru\",\"escalation\":\"vp-engineering\"},\"monitoring\":{\"health_check_interval_seconds\":30,\"alerting_threshold_error_rate\":0.05,\"dashboard\":true}}}",
+          "hidden": true
+        }
+      ],
+      "explanation": "API governance policy определяет правила для всех API организации: (1) Versioning -- semantic versioning в URL path обеспечивает ясность и discoverability; supported_versions: 2 означает параллельный запуск максимум двух major-версий. (2) Deprecation -- 90 дней notification обеспечивает достаточное время для миграции; migration_support означает публикацию guides. (3) Rate limits -- трёхуровневая система (100/1000/10000 req/min) с прогрессивным approval. (4) Ownership -- определяет ответственную команду и эскалацию. (5) Monitoring -- health check каждые 30 секунд, алерт при error rate > 5%.",
+      "hint": "strategy: semantic означает semver. url_pattern определяет, как версия включается в URL. notification_days: сколько дней минимум до retirement? alerting_threshold_error_rate: при каком % ошибок срабатывает алерт?",
+      "bloomLevel": "applied"
+    }
+  ]
+}
