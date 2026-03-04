@@ -1,0 +1,184 @@
+# Catalog Lab - OpenMetadata Data Catalog Environment
+# Usage: cp .env.example .env && docker compose up -d
+# Wait 3-5 minutes for OpenMetadata to initialize, then access:
+#   - OpenMetadata UI: http://localhost:18585 (admin/admin)
+#   - Jupyter Notebooks: http://localhost:18888
+#   - PostgreSQL: localhost:15432 (lab/lab_password)
+#
+# Services: postgresql, elasticsearch, openmetadata-server, jupyter
+# Memory budget: ~4-5 GB (requires Docker Desktop with 6+ GB allocated)
+# No Airflow/ingestion container -- students configure connectors via UI (saves ~2 GB RAM)
+
+volumes:
+  pg-data:
+  es-data:
+
+services:
+  postgresql:
+    # TODO: Add SHA digest when Docker is available (docker pull and docker inspect --format)
+    image: docker.getcollate.io/openmetadata/postgresql:1.5.15
+    container_name: catalog-lab-postgresql
+    restart: unless-stopped
+    command: "--work_mem=10MB"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lab_password}
+    ports:
+      - "${POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d:ro
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d openmetadata_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 512m
+
+  elasticsearch:
+    # TODO: Add SHA digest when Docker is available
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
+    container_name: catalog-lab-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    ports:
+      - "${ES_PORT:-19200}:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health?pretty | grep status | grep -qE 'green|yellow' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    mem_limit: 1g
+
+  execute-migrate-all:
+    # Required: runs database migrations before server starts, then exits
+    # TODO: Add SHA digest when Docker is available
+    image: docker.getcollate.io/openmetadata/server:1.5.15
+    container_name: catalog-lab-migrate
+    command: "./bootstrap/openmetadata-ops.sh migrate"
+    environment:
+      OPENMETADATA_CLUSTER_NAME: openmetadata
+      SERVER_PORT: 8585
+      SERVER_ADMIN_PORT: 8586
+      LOG_LEVEL: INFO
+      MIGRATION_LIMIT_PARAM: 1200
+      # Authentication
+      AUTHORIZER_CLASS_NAME: org.openmetadata.service.security.DefaultAuthorizer
+      AUTHORIZER_REQUEST_FILTER: org.openmetadata.service.security.JwtFilter
+      AUTHORIZER_ADMIN_PRINCIPALS: "[admin]"
+      AUTHORIZER_ALLOWED_REGISTRATION_DOMAIN: '["all"]'
+      AUTHORIZER_INGESTION_PRINCIPALS: "[ingestion-bot]"
+      AUTHORIZER_PRINCIPAL_DOMAIN: "open-metadata.org"
+      AUTHORIZER_ENFORCE_PRINCIPAL_DOMAIN: "false"
+      AUTHORIZER_ENABLE_SECURE_SOCKET: "false"
+      AUTHENTICATION_PROVIDER: basic
+      AUTHENTICATION_PUBLIC_KEYS: "[http://localhost:8585/api/v1/system/config/jwks]"
+      AUTHENTICATION_ENABLE_SELF_SIGNUP: "true"
+      # Database (matches OM's custom PostgreSQL image defaults)
+      DB_DRIVER_CLASS: org.postgresql.Driver
+      DB_SCHEME: postgresql
+      DB_USER: openmetadata_user
+      DB_USER_PASSWORD: openmetadata_password
+      DB_HOST: postgresql
+      DB_PORT: 5432
+      OM_DATABASE: openmetadata_db
+      # Elasticsearch
+      ELASTICSEARCH_HOST: elasticsearch
+      ELASTICSEARCH_PORT: 9200
+      ELASTICSEARCH_SCHEME: http
+      SEARCH_TYPE: elasticsearch
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  openmetadata-server:
+    # TODO: Add SHA digest when Docker is available
+    image: docker.getcollate.io/openmetadata/server:1.5.15
+    container_name: catalog-lab-openmetadata
+    restart: unless-stopped
+    environment:
+      OPENMETADATA_CLUSTER_NAME: openmetadata
+      SERVER_PORT: 8585
+      SERVER_ADMIN_PORT: 8586
+      LOG_LEVEL: INFO
+      # Authentication (basic auth with default admin/admin)
+      AUTHORIZER_CLASS_NAME: org.openmetadata.service.security.DefaultAuthorizer
+      AUTHORIZER_REQUEST_FILTER: org.openmetadata.service.security.JwtFilter
+      AUTHORIZER_ADMIN_PRINCIPALS: "[admin]"
+      AUTHORIZER_ALLOWED_REGISTRATION_DOMAIN: '["all"]'
+      AUTHORIZER_INGESTION_PRINCIPALS: "[ingestion-bot]"
+      AUTHORIZER_PRINCIPAL_DOMAIN: "open-metadata.org"
+      AUTHORIZER_ENFORCE_PRINCIPAL_DOMAIN: "false"
+      AUTHORIZER_ENABLE_SECURE_SOCKET: "false"
+      AUTHENTICATION_PROVIDER: basic
+      AUTHENTICATION_PUBLIC_KEYS: "[http://localhost:8585/api/v1/system/config/jwks]"
+      AUTHENTICATION_ENABLE_SELF_SIGNUP: "true"
+      # Database (uses OM's internal openmetadata_db, NOT the ecommerce sample DB)
+      DB_DRIVER_CLASS: org.postgresql.Driver
+      DB_SCHEME: postgresql
+      DB_USER: openmetadata_user
+      DB_USER_PASSWORD: openmetadata_password
+      DB_HOST: postgresql
+      DB_PORT: 5432
+      OM_DATABASE: openmetadata_db
+      # Elasticsearch
+      ELASTICSEARCH_HOST: elasticsearch
+      ELASTICSEARCH_PORT: 9200
+      ELASTICSEARCH_SCHEME: http
+      SEARCH_TYPE: elasticsearch
+      ELASTICSEARCH_CONNECTION_TIMEOUT_SECS: 5
+      ELASTICSEARCH_SOCKET_TIMEOUT_SECS: 60
+      ELASTICSEARCH_BATCH_SIZE: 100
+      ELASTICSEARCH_INDEX_MAPPING_LANG: EN
+      # Heap (reduced from default 1G for lab use)
+      OPENMETADATA_HEAP_OPTS: "-Xmx768m -Xms768m"
+      # Disable pipeline service client (no Airflow in lab)
+      PIPELINE_SERVICE_CLIENT_ENABLED: "false"
+      # Web configuration
+      WEB_CONF_URI_PATH: "/api"
+    ports:
+      - "${OM_PORT:-18585}:8585"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+      execute-migrate-all:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8586/healthcheck"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+    mem_limit: 1536m
+
+  jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    container_name: catalog-lab-jupyter
+    restart: unless-stopped
+    ports:
+      - "${JUPYTER_PORT:-18888}:8888"
+    volumes:
+      - ./notebooks:/home/jovyan/work
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+    depends_on:
+      openmetadata-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8888/api || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    mem_limit: 768m

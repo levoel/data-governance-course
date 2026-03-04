@@ -1,0 +1,30 @@
+# Catalog Lab - Jupyter Environment with OpenMetadata SDK
+# Based on minimal-notebook (smaller than scipy-notebook by ~700 MB)
+
+# TODO: Add SHA digest when Docker is available
+FROM quay.io/jupyter/minimal-notebook:latest
+
+LABEL maintainer="Data Governance Course"
+LABEL description="JupyterLab environment for OpenMetadata catalog exercises"
+
+# Install PostgreSQL client library (needed by psycopg2-binary at runtime)
+USER root
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
+USER ${NB_UID}
+
+# Install Python packages for catalog exercises
+RUN pip install --no-cache-dir \
+    requests \
+    psycopg2-binary \
+    tabulate
+
+# Set working directory to mounted notebooks volume
+WORKDIR /home/jovyan/work
+
+# Expose JupyterLab port
+EXPOSE 8888
+
+# Default command - no auth token for lab use
+CMD ["start-notebook.sh", "--NotebookApp.token=''", "--NotebookApp.password=''"]
