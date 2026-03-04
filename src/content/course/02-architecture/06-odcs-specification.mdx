@@ -1,0 +1,280 @@
+---
+title: "Open Data Contract Standard (ODCS)"
+description: "ODCS v3.1.0 -- индустриальный стандарт формализации data contracts: структура спецификации, обязательные поля, schema definition, quality rules, SLA, управление версиями"
+order: 6
+difficulty: "advanced"
+estimatedTime: 25
+audience: "engineers"
+topics: ["ODCS", "Data Contracts", "YAML", "Data Quality", "SLA"]
+---
+
+import { ToolDeepDive, PolicyTemplate } from '../../../components/diagrams/governance';
+
+# Open Data Contract Standard (ODCS)
+
+## Введение
+
+В предыдущем уроке мы изучили Data Contracts как концепцию. Но каждая организация изобретала собственный формат -- DataTech использовала ad-hoc YAML с полями `contract.name`, `contract.version`, `contract.owner`. Такие контракты невозможно валидировать автоматически.
+
+**Open Data Contract Standard (ODCS)** -- индустриальный стандарт, созданный в PayPal и в 2023 году переданный проекту **Bitol** (Linux Foundation AI & Data). Конкурирующий Data Contract Specification (DCS) объявлен устаревшим (поддержка заканчивается в 2026). ODCS -- единственный индустриальный стандарт. Текущая версия -- **ODCS v3.1.0** (январь 2026).
+
+## Пять обязательных полей
+
+<ToolDeepDive tool="ODCS" version="3.1.0" lastVerified="2026-03">
+
+Минимальный валидный ODCS контракт содержит ровно 5 полей:
+
+```yaml
+apiVersion: v3.1.0
+kind: DataContract
+id: 53581432-6c55-4ba2-a65f-72344a91553a
+version: 1.0.0
+status: draft
+```
+
+Каждое поле имеет строгое назначение:
+
+| Поле | Описание | Формат |
+|------|----------|--------|
+| `apiVersion` | Версия спецификации ODCS | `v3.1.0` (фиксированная строка) |
+| `kind` | Тип документа | Всегда `DataContract` |
+| `id` | Уникальный идентификатор контракта | UUID или строковый ID |
+| `version` | Версия контракта (semver) | `1.0.0` -- связь с версионированием из урока 05 |
+| `status` | Текущее состояние контракта | Один из 5 статусов жизненного цикла |
+
+### Жизненный цикл контракта (status)
+
+<FlowRow>
+  <FlowNode variant="default" label="proposed" sublabel="Обсуждение" />
+  <Arrow />
+  <FlowNode variant="governance" label="draft" sublabel="Разработка" />
+  <Arrow />
+  <FlowNode variant="success" label="active" sublabel="SLA действует" />
+  <Arrow />
+  <FlowNode variant="warning" label="deprecated" sublabel="Миграция 30д" />
+  <Arrow />
+  <FlowNode variant="error" label="retired" sublabel="Выведен" />
+</FlowRow>
+
+</ToolDeepDive>
+
+## Fundamentals
+
+После обязательных полей контракт описывает метаданные data product:
+
+```yaml
+name: customer_data_product
+domain: crm
+tenant: DataTech
+description:
+  purpose: Customer master data for CRM and analytics
+  limitations: No financial transaction data included
+  usage: Use for customer segmentation and retention analysis
+```
+
+Поля: `name` (snake_case, naming conventions из урока 04), `domain` (Domain Ownership из урока 05), `tenant` (организация). Объект `description` содержит `purpose`, `limitations`, `usage`.
+
+## Schema
+
+<ToolDeepDive tool="ODCS" version="3.1.0" lastVerified="2026-03">
+
+Schema -- ключевая секция контракта, описывающая структуру данных: таблицы, колонки, типы и классификацию.
+
+```yaml
+schema:
+  - name: customers
+    physicalType: table
+    properties:
+      - name: customer_id
+        logicalType: integer
+        physicalType: bigint
+        required: true
+        primaryKey: true
+        classification: public
+      - name: email
+        logicalType: string
+        physicalType: varchar
+        required: true
+        classification: restricted
+        quality:
+          - metric: nullValues
+            mustBe: 0
+            type: library
+            dimension: completeness
+      - name: full_name
+        logicalType: string
+        physicalType: varchar
+        required: true
+        classification: restricted
+      - name: created_at
+        logicalType: timestamp
+        physicalType: timestamp
+        required: true
+        classification: public
+```
+
+Ключевые свойства: `logicalType` (абстрактный тип), `physicalType` (тип СУБД), `classification` (`public`/`restricted`/`confidential`), `quality` (inline-правила). Обратите внимание: `classification` задаётся **на каждую колонку** -- `customer_id` (`public`) и `email` (`restricted`) в одной таблице.
+
+</ToolDeepDive>
+
+<KnowledgeCheck
+  question="Почему classification на уровне колонки (а не таблицы) критичен для governance автоматизации?"
+  answer="Column-level classification позволяет автоматизировать PII-сканирование, маскирование и контроль доступа для каждого поля отдельно. В таблице customers поле email (restricted) требует маскирования при экспорте в аналитические системы, а customer_id (public) можно передавать свободно. Если classification задан на уровне таблицы (confidential), все колонки получают одинаковый уровень -- и public-данные блокируются без необходимости. Column-level classification -- основа для автоматических Data Access Policies и dynamic data masking."
+/>
+
+## Quality Rules
+
+ODCS также поддерживает top-level quality rules на уровне таблицы:
+
+```yaml
+quality:
+  - metric: rowCount
+    mustBeGreaterThan: 1000
+    type: library
+    dimension: completeness
+    severity: error
+  - metric: duplicateValues
+    mustBe: 0
+    type: library
+    dimension: uniqueness
+    arguments:
+      properties:
+        - customer_id
+  - type: sql
+    query: "SELECT COUNT(*) FROM customers WHERE email NOT LIKE '%@%.%'"
+    mustBe: 0
+    dimension: conformity
+    description: Email format validation
+```
+
+ODCS поддерживает 4 типа правил: `library` (встроенные метрики), `sql` (произвольные запросы), `text` (документация), `custom` (внешняя логика). Поле `dimension` связывает правило с измерениями качества (accuracy, completeness, conformity, uniqueness, timeliness) -- подробнее в Модуле 04.
+
+## SLA Properties
+
+SLA определяет обязательства producer перед consumers в машиночитаемом формате:
+
+```yaml
+slaProperties:
+  - property: latency
+    value: 1
+    unit: d
+  - property: retention
+    value: 7
+    unit: y
+  - property: availability
+    value: 99.5
+```
+
+В отличие от строковых SLA (`freshness: "1 hour"` из урока 05), числовые значения с единицами можно мониторить автоматически. Latency 1d, retention 7y (бухгалтерские требования), availability 99.5%.
+
+## Team и Roles
+
+Контракт фиксирует ответственных за data product и уровни доступа:
+
+```yaml
+team:
+  name: CRM Domain Team
+  members:
+    - username: aivanov
+      role: Data Steward
+      dateIn: "2025-01-15"
+roles:
+  - role: analyst
+    access: read
+  - role: engineer
+    access: write
+```
+
+`team` определяет producer (кто отвечает). `roles` определяет consumer access levels (связь с RBAC из Модуля 06).
+
+## Справочник дополнительных секций
+
+ODCS v3.1.0 определяет дополнительные секции для специализированных сценариев:
+
+<PolicyTemplate
+  title="ODCS: дополнительные секции"
+  sections={[
+    { title: "References / Relationships", content: "Описание связей между таблицами (foreign keys) и ссылки на внешние системы. Используется для cross-schema lineage." },
+    { title: "Support / Communication", content: "Каналы поддержки: Slack-каналы, email, Teams. Определяет, куда обращаться при проблемах с данными." },
+    { title: "Pricing", content: "Стоимость использования data product (для внутренних marketplace). Включает priceAmount, priceCurrency, priceUnit." },
+    { title: "Servers / Infrastructure", content: "Технические детали: хост, порт, тип СУБД (postgres, snowflake, bigquery). Для автоматического подключения consumers." },
+    { title: "Custom Properties", content: "Произвольные пары ключ-значение для организационных нужд. Расширяемость без изменения стандарта." }
+  ]}
+/>
+
+Эти секции опциональны. Для большинства организаций достаточно required fields + schema + quality + slaProperties + team.
+
+## Сценарий: DataTech переходит на ODCS
+
+> В уроке 05 DataTech создала ad-hoc data contract. Теперь CRM Domain Team переводит его в ODCS.
+
+**До (ad-hoc формат):**
+
+```yaml
+contract:
+  name: customer_data_product
+  version: "2.1.0"
+  owner: CRM Domain Team
+  schema:
+    properties:
+      customer_id: { type: integer, pii: false }
+      email: { type: string, pii: true, classification: confidential }
+  sla:
+    freshness: "1 hour"
+    availability: "99.5%"
+```
+
+**После (ODCS v3.1.0):**
+
+```yaml
+apiVersion: v3.1.0
+kind: DataContract
+id: dt-customer-001
+version: 2.1.0
+status: active
+name: customer_data_product
+domain: crm
+tenant: DataTech
+description:
+  purpose: Customer master data for CRM and analytics
+  limitations: No financial transaction data included
+  usage: Use for customer segmentation and retention analysis
+schema:                          # типизированная schema
+  - name: customers
+    physicalType: table
+    properties:
+      - name: customer_id
+        logicalType: integer
+        classification: public   # column-level classification
+      - name: email
+        logicalType: string
+        classification: restricted
+        quality:                 # inline quality rules
+          - metric: nullValues
+            mustBe: 0
+slaProperties:                   # машиночитаемый SLA
+  - property: latency
+    value: 1
+    unit: d
+team:
+  name: CRM Domain Team
+```
+
+Ключевые изменения: обязательные поля вместо произвольной вложенности, типизированная schema (`logicalType`/`physicalType`), column-level classification вместо `pii: true/false`, машиночитаемый SLA, inline quality rules.
+
+<KnowledgeCheck
+  question="Какие преимущества даёт переход от ad-hoc контрактов к ODCS стандарту?"
+  answer="Четыре ключевых преимущества: (1) Machine-readable validation -- ODCS имеет JSON Schema, контракты можно валидировать автоматически в CI/CD, ad-hoc формат требует кастомных валидаторов. (2) Interoperability -- все команды и инструменты работают с одним форматом, ad-hoc контракты несовместимы между командами. (3) Версионированная спецификация -- apiVersion фиксирует версию стандарта, при обновлении ODCS контракты можно мигрировать по известным правилам. (4) Tooling support -- индустриальная конвергенция на ODCS означает поддержку в каталогах данных, CI/CD инструментах и платформах качества."
+/>
+
+## Итоги
+
+- **ODCS v3.1.0** -- единственный индустриальный стандарт data contracts (DCS устарел)
+- **5 обязательных полей**: `apiVersion`, `kind`, `id`, `version`, `status`
+- **Schema** -- column-level classification + inline quality rules
+- **Quality rules** -- 4 типа (library, sql, text, custom) с привязкой к dimension качества
+- **SLA** -- машиночитаемые обязательства (latency, retention, availability)
+- **Team/roles** -- ответственные и уровни доступа
+- Контракты версионируются через semver: major (breaking), minor (additive), patch (fix)
+
+Это завершающий урок модуля "Архитектура и Моделирование Данных". В следующем модуле мы перейдём к **Метаданным и Каталогам Данных** -- практическим инструментам реализации архитектурных принципов, описанных в этом модуле.
