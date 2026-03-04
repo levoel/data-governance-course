@@ -1,0 +1,396 @@
+---
+title: "Streaming Data Governance"
+description: "Schema registry governance, stream quality enforcement, Kafka topic governance, streaming lineage, event-driven governance, CDC governance patterns"
+order: 7
+difficulty: "advanced"
+estimatedTime: 25
+audience: "engineers"
+topics: ["Streaming", "Schema Registry", "Kafka", "Streaming Lineage", "CDC"]
+---
+
+import { ToolDeepDive, PolicyTemplate, AccessMatrix } from '../../../components/diagrams/governance';
+
+# Streaming Data Governance
+
+## Введение
+
+В пакетном мире метаданные обновляются ежедневно. В streaming мире -- ежесекундно.
+
+> **Сценарий: FinSecure Bank (ФинСекьюр Банк)**
+>
+> FinSecure обрабатывает платежи через 200+ Kafka-топиков. 50+ consumer groups потребляют данные в реальном времени. На прошлой неделе producer-команда платежного шлюза изменила схему `payment_events`: поле `amount` стало строкой вместо числа. 12 consumer-сервисов упали с ошибками десериализации. Причина: никто не управлял совместимостью схем.
+
+Streaming governance -- это governance метаданных, качества и доступа в потоковых системах. В отличие от batch-governance, здесь всё происходит в реальном времени: схемы эволюционируют при каждом деплое, потребители подключаются динамически, lineage охватывает десятки микросервисов.
+
+В этом уроке мы рассмотрим governance schema registry, streaming quality enforcement, topic governance, streaming lineage и CDC governance. Предварительно рекомендуем повторить урок 04 (Data Lineage) этого модуля.
+
+## Schema Registry Governance
+
+<ToolDeepDive tool="Apache Kafka Schema Registry" version="7.x" lastVerified="2026-03">
+
+### Модель владения схемами
+
+**Schema Registry (реестр схем)** -- централизованное хранилище Avro/Protobuf/JSON Schema для Kafka-топиков. Каждая схема определяет структуру событий: какие поля, какие типы, какие значения допустимы.
+
+Governance начинается с владения: **один топик -- одна команда-владелец**. Владелец schema отвечает за:
+
+- Определение и публикацию схемы
+- Review запросов на изменение от других команд
+- Управление совместимостью и deprecation
+
+### Правила эволюции схем
+
+Schema Registry поддерживает четыре уровня совместимости:
+
+| Уровень | Описание | Пример | Риск |
+|---------|----------|--------|------|
+| **BACKWARD** | Новая схема читает данные старой | Добавление поля с default | Низкий |
+| **FORWARD** | Старые потребители читают новые данные | Удаление optional поля | Средний |
+| **FULL** | BACKWARD + FORWARD одновременно | Только добавление optional полей | Минимальный |
+| **NONE** | Никаких проверок | Любое изменение | Максимальный |
+
+**Рекомендация для governance**: FULL для production-топиков, BACKWARD для development.
+
+### Workflow изменения схемы
+
+```
+Producer хочет изменить схему
+  -> Pull Request в schema-repo
+    -> Automated compatibility check (CI)
+      -> Review: Schema Owner + affected consumers
+        -> Merge -> Schema Registry update
+          -> Consumer teams notified
+```
+
+### Deprecation процесс
+
+Схема не удаляется сразу -- устаревание через 3 фазы:
+
+1. **DEPRECATED**: схема помечена, новые потребители предупреждены
+2. **SUNSET (90 дней)**: все потребители должны мигрировать
+3. **REMOVED**: схема удалена, топик может быть удалён
+
+> **Сценарий: FinSecure**
+>
+> Producer-команда платежного шлюза изменила поле `amount` с integer на string. При BACKWARD compatibility Schema Registry отклонил бы это изменение: string не совместим с integer. Но compatibility был установлен в NONE. 12 consumer-сервисов десериализовали `"1500.00"` как число и получили исключения. Решение: (1) установить FULL compatibility для `payment_events`, (2) добавить CI-проверку совместимости в pipeline PR, (3) создать consumer registry для нотификации.
+
+</ToolDeepDive>
+
+## Stream Quality Enforcement
+
+В batch-системе качество проверяется после загрузки (dbt tests, Great Expectations). В streaming-системе качество должно проверяться **на входе** -- до того, как невалидное событие попадёт в топик.
+
+### Три уровня валидации
+
+```python
+# Трёхуровневая валидация streaming-событий
+VALIDATION_LEVELS = {
+    "schema": {
+        "check": "Schema Registry валидация",
+        "action": "Reject событие",
+        "example": "Поле 'amount' отсутствует или неверный тип"
+    },
+    "business_rules": {
+        "check": "Бизнес-правила на producer",
+        "action": "Route в Dead Letter Queue (DLQ)",
+        "example": "amount < 0, customer_id не найден в справочнике"
+    },
+    "statistical": {
+        "check": "Anomaly detection на consumer",
+        "action": "Алерт + logging",
+        "example": "Среднее значение amount за 5 мин отклонилось на 3 sigma"
+    }
+}
+```
+
+### Dead Letter Queue (DLQ) для quality failures
+
+DLQ -- специальный Kafka-топик для событий, не прошедших валидацию:
+
+<FlowRow>
+  <FlowNode
+    label="Producer"
+    description="Отправляет события"
+    variant="source"
+    tooltip="Платёжный шлюз FinSecure: 10,000 events/sec"
+  />
+  <Arrow />
+  <FlowNode
+    label="Validator"
+    description="Schema + Business Rules"
+    variant="check"
+    tooltip="Проверка: schema compliance, бизнес-правила, формат"
+  />
+  <Arrow />
+  <FlowNode
+    label="payments_topic"
+    description="Валидные события"
+    variant="target"
+    tooltip="Только события, прошедшие валидацию, попадают в основной топик"
+  />
+</FlowRow>
+
+<FlowRow>
+  <FlowNode
+    label="Validator"
+    description="Rejection path"
+    variant="check"
+    tooltip="События, не прошедшие валидацию"
+  />
+  <Arrow />
+  <FlowNode
+    label="payments_dlq"
+    description="Dead Letter Queue"
+    variant="pipeline"
+    tooltip="Невалидные события: null customer_id, отрицательный amount, неизвестный currency"
+  />
+  <Arrow />
+  <FlowNode
+    label="DLQ Monitor"
+    description="Алерт + Root Cause"
+    variant="process"
+    tooltip="Мониторинг DLQ rate: >1% от общего потока -- P2 incident"
+  />
+</FlowRow>
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> DataTech планирует streaming-архитектуру для e-commerce событий. Команда задаёт вопрос: как строить quality с нуля? Ответ: (1) Schema Registry с FULL compatibility, (2) Producer-side validation для бизнес-правил, (3) DLQ для quality failures с мониторингом, (4) Consumer-side statistical anomaly detection. Quality-first architecture дешевле, чем ретроактивное исправление.
+
+<KnowledgeCheck
+  question="FinSecure producer отправляет события с null customer_id в payments topic. Quality enforcement перенаправляет их в DLQ. Корректное ли это поведение?"
+  answer="Да, это корректное поведение. customer_id -- обязательное поле для платёжных транзакций (связь с клиентом, compliance, audit trail). Событие без customer_id не должно попадать в основной топик, где его обработают downstream-сервисы. DLQ сохраняет событие для анализа: возможно, producer-сервис имеет баг (null вместо customer_id), или upstream-система вернула incomplete данные. Governance-процесс: DLQ-алерт -> producer-команда расследует -> fix -> reprocess из DLQ."
+/>
+
+## Kafka Topic Governance
+
+### Naming Convention
+
+Без naming convention 200 топиков превращаются в неуправляемый хаос. Governance-стандарт для Kafka-топиков:
+
+```
+{domain}.{entity}.{event_type}
+
+Примеры:
+  payments.transaction.created      -- новая транзакция
+  payments.transaction.completed    -- завершённая транзакция
+  customers.profile.updated         -- обновление профиля
+  risk.scoring.calculated           -- расчёт скоринга
+  audit.access.logged               -- запись audit log
+```
+
+Почему domain-based, а не team-based:
+
+| Критерий | `team.topic` | `domain.entity.event` |
+|----------|--------------|-----------------------|
+| **Реорганизация** | Переименование при смене команд | Стабильно |
+| **Поиск в каталоге** | По команде (кто?) | По домену (что?) |
+| **Access policies** | Per-team ACL | Per-domain ACL |
+| **Масштабирование** | Конфликты при росте команд | Домены стабильны |
+
+<PolicyTemplate
+  client:load
+  title="Kafka Topic Governance Policy"
+  sections={[
+    { name: "Naming", description: "Формат: {domain}.{entity}.{event_type}. Все lowercase, точка как разделитель. Запрещены: пробелы, camelCase, team names." },
+    { name: "Ownership", description: "Каждый топик имеет владельца (domain team). Владелец определяет schema, retention, access policy. Смена владельца -- через Data Council approval." },
+    { name: "Retention", description: "Default: 7 дней для transactional, 30 дней для audit, 90 дней для compliance. Исключения утверждает Data Owner." },
+    { name: "Schema", description: "Обязательная Schema Registry регистрация для production-топиков. Compatibility level: FULL для Tier-1, BACKWARD для Tier-2." },
+    { name: "Creation", description: "Новый топик -- через PR в topic-registry repo. Automated naming check + Schema Owner approval. Запрещено: ручное создание через CLI." }
+  ]}
+/>
+
+### Partition Strategy Governance
+
+Partition key определяет распределение данных по партициям. Неправильный ключ создаёт hotspots (одна партиция перегружена):
+
+- **customer_id** -- равномерно для FinSecure (1M+ клиентов)
+- **country_code** -- hotspot (90% трафика -- Россия)
+- **timestamp** -- один partition получает весь текущий трафик
+
+Governance-решение: Data Owner утверждает partition key при создании топика.
+
+### Topic ACL Governance
+
+<AccessMatrix
+  client:load
+  title="FinSecure: Kafka Topic ACL Matrix"
+  roles={["Payment Gateway", "Risk Engine", "Fraud Detection", "Analytics", "Audit Service"]}
+  resources={["payments.transaction.*", "risk.scoring.*", "audit.access.*", "customers.profile.*"]}
+  permissions={[
+    ["allow", "deny", "deny", "deny", "deny"],
+    ["deny", "allow", "deny", "deny", "deny"],
+    ["allow", "allow", "deny", "deny", "deny"],
+    ["allow", "allow", "allow", "deny", "deny"],
+    ["allow", "allow", "allow", "allow", "allow"]
+  ]}
+/>
+
+Принцип: **produce -- only owner, consume -- by approval**. Payment Gateway производит в `payments.transaction.*`, но не может читать `risk.scoring.*`. Audit Service читает всё (audit mandate).
+
+## Streaming Lineage
+
+### Отличие от Batch Lineage
+
+Batch lineage -- это снимок (snapshot): таблица A -> dbt model -> таблица B. Streaming lineage -- это непрерывный поток с динамическими участниками:
+
+| Характеристика | Batch Lineage | Streaming Lineage |
+|---------------|---------------|-------------------|
+| **Обновление** | После каждого batch run | Непрерывно |
+| **Потребители** | Фиксированные (dbt models) | Динамические (consumer groups) |
+| **Granularity** | Table/column | Topic/schema/field |
+| **Discoverer** | dbt DAG, SQL parsing | Consumer Group API, Schema Registry |
+| **Сложность** | Один путь (pipeline) | Множество путей (fan-out через topics) |
+
+### Streaming Lineage Graph
+
+<FlowRow>
+  <FlowNode
+    label="PostgreSQL (CDC)"
+    description="Source: transactions"
+    variant="source"
+    tooltip="Debezium CDC connector: каждый INSERT/UPDATE -> Kafka event"
+  />
+  <Arrow />
+  <FlowNode
+    label="cdc.transactions"
+    description="Kafka Topic (CDC)"
+    variant="catalog"
+    tooltip="Raw CDC events: schema из Schema Registry, AVRO format"
+  />
+  <Arrow />
+  <FlowNode
+    label="Enrichment Service"
+    description="Consumer Group: enrich-cg"
+    variant="process"
+    tooltip="Обогащение: join с customer data, risk scoring, currency conversion"
+  />
+  <Arrow />
+  <FlowNode
+    label="payments.enriched"
+    description="Kafka Topic (processed)"
+    variant="catalog"
+    tooltip="Enriched events: transaction + customer + risk score"
+  />
+</FlowRow>
+
+<FlowRow>
+  <FlowNode
+    label="payments.enriched"
+    description="Kafka Topic"
+    variant="catalog"
+    tooltip="Fan-out: 4 consumer groups читают этот топик"
+  />
+  <Arrow />
+  <FlowNode
+    label="Analytics (consumer-group-1)"
+    description="ClickHouse Sink"
+    variant="target"
+    tooltip="Загрузка в ClickHouse для дашбордов"
+  />
+</FlowRow>
+
+<FlowRow>
+  <FlowNode
+    label="payments.enriched"
+    description="Kafka Topic"
+    variant="catalog"
+    tooltip="Fan-out: consumer group 2"
+  />
+  <Arrow />
+  <FlowNode
+    label="Fraud Detection (consumer-group-2)"
+    description="ML Service"
+    variant="process"
+    tooltip="Real-time fraud scoring: если score > 0.8 -- блокировка"
+  />
+</FlowRow>
+
+Streaming lineage показывает: PostgreSQL -> Debezium CDC -> Kafka topic -> Enrichment -> Kafka topic -> 4 consumer groups. Изменение schema в `cdc.transactions` требует impact analysis на все downstream топики и consumer groups.
+
+Для подробного разбора batch lineage и impact analysis повторите урок 04 этого модуля (Data Lineage и Impact Analysis).
+
+## Event-Driven Governance
+
+### Governance Events
+
+Вместо периодического аудита ("раз в квартал проверяем соответствие") -- governance реагирует на события в реальном времени:
+
+```python
+# Governance events и автоматические реакции
+GOVERNANCE_EVENTS = {
+    "topic_created": {
+        "check": "Naming convention compliance",
+        "action": "Block if non-compliant, alert Governance team"
+    },
+    "schema_changed": {
+        "check": "Compatibility validation",
+        "action": "Block if incompatible, notify consumer teams"
+    },
+    "consumer_added": {
+        "check": "ACL verification",
+        "action": "Verify consumer has approved access, audit log"
+    },
+    "dlq_threshold_exceeded": {
+        "check": "DLQ rate > 1% of total",
+        "action": "P2 incident, notify producer team"
+    },
+    "retention_expired": {
+        "check": "Data past retention policy",
+        "action": "Archive or dispose per policy"
+    }
+}
+```
+
+### От периодического аудита к Real-Time Governance
+
+| Аспект | Периодический аудит | Event-Driven Governance |
+|--------|--------------------|-----------------------|
+| **Частота** | Квартально | Непрерывно |
+| **Реакция** | Недели | Секунды |
+| **Coverage** | Выборочный | 100% событий |
+| **Стоимость** | Высокая (ручной труд) | Низкая (автоматизация) |
+| **Блокировка** | Невозможна (постфактум) | Возможна (превентивно) |
+
+<KnowledgeCheck
+  question="DataTech создаёт новый Kafka topic без проверки naming convention. Какой event-driven governance механизм предотвратит это?"
+  answer="Topic creation webhook: при вызове AdminClient.createTopics() автоматически срабатывает governance-проверка naming convention ({domain}.{entity}.{event_type}). Если имя не соответствует паттерну -- creation блокируется, алертится Governance team. Реализация: (1) Custom authorizer в Kafka (AclAuthorizer + naming check), или (2) GitOps-подход: топики создаются только через PR в topic-registry repo с CI-проверкой naming. Ручное создание через CLI запрещено RBAC-политикой."
+/>
+
+## CDC Governance
+
+<ToolDeepDive tool="Debezium" version="2.x" lastVerified="2026-03">
+
+### Debezium Connector Governance
+
+**Debezium** превращает базу данных в event stream: каждый INSERT, UPDATE, DELETE в PostgreSQL/Oracle становится Kafka-событием. Это создаёт уникальные governance-требования:
+
+**Connector Configuration Ownership:**
+- Каждый connector имеет владельца (обычно -- Data Engineering team)
+- Конфигурация хранится в Git (Infrastructure as Code)
+- Изменения -- через PR с review
+
+**Change Event Schema Management:**
+- Debezium автоматически генерирует schema из DDL таблицы
+- ALTER TABLE -> новая schema version в Schema Registry
+- Governance: уведомление consumer teams при schema изменении
+
+**Consistency Guarantees:**
+- Debezium обеспечивает **at-least-once** delivery (дубликаты возможны)
+- Consumer teams должны реализовать идемпотентность
+- Governance-решение: документировать guarantees в Data Contract
+
+> Подробнее о CDC-паттернах и Debezium connector architecture: [Debezium ETL/ELT Patterns](/debezium/06-etl-elt-patterns/)
+
+</ToolDeepDive>
+
+## Итоги
+
+- **Schema Registry Governance**: ownership (одна команда на схему), compatibility levels (FULL для production), deprecation process (90-day sunset)
+- **Stream Quality Enforcement**: трёхуровневая валидация (schema, business rules, statistical), DLQ для quality failures
+- **Kafka Topic Governance**: naming convention (`domain.entity.event`), partition strategy, ACL matrix
+- **Streaming Lineage**: непрерывный (не snapshot), динамические потребители, schema-level tracking
+- **Event-Driven Governance**: от периодического аудита к real-time реакции на governance events
+- **CDC Governance (Debezium)**: connector ownership, change event schema management, at-least-once delivery
+
+Это завершает модуль **M03: Метаданные и Каталоги Данных**. Вы изучили: типы метаданных, бизнес-глоссарий, архитектуру каталога, Data Lineage, стандарты метаданных, автоматическую классификацию и streaming governance. В следующем модуле мы перейдём к **M04: Качество Данных и Observability**.

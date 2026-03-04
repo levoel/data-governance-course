@@ -3,7 +3,7 @@
   "moduleId": "03-metadata-catalogs",
   "_meta": {
     "idPrefix": "dg-exam-m03",
-    "description": "Use IDs: dg-exam-m03-q1 through dg-exam-m03-q10 (10 analytical questions)"
+    "description": "Use IDs: dg-exam-m03-q1 through dg-exam-m03-q11 (11 analytical questions)"
   },
   "questions": [
     {
@@ -148,6 +148,21 @@
       "correctAnswer": "b",
       "explanation": "Outcome-метрики: Time to Data Discovery привязан к исходной проблеме (3 недели onboarding). Metadata Coverage по Tier показывает приоритизированный прогресс. Lineage Completeness -- готовность к impact analysis. Tag Accuracy -- доверие к классификации. Вариант A -- input-метрики (что вложили). Для подготовки повторите все 6 уроков модуля, обращая внимание на метрики.",
       "hint": "Вспомните исходные проблемы DataTech: 3 недели onboarding, противоречивые отчёты, отсутствие классификации. Какие метрики показывают прогресс?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-exam-m03-q11",
+      "type": "multiple-choice",
+      "question": "Producer-команда FinSecure деплоит новую schema version для топика `customer_events`: поле `created_at` изменено с string (ISO 8601) на integer (Unix timestamp). Schema Registry compatibility был NONE. 8 consumer-сервисов падают с ошибками десериализации. Post-mortem выявляет: нет schema review процесса, нет compatibility enforcement, нет нотификации consumers. Какой governance framework предотвращает повторение?",
+      "options": [
+        { "id": "a", "text": "Достаточно установить BACKWARD compatibility -- это решит все проблемы" },
+        { "id": "b", "text": "Четыре компонента: (1) BACKWARD compatibility на Schema Registry, (2) Schema change PR review с participation affected consumer teams, (3) Consumer registry (список consumers per topic для нотификации), (4) Schema CI/CD check перед deployment" },
+        { "id": "c", "text": "Запретить изменения schema -- использовать версионирование топиков вместо schema evolution" },
+        { "id": "d", "text": "Добавить мониторинг десериализации на consumer-сервисах" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Одного compatibility level недостаточно (A): он блокирует несовместимые изменения, но не обеспечивает communication и planning. Полный governance framework: (1) BACKWARD/FULL compatibility -- техническая защита от breaking changes, (2) PR review -- процессная защита, affected consumers участвуют в review, (3) Consumer registry -- карта зависимостей для impact analysis и нотификации (кто читает этот топик?), (4) CI/CD check -- автоматическая проверка совместимости в pipeline. Мониторинг (D) -- reactive, не preventive. Для подготовки повторите урок 07 (streaming governance) и урок 04 (lineage для impact analysis) этого модуля.",
+      "hint": "Три точки отказа: техническая (нет compatibility check), процессная (нет review), коммуникационная (нет нотификации consumers). Как закрыть все три?",
       "bloomLevel": "analytical"
     }
   ]

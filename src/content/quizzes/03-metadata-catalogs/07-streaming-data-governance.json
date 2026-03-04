@@ -1,0 +1,79 @@
+{
+  "lessonSlug": "03-metadata-catalogs/07-streaming-data-governance",
+  "moduleId": "03-metadata-catalogs",
+  "_meta": {
+    "idPrefix": "dg-m03-07",
+    "description": "Use IDs: dg-m03-07-q1 through dg-m03-07-q5"
+  },
+  "questions": [
+    {
+      "id": "dg-m03-07-q1",
+      "type": "multiple-choice",
+      "question": "FinSecure использует BACKWARD compatibility на payments topic. Producer хочет переименовать поле `amount` в `transaction_amount`. Это breaking change. Каков правильный путь миграции?",
+      "options": [
+        { "id": "a", "text": "Изменить имя поля напрямую -- BACKWARD compatibility позволяет переименование" },
+        { "id": "b", "text": "Добавить `transaction_amount` как новое поле (additive change), установить 90-дневный sunset для `amount`, consumers мигрируют на новое поле, затем удалить `amount` после подтверждения миграции всех consumers" },
+        { "id": "c", "text": "Создать новый топик `payments_v2` и переключить всех consumers" },
+        { "id": "d", "text": "Установить compatibility в NONE, переименовать поле, вернуть BACKWARD" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Переименование поля -- breaking change при любом compatibility level, кроме NONE. Правильная миграция: (1) добавить `transaction_amount` как новое optional поле (additive, совместимо с BACKWARD), (2) producers пишут в оба поля переходный период, (3) consumers мигрируют на новое поле (90 дней), (4) после подтверждения миграции всех consumers -- удалить `amount` в новой schema version. Создание нового топика (C) -- overreaction, нарушает lineage. Установка NONE (D) -- governance failure, именно так FinSecure получил 12 broken consumers.",
+      "hint": "Переименование = удаление старого + добавление нового. BACKWARD не позволяет удаление обязательных полей. Как сделать это в два этапа?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m03-07-q2",
+      "type": "multiple-choice",
+      "question": "DataTech планирует 30 Kafka-топиков. Engineering lead предлагает naming convention `team_name.topic_name`. Governance lead предлагает `domain.entity.event_type`. Какой подход предпочтительнее для governance и почему?",
+      "options": [
+        { "id": "a", "text": "team_name.topic_name -- проще определить владельца" },
+        { "id": "b", "text": "domain.entity.event_type -- кодирует бизнес-семантику (discoverable в каталоге), устойчив к реорганизации команд, позволяет domain-level access policies" },
+        { "id": "c", "text": "Не важно, главное -- консистентность" },
+        { "id": "d", "text": "Оба варианта: team_name.domain.entity.event_type" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "domain.entity.event_type превосходит team-based naming по трём критериям: (1) Business semantics: `payments.transaction.created` понятен любому, `team-alpha.payments` -- нет. (2) Реорганизация: когда команды merge/split, team-based naming устаревает, domain-based -- стабилен. (3) Access policies: domain-level ACL (`payments.*` -- payments team) проще, чем team-level. Team name можно хранить в metadata (topic ownership в каталоге), но не в имени топика.",
+      "hint": "Представьте: через год DataTech реорганизует команды. Что произойдёт с team-based naming?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m03-07-q3",
+      "type": "multiple-choice",
+      "question": "Чем streaming lineage отличается от batch lineage в контексте governance?",
+      "options": [
+        { "id": "a", "text": "Streaming lineage не нужен -- batch lineage покрывает все сценарии" },
+        { "id": "b", "text": "Streaming lineage непрерывен (не snapshot), включает динамические consumers (consumer groups появляются/исчезают), требует schema-level tracking через несколько topic hops, создаёт governance-вызовы вокруг consumer discovery" },
+        { "id": "c", "text": "Streaming lineage проще batch lineage -- один топик, один путь" },
+        { "id": "d", "text": "Streaming lineage отличается только скоростью обновления" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Streaming lineage фундаментально отличается от batch: (1) Continuous vs snapshot: batch lineage обновляется после каждого run, streaming -- непрерывно. (2) Dynamic consumers: consumer groups создаются/удаляются динамически, batch lineage имеет фиксированные dbt-модели. (3) Schema-level tracking: данные проходят через несколько топиков с трансформациями, каждый hop имеет свою schema. (4) Consumer discovery: в batch мире потребители определены в DAG, в streaming -- нужен Consumer Group API для определения 'кто читает этот топик сейчас?'",
+      "hint": "Подумайте о трёх отличиях: частота обновления, стабильность потребителей, способ обнаружения зависимостей.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m03-07-q4",
+      "type": "multiple-choice",
+      "question": "FinSecure payments topic DLQ накапливает 500 событий в день. Operations-команда игнорирует DLQ. Какой governance-процесс отсутствует?",
+      "options": [
+        { "id": "a", "text": "Нужно отключить DLQ -- события должны проходить без валидации" },
+        { "id": "b", "text": "DLQ мониторинг с alerting threshold, назначенный DLQ owner (producer team), обязательный SLA на расследование (24 часа), root cause analysis для систематических quality failures" },
+        { "id": "c", "text": "Достаточно добавить Slack-алерт на DLQ" },
+        { "id": "d", "text": "Нужно увеличить partition count для DLQ" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "DLQ без governance -- мусорная корзина, которая растёт бесконечно. Четыре компонента DLQ governance: (1) Мониторинг с alerting: если DLQ rate > 1% от основного потока -- P2 incident. (2) Ownership: producer team отвечает за качество данных, DLQ -- их ответственность. (3) SLA: DLQ-события расследуются в течение 24 часов (аналог incident response). (4) Root cause analysis: 500 events/day -- это систематическая проблема (баг в producer, upstream issue), не случайные ошибки. Только Slack-алерт (C) без ownership и SLA -- бесполезен.",
+      "hint": "DLQ -- это не 'корзина для мусора', а queue для расследования. Кто расследует и за какое время?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m03-07-q5",
+      "type": "true-false",
+      "question": "Schema Registry является репозиторием метаданных, аналогичным Data Catalog, и может заменить OpenMetadata для streaming данных.",
+      "correctAnswer": false,
+      "explanation": "Schema Registry хранит **структурные метаданные** (schemas): поля, типы, совместимость. Но не содержит: (1) бизнес-метаданные (описания, владельцы, домены), (2) lineage (откуда данные, кто потребитель), (3) data quality метрики (freshness, completeness), (4) теги и классификацию (PII, confidential). Schema Registry и Data Catalog -- **комплементарные** инструменты: Schema Registry управляет эволюцией схем, Data Catalog (OpenMetadata) обеспечивает discovery и governance context. Для полной governance-картины streaming данных нужны оба.",
+      "hint": "Какие типы метаданных хранит Schema Registry? Какие -- Data Catalog? Есть ли пересечение?",
+      "bloomLevel": "conceptual"
+    }
+  ]
+}
