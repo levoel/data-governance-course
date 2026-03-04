@@ -1,0 +1,151 @@
+{
+  "lessonSlug": "02-architecture/06-odcs-specification",
+  "moduleId": "02-architecture",
+  "_meta": {
+    "idPrefix": "dg-m02-06",
+    "description": "Use IDs: dg-m02-06-q1 through dg-m02-06-q4, dg-m02-06-code-1 (CC-43), dg-m02-06-code-2 (CC-44), dg-m02-06-code-3 (CC-45)"
+  },
+  "questions": [
+    {
+      "id": "dg-m02-06-q1",
+      "type": "multiple-choice",
+      "question": "DataTech создала ad-hoc data contract для customer_data_product (YAML файл с полями contract.name, contract.version, contract.owner). Через 6 месяцев 4 доменные команды используют свои ad-hoc форматы -- у каждой свои поля и структура. Какое ключевое преимущество миграции на ODCS v3.1.0?",
+      "options": [
+        { "id": "a", "text": "ODCS автоматически валидирует данные в production" },
+        { "id": "b", "text": "ODCS -- единый стандарт с JSON Schema валидацией: все 4 команды используют одинаковую структуру, tooling совместим, контракты machine-readable" },
+        { "id": "c", "text": "ODCS обязателен по законодательству для Data Governance" },
+        { "id": "d", "text": "ODCS быстрее обрабатывается, чем ad-hoc YAML" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "ODCS -- единый индустриальный стандарт с формальной JSON Schema. Это означает: (1) все команды используют одинаковую структуру (apiVersion, kind, id, version, status + schema, quality, sla), (2) tooling совместим -- CI/CD валидация, каталоги данных, платформы качества работают с одним форматом, (3) контракты machine-readable -- автоматическая валидация, мониторинг, enforcement. ODCS не валидирует данные напрямую (A) -- он определяет контракт, а enforcement реализуется отдельно. ODCS не обязателен по закону (C). Производительность парсинга YAML одинакова (D).",
+      "hint": "Подумайте: что произойдёт, если 4 команды используют 4 разных формата контрактов? Смогут ли инструменты работать со всеми?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m02-06-q2",
+      "type": "multiple-choice",
+      "question": "Какие 5 полей являются обязательными (required) в минимальном ODCS v3.1.0 контракте?",
+      "options": [
+        { "id": "a", "text": "name, version, schema, quality, team" },
+        { "id": "b", "text": "apiVersion, kind, id, version, status" },
+        { "id": "c", "text": "apiVersion, name, domain, schema, slaProperties" },
+        { "id": "d", "text": "kind, id, name, description, schema" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Минимальный валидный ODCS v3.1.0 контракт содержит ровно 5 обязательных полей: apiVersion (версия спецификации, v3.1.0), kind (тип документа, всегда DataContract), id (уникальный идентификатор), version (версия контракта, semver), status (состояние жизненного цикла: proposed/draft/active/deprecated/retired). Все остальные секции (name, schema, quality, slaProperties, team) рекомендуемы, но технически опциональны.",
+      "hint": "Вспомните, какие поля необходимы для минимального валидного ODCS контракта из 5 строк.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m02-06-q3",
+      "type": "multiple-choice",
+      "question": "FinSecure Bank определяет ODCS контракт для customer_data_product. Data Engineer добавил quality rule: metric: nullValues, mustBe: 0 на колонку email (classification: restricted). Через месяц 2% записей имеют null email из-за legacy-миграции. Какой правильный подход?",
+      "options": [
+        { "id": "a", "text": "Изменить mustBe на 2 -- привести контракт к реальности" },
+        { "id": "b", "text": "Установить status: deprecated и создать новый контракт v2.0.0" },
+        { "id": "c", "text": "Исправить данные (data remediation), сохранить mustBe: 0, добавить severity: error и scheduler для автоматического мониторинга" },
+        { "id": "d", "text": "Удалить quality rule -- null email допустим для legacy записей" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Quality rules в ODCS -- это обязательства producer перед consumers. 2% null emails -- data quality issue, решаемый remediation (заполнить из источника или удалить невалидные legacy записи), а не ослаблением контракта. severity: error обеспечивает немедленный алерт при нарушениях. Scheduler (автоматический мониторинг) предотвращает повторение. Ослабление mustBe (A) подрывает доверие consumers. Deprecation + v2.0.0 (B) -- breaking change, неоправданный для fix. Удаление rule (D) означает отказ от quality guarantee.",
+      "hint": "Что важнее: привести контракт к проблемным данным или привести данные к стандарту контракта?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m02-06-q4",
+      "type": "true-false",
+      "question": "В ODCS v3.1.0 поле status: deprecated означает, что контракт больше нельзя использовать и потребители должны немедленно прекратить доступ к данным.",
+      "correctAnswer": false,
+      "explanation": "deprecated означает, что контракт планируется к выводу, но все ещё функционирует. Потребителям предоставляется время на миграцию (обычно 30 дней). Полное прекращение -- это status: retired. Жизненный цикл: proposed -> draft -> active -> deprecated -> retired.",
+      "hint": "Вспомните жизненный цикл контракта: proposed -> draft -> active -> deprecated -> retired. Что следует после deprecated?",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m02-06-code-1",
+      "type": "code-challenge",
+      "question": "Напишите минимальный ODCS v3.1.0 контракт для DataTech. Заполните все 5 обязательных полей и раздел fundamentals (name, domain, description с purpose, limitations, usage).",
+      "language": "yaml",
+      "starterCode": "# Минимальный ODCS v3.1.0 контракт для DataTech\n# Заполните все обязательные поля и раздел fundamentals\n#\n# Обязательные поля: apiVersion, kind, id, version, status\n# Fundamentals: name, domain, description (purpose, limitations, usage)\n\napiVersion: # TODO: версия спецификации ODCS\nkind: # TODO: тип документа\nid: # TODO: уникальный идентификатор (используйте dt-customer-001)\nversion: # TODO: версия контракта (семантическое версионирование)\nstatus: # TODO: статус контракта\n\nname: # TODO: имя data product\ndomain: # TODO: бизнес-домен\ndescription:\n  purpose: # TODO: для чего используются данные\n  limitations: # TODO: что НЕ включено\n  usage: # TODO: рекомендуемое использование\n",
+      "solutionCode": "apiVersion: v3.1.0\nkind: DataContract\nid: dt-customer-001\nversion: 1.0.0\nstatus: active\n\nname: customer_data_product\ndomain: crm\ndescription:\n  purpose: Customer master data for CRM and analytics\n  limitations: No financial transaction data included\n  usage: Use for customer segmentation and retention analysis\n",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "ODCS контракт содержит все обязательные поля и fundamentals",
+          "expectedOutput": "{\"apiVersion\":\"v3.1.0\",\"kind\":\"DataContract\",\"id\":\"dt-customer-001\",\"version\":\"1.0.0\",\"status\":\"active\",\"name\":\"customer_data_product\",\"domain\":\"crm\",\"description\":{\"purpose\":\"Customer master data for CRM and analytics\",\"limitations\":\"No financial transaction data included\",\"usage\":\"Use for customer segmentation and retention analysis\"}}",
+          "hidden": false
+        },
+        {
+          "id": "tc2",
+          "description": "Контракт parseable и содержит корректную структуру",
+          "expectedOutput": "{\"apiVersion\":\"v3.1.0\",\"kind\":\"DataContract\",\"id\":\"dt-customer-001\",\"version\":\"1.0.0\",\"status\":\"active\",\"name\":\"customer_data_product\",\"domain\":\"crm\",\"description\":{\"purpose\":\"Customer master data for CRM and analytics\",\"limitations\":\"No financial transaction data included\",\"usage\":\"Use for customer segmentation and retention analysis\"}}",
+          "hidden": true
+        }
+      ],
+      "explanation": "Минимальный ODCS контракт требует 5 обязательных полей: apiVersion (v3.1.0 -- версия спецификации), kind (DataContract -- тип документа), id (уникальный идентификатор), version (1.0.0 -- semver версия контракта), status (active -- контракт действует). Fundamentals описывают data product: name (snake_case), domain (бизнес-домен), description с purpose (назначение), limitations (ограничения) и usage (рекомендации по использованию).",
+      "hint": "apiVersion всегда v3.1.0 для текущей спецификации. kind всегда DataContract. status может быть: proposed, draft, active, deprecated, retired.",
+      "bloomLevel": "applied"
+    },
+    {
+      "id": "dg-m02-06-code-2",
+      "type": "code-challenge",
+      "question": "Напишите полный ODCS контракт с секциями schema (таблица customers с 4 колонками), slaProperties (latency, retention, availability) и team. Используйте правильные типы данных и classification для каждой колонки.",
+      "language": "yaml",
+      "starterCode": "# Полный ODCS v3.1.0 контракт для DataTech\n# Обязательные поля уже заполнены\n# TODO: добавьте schema, slaProperties и team\n\napiVersion: v3.1.0\nkind: DataContract\nid: dt-customer-002\nversion: 1.0.0\nstatus: active\nname: customer_data_product\ndomain: crm\n\nschema:\n  - name: customers\n    physicalType: table\n    properties:\n      - name: customer_id\n        logicalType: # TODO: тип (string)\n        physicalType: # TODO: тип БД (bigint)\n        required: # TODO: обязательное поле?\n        primaryKey: # TODO: первичный ключ?\n        classification: # TODO: public или restricted?\n      - name: email\n        logicalType: # TODO\n        physicalType: # TODO (varchar)\n        required: # TODO\n        classification: # TODO\n      - name: full_name\n        logicalType: # TODO\n        physicalType: # TODO (varchar)\n        required: # TODO\n        classification: # TODO\n      - name: created_at\n        logicalType: # TODO (timestamp)\n        physicalType: # TODO (timestamp)\n        required: # TODO\n        classification: # TODO\n\nslaProperties:\n  # TODO: latency (1 день), retention (7 лет), availability (99.5%)\n\nteam:\n  name: # TODO: название команды\n  members:\n    - username: # TODO\n      role: # TODO\n      dateIn: # TODO (формат: \"YYYY-MM-DD\" в кавычках!)\n",
+      "solutionCode": "apiVersion: v3.1.0\nkind: DataContract\nid: dt-customer-002\nversion: 1.0.0\nstatus: active\nname: customer_data_product\ndomain: crm\n\nschema:\n  - name: customers\n    physicalType: table\n    properties:\n      - name: customer_id\n        logicalType: string\n        physicalType: bigint\n        required: true\n        primaryKey: true\n        classification: public\n      - name: email\n        logicalType: string\n        physicalType: varchar\n        required: true\n        classification: restricted\n      - name: full_name\n        logicalType: string\n        physicalType: varchar\n        required: true\n        classification: restricted\n      - name: created_at\n        logicalType: timestamp\n        physicalType: timestamp\n        required: true\n        classification: public\n\nslaProperties:\n  - property: latency\n    value: 1\n    unit: d\n  - property: retention\n    value: 7\n    unit: y\n  - property: availability\n    value: 99.5\n\nteam:\n  name: CRM Domain Team\n  members:\n    - username: aivanov\n      role: Data Steward\n      dateIn: \"2025-01-15\"\n",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Полный ODCS контракт со schema, slaProperties и team",
+          "expectedOutput": "{\"apiVersion\":\"v3.1.0\",\"kind\":\"DataContract\",\"id\":\"dt-customer-002\",\"version\":\"1.0.0\",\"status\":\"active\",\"name\":\"customer_data_product\",\"domain\":\"crm\",\"schema\":[{\"name\":\"customers\",\"physicalType\":\"table\",\"properties\":[{\"name\":\"customer_id\",\"logicalType\":\"string\",\"physicalType\":\"bigint\",\"required\":true,\"primaryKey\":true,\"classification\":\"public\"},{\"name\":\"email\",\"logicalType\":\"string\",\"physicalType\":\"varchar\",\"required\":true,\"classification\":\"restricted\"},{\"name\":\"full_name\",\"logicalType\":\"string\",\"physicalType\":\"varchar\",\"required\":true,\"classification\":\"restricted\"},{\"name\":\"created_at\",\"logicalType\":\"timestamp\",\"physicalType\":\"timestamp\",\"required\":true,\"classification\":\"public\"}]}],\"slaProperties\":[{\"property\":\"latency\",\"value\":1,\"unit\":\"d\"},{\"property\":\"retention\",\"value\":7,\"unit\":\"y\"},{\"property\":\"availability\",\"value\":99.5}],\"team\":{\"name\":\"CRM Domain Team\",\"members\":[{\"username\":\"aivanov\",\"role\":\"Data Steward\",\"dateIn\":\"2025-01-15\"}]}}",
+          "hidden": false
+        },
+        {
+          "id": "tc2",
+          "description": "Schema содержит правильные типы и classification для каждой колонки",
+          "expectedOutput": "{\"apiVersion\":\"v3.1.0\",\"kind\":\"DataContract\",\"id\":\"dt-customer-002\",\"version\":\"1.0.0\",\"status\":\"active\",\"name\":\"customer_data_product\",\"domain\":\"crm\",\"schema\":[{\"name\":\"customers\",\"physicalType\":\"table\",\"properties\":[{\"name\":\"customer_id\",\"logicalType\":\"string\",\"physicalType\":\"bigint\",\"required\":true,\"primaryKey\":true,\"classification\":\"public\"},{\"name\":\"email\",\"logicalType\":\"string\",\"physicalType\":\"varchar\",\"required\":true,\"classification\":\"restricted\"},{\"name\":\"full_name\",\"logicalType\":\"string\",\"physicalType\":\"varchar\",\"required\":true,\"classification\":\"restricted\"},{\"name\":\"created_at\",\"logicalType\":\"timestamp\",\"physicalType\":\"timestamp\",\"required\":true,\"classification\":\"public\"}]}],\"slaProperties\":[{\"property\":\"latency\",\"value\":1,\"unit\":\"d\"},{\"property\":\"retention\",\"value\":7,\"unit\":\"y\"},{\"property\":\"availability\",\"value\":99.5}],\"team\":{\"name\":\"CRM Domain Team\",\"members\":[{\"username\":\"aivanov\",\"role\":\"Data Steward\",\"dateIn\":\"2025-01-15\"}]}}",
+          "hidden": false
+        },
+        {
+          "id": "tc3",
+          "description": "Контракт parseable с корректными типами данных",
+          "expectedOutput": "{\"apiVersion\":\"v3.1.0\",\"kind\":\"DataContract\",\"id\":\"dt-customer-002\",\"version\":\"1.0.0\",\"status\":\"active\",\"name\":\"customer_data_product\",\"domain\":\"crm\",\"schema\":[{\"name\":\"customers\",\"physicalType\":\"table\",\"properties\":[{\"name\":\"customer_id\",\"logicalType\":\"string\",\"physicalType\":\"bigint\",\"required\":true,\"primaryKey\":true,\"classification\":\"public\"},{\"name\":\"email\",\"logicalType\":\"string\",\"physicalType\":\"varchar\",\"required\":true,\"classification\":\"restricted\"},{\"name\":\"full_name\",\"logicalType\":\"string\",\"physicalType\":\"varchar\",\"required\":true,\"classification\":\"restricted\"},{\"name\":\"created_at\",\"logicalType\":\"timestamp\",\"physicalType\":\"timestamp\",\"required\":true,\"classification\":\"public\"}]}],\"slaProperties\":[{\"property\":\"latency\",\"value\":1,\"unit\":\"d\"},{\"property\":\"retention\",\"value\":7,\"unit\":\"y\"},{\"property\":\"availability\",\"value\":99.5}],\"team\":{\"name\":\"CRM Domain Team\",\"members\":[{\"username\":\"aivanov\",\"role\":\"Data Steward\",\"dateIn\":\"2025-01-15\"}]}}",
+          "hidden": true
+        }
+      ],
+      "explanation": "Полный ODCS контракт включает: (1) Schema -- массив таблиц с properties (колонки). Каждая колонка имеет logicalType (абстрактный тип), physicalType (тип СУБД), required (обязательность), classification (public/restricted/confidential). (2) slaProperties -- массив SLA-обязательств: latency (свежесть данных), retention (срок хранения), availability (доступность). Значения числовые для автоматического мониторинга. (3) Team -- ответственная команда с members (username, role, dateIn). Даты должны быть в кавычках в YAML, иначе js-yaml парсит их как Date objects.",
+      "hint": "classification задаётся на каждую колонку: customer_id и created_at -- public, email и full_name -- restricted. dateIn должен быть в кавычках: \"2025-01-15\".",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m02-06-code-3",
+      "type": "code-challenge",
+      "question": "Определите 4 quality rules для ODCS контракта: rowCount (completeness), nullValues для order_id (completeness), duplicateValues для order_id (uniqueness), SQL-проверка формата email (conformity).",
+      "language": "yaml",
+      "starterCode": "# ODCS Quality Rules для таблицы orders\n# Определите 4 правила качества:\n# 1. rowCount > 1000 (completeness, severity: error)\n# 2. nullValues для order_id = 0 (completeness, severity: error)\n# 3. duplicateValues для order_id = 0 (uniqueness, severity: warning)\n# 4. SQL-проверка: email формат (conformity, severity: error)\n\nquality:\n  - metric: rowCount\n    mustBeGreaterThan: # TODO: минимальное количество строк\n    type: # TODO: library или sql?\n    dimension: # TODO: какое измерение качества?\n    severity: # TODO: error или warning?\n  - metric: nullValues\n    mustBe: # TODO\n    type: # TODO\n    dimension: # TODO\n    severity: # TODO\n    arguments:\n      properties:\n        - # TODO: какая колонка?\n  - metric: duplicateValues\n    mustBe: # TODO\n    type: # TODO\n    dimension: # TODO\n    severity: # TODO\n    arguments:\n      properties:\n        - # TODO: какая колонка?\n  - type: # TODO: library или sql?\n    query: # TODO: SQL запрос для проверки формата email\n    mustBe: # TODO\n    dimension: # TODO\n    severity: # TODO\n    description: # TODO: описание правила\n",
+      "solutionCode": "quality:\n  - metric: rowCount\n    mustBeGreaterThan: 1000\n    type: library\n    dimension: completeness\n    severity: error\n  - metric: nullValues\n    mustBe: 0\n    type: library\n    dimension: completeness\n    severity: error\n    arguments:\n      properties:\n        - order_id\n  - metric: duplicateValues\n    mustBe: 0\n    type: library\n    dimension: uniqueness\n    severity: warning\n    arguments:\n      properties:\n        - order_id\n  - type: sql\n    query: \"SELECT COUNT(*) FROM orders WHERE customer_email NOT LIKE '%@%.%'\"\n    mustBe: 0\n    dimension: conformity\n    severity: error\n    description: Email format validation\n",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Quality rules содержат 4 правила с правильными метриками и dimensions",
+          "expectedOutput": "{\"quality\":[{\"metric\":\"rowCount\",\"mustBeGreaterThan\":1000,\"type\":\"library\",\"dimension\":\"completeness\",\"severity\":\"error\"},{\"metric\":\"nullValues\",\"mustBe\":0,\"type\":\"library\",\"dimension\":\"completeness\",\"severity\":\"error\",\"arguments\":{\"properties\":[\"order_id\"]}},{\"metric\":\"duplicateValues\",\"mustBe\":0,\"type\":\"library\",\"dimension\":\"uniqueness\",\"severity\":\"warning\",\"arguments\":{\"properties\":[\"order_id\"]}},{\"type\":\"sql\",\"query\":\"SELECT COUNT(*) FROM orders WHERE customer_email NOT LIKE '%@%.%'\",\"mustBe\":0,\"dimension\":\"conformity\",\"severity\":\"error\",\"description\":\"Email format validation\"}]}",
+          "hidden": false
+        },
+        {
+          "id": "tc2",
+          "description": "Правила используют правильные типы (library и sql) и severity levels",
+          "expectedOutput": "{\"quality\":[{\"metric\":\"rowCount\",\"mustBeGreaterThan\":1000,\"type\":\"library\",\"dimension\":\"completeness\",\"severity\":\"error\"},{\"metric\":\"nullValues\",\"mustBe\":0,\"type\":\"library\",\"dimension\":\"completeness\",\"severity\":\"error\",\"arguments\":{\"properties\":[\"order_id\"]}},{\"metric\":\"duplicateValues\",\"mustBe\":0,\"type\":\"library\",\"dimension\":\"uniqueness\",\"severity\":\"warning\",\"arguments\":{\"properties\":[\"order_id\"]}},{\"type\":\"sql\",\"query\":\"SELECT COUNT(*) FROM orders WHERE customer_email NOT LIKE '%@%.%'\",\"mustBe\":0,\"dimension\":\"conformity\",\"severity\":\"error\",\"description\":\"Email format validation\"}]}",
+          "hidden": false
+        },
+        {
+          "id": "tc3",
+          "description": "Quality rules parseable с корректной структурой",
+          "expectedOutput": "{\"quality\":[{\"metric\":\"rowCount\",\"mustBeGreaterThan\":1000,\"type\":\"library\",\"dimension\":\"completeness\",\"severity\":\"error\"},{\"metric\":\"nullValues\",\"mustBe\":0,\"type\":\"library\",\"dimension\":\"completeness\",\"severity\":\"error\",\"arguments\":{\"properties\":[\"order_id\"]}},{\"metric\":\"duplicateValues\",\"mustBe\":0,\"type\":\"library\",\"dimension\":\"uniqueness\",\"severity\":\"warning\",\"arguments\":{\"properties\":[\"order_id\"]}},{\"type\":\"sql\",\"query\":\"SELECT COUNT(*) FROM orders WHERE customer_email NOT LIKE '%@%.%'\",\"mustBe\":0,\"dimension\":\"conformity\",\"severity\":\"error\",\"description\":\"Email format validation\"}]}",
+          "hidden": true
+        }
+      ],
+      "explanation": "ODCS поддерживает 4 типа quality rules: library (встроенные метрики: rowCount, nullValues, duplicateValues), sql (произвольные SQL-запросы), text (документация), custom (внешняя логика). Каждое правило привязано к dimension качества: completeness (полнота), uniqueness (уникальность), conformity (соответствие формату), accuracy (точность), timeliness (своевременность). severity определяет реакцию: error (блокирующее нарушение) или warning (предупреждение). arguments.properties указывает колонки для column-level проверок.",
+      "hint": "rowCount и nullValues проверяют completeness (полноту данных). duplicateValues -- uniqueness. SQL-проверка формата -- conformity. mustBe: 0 означает 'ни одного нарушения'.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}
