@@ -31,7 +31,9 @@ export function QualityGauge({
   label,
   thresholds = { red: 60, yellow: 80 },
 }: QualityGaugeProps) {
-  const clampedScore = Math.max(0, Math.min(100, score));
+  // Auto-detect 0-1 range and normalize to 0-100
+  const normalized = score > 0 && score <= 1 ? Math.round(score * 100) : score;
+  const clampedScore = Math.max(0, Math.min(100, normalized));
 
   const radius = 60;
   const circumference = Math.PI * radius;
@@ -130,7 +132,10 @@ export function QualityDashboard({
   const averageScore =
     dimensions.length > 0
       ? Math.round(
-          dimensions.reduce((sum, d) => sum + Math.max(0, Math.min(100, d.score)), 0) /
+          dimensions.reduce((sum, d) => {
+            const norm = d.score > 0 && d.score <= 1 ? Math.round(d.score * 100) : d.score;
+            return sum + Math.max(0, Math.min(100, norm));
+          }, 0) /
             dimensions.length
         )
       : 0;
