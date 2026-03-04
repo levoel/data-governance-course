@@ -1,0 +1,287 @@
+---
+title: "BI/Analytics Governance"
+description: "Report lifecycle, dashboard certification, semantic layer governance, self-service analytics governance, BI content ownership, usage analytics"
+order: 6
+difficulty: "advanced"
+estimatedTime: 25
+audience: "both"
+topics: ["BI Governance", "Dashboard Certification", "Semantic Layer", "Self-Service Analytics"]
+---
+
+import { RACIMatrix, PolicyTemplate } from '../../../components/diagrams/governance';
+
+# BI/Analytics Governance
+
+## Введение
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> DataTech завершила внедрение governance-инструментов (урок 05): OpenMetadata каталогизирует 200+ таблиц, GE проверяет качество, Elementary мониторит freshness. Инструменты governance work -- но результат работы с данными потребляют **бизнес-пользователи через дашборды**. В Metabase -- **80+ дашбордов**, созданных за 3 года аналитиками, менеджерами и CEO.
+>
+> На еженедельном совещании VP Marketing показывает выручку $2.3M. VP Sales показывает $2.7M. CEO спрашивает: **"Какая цифра правильная? Почему у нас два дашборда с разной выручкой?"** Никто не может ответить: оба дашборда выглядят "official", но используют разные SQL-запросы, разные определения "revenue", и ни один не проходил проверку.
+>
+> Это проблема **потребительского слоя** -- governance того, что видят decision-makers.
+
+Предыдущие уроки покрывали governance инструментов (01-05): каталоги, quality, observability, deployment, evaluation. Этот урок фокусируется на **governance выходных данных** -- дашбордов, отчётов и метрик, которые потребляют бизнес-пользователи. Без governance потребительского слоя идеально управляемые данные приводят к хаосу на этапе их использования.
+
+Связь с предыдущими модулями: KPIs и метрики эффективности governance (M07, урок 05) дают нам **что измерять**. BI/Analytics Governance даёт нам **как управлять артефактами, которые показывают эти метрики**.
+
+## Report Lifecycle -- Жизненный цикл отчёта
+
+BI-артефакт (дашборд, отчёт, ad-hoc query) проходит через **6 стадий** жизненного цикла:
+
+<FlowRow>
+  <FlowNode variant="catalog" label="1. Draft" sublabel="Создание автором" />
+  <Arrow />
+  <FlowNode variant="pipeline" label="2. Review" sublabel="Проверка стюардом" />
+  <Arrow />
+  <FlowNode variant="policy" label="3. Certified" sublabel="Сертифицирован" />
+  <Arrow />
+  <FlowNode variant="process" label="4. Active" sublabel="В production" />
+  <Arrow />
+  <FlowNode variant="classification" label="5. Stale Detection" sublabel="Мониторинг usage" />
+  <Arrow />
+  <FlowNode variant="stakeholder" label="6. Retirement" sublabel="Деактивация" />
+</FlowRow>
+
+Каждая стадия имеет чёткого ответственного и governance-правило:
+
+| Стадия | Ответственный | Governance-правило |
+|--------|---------------|-------------------|
+| **Draft** | Analyst (автор) | Дашборд создаётся с обязательными полями: title, owner, data source, refresh schedule |
+| **Review** | Data Steward | Проверка: данные из certified source? Метрики определены в semantic layer? SQL корректен? |
+| **Certified** | Data Owner | Сертификат: "Этот дашборд проверен, метрики соответствуют business definitions" |
+| **Active** | Owner (Analyst) | Maintenance: обновление при изменении источника, response на alerts |
+| **Stale Detection** | Автоматически | Trigger: 0 views за 90 дней -> alert владельцу -> review within 14 дней |
+| **Retirement** | Data Owner + Steward | Archive с сохранением screenshot и metadata; redirect пользователям на замену |
+
+> **Сценарий: DataTech Solutions**
+>
+> DataTech внедряет lifecycle для 80+ дашбордов. Первый шаг -- инвентаризация. Результат: 80 дашбордов, из которых 35 не имеют документированного владельца, 20 не просматривались 6+ месяцев, 15 показывают метрики, определение которых не согласовано.
+>
+> Стратегия: (1) Назначить владельцев для 35 "сирот" -- начать с команды, создавшей дашборд. (2) Пометить 20 неиспользуемых как "Candidate for Retirement". (3) Провести review 15 дашбордов с конфликтующими метриками -- решить, какое определение "revenue" правильное.
+
+## Dashboard Certification -- Сертификация дашбордов
+
+Сертификация разделяет все дашборды на **3 уровня доверия**:
+
+| Уровень | Визуальный индикатор | Значение | Кто может создавать |
+|---------|---------------------|---------|-------------------|
+| **Certified** | Зелёный бейдж "Certified" | Проверен Data Steward, метрики из semantic layer, refresh задокументирован | Любой аналитик (после review) |
+| **Exploratory** | Жёлтый бейдж "Exploratory" | Не прошёл review, возможны ошибки, не для decision-making | Любой аналитик |
+| **Deprecated** | Красный бейдж "Deprecated" | Устарел, запланирован к удалению, redirect на замену | Автоматически (stale detection) |
+
+### Критерии сертификации
+
+<PolicyTemplate
+  title="Dashboard Certification Policy"
+  sections={[
+    {
+      heading: "Data Source Verification",
+      items: [
+        "Все данные из certified/governed data sources (не raw production tables)",
+        "SQL/запросы задокументированы и прошли code review",
+        "Data source owner подтвердил корректность использования"
+      ]
+    },
+    {
+      heading: "Metric Definition Compliance",
+      items: [
+        "Все метрики определены в semantic layer (не ad-hoc SQL формулы)",
+        "Определения метрик согласованы с Business Owner",
+        "Формулы расчёта задокументированы в metadata"
+      ]
+    },
+    {
+      heading: "Operational Readiness",
+      items: [
+        "Refresh schedule задокументирован и функционирует",
+        "Owner назначен и принял ответственность",
+        "Alert настроен при failure refresh",
+        "Описание дашборда содержит: цель, аудиторию, ограничения"
+      ]
+    },
+    {
+      heading: "Recertification",
+      items: [
+        "Квартальная рецертификация: owner подтверждает актуальность",
+        "При изменении data source: автоматическая деградация до Exploratory",
+        "При отсутствии владельца >30 дней: эскалация к Data Steward"
+      ]
+    }
+  ]}
+/>
+
+> **Сценарий: DataTech Solutions**
+>
+> DataTech внедряет certification program для 80 дашбордов. Бюджет позволяет провести полный review только 20 дашбордов. Стратегия triage:
+>
+> **1. Приоритет по usage:** Metabase API показывает, что 20 дашбордов генерируют 80% всех просмотров. Эти 20 -- кандидаты на Certified.
+>
+> **2. Retirement candidates:** 20 дашбордов без просмотров за 6 месяцев -> Deprecated.
+>
+> **3. Exploratory по умолчанию:** Оставшиеся 40 дашбордов -> Exploratory badge с предупреждением "Не верифицирован".
+>
+> **4. Конфликтующие метрики:** 15 дашбордов с разными "revenue" -> заморозить до согласования определения в semantic layer.
+
+<KnowledgeCheck
+  question="DataTech имеет 80 дашбордов. 15 показывают конфликтующие метрики revenue. Бюджет позволяет сертифицировать 20 дашбордов. Какое первое governance-действие?"
+  answer="Первое действие -- не сертификация, а triage по usage. (1) Получить статистику просмотров из Metabase API. (2) Ранжировать по usage * business criticality. (3) Top 20 по usage -- кандидаты на certification (покрывают ~80% ежедневных решений). (4) 15 с конфликтующими метриками -- заморозить: пометить как Exploratory с warning 'Метрика revenue не согласована'. (5) Параллельно: Data Steward + Finance Owner согласуют единое определение revenue в semantic layer. Только после согласования -- рецертификация 15 конфликтующих. Triage по usage даёт максимальный ROI при ограниченном бюджете."
+/>
+
+## Semantic Layer Governance -- Governance семантического слоя
+
+Семантический слой -- **единый источник определений метрик**. Без него каждый аналитик пишет свой SQL для расчёта "revenue", "active customer", "churn rate" -- и получает разные числа.
+
+### Проблема: Multiple Definitions
+
+| Метрика | Определение Marketing | Определение Finance | Определение Product |
+|---------|----------------------|--------------------|--------------------|
+| **Revenue** | Gross sales (до refunds) | Net revenue (после refunds и скидок) | MRR (recurring only) |
+| **Active Customer** | Login за 30 дней | Transaction за 30 дней | 3+ sessions за 30 дней |
+| **Churn Rate** | No login 90 дней | No transaction 90 дней | No session 60 дней |
+
+> **Сценарий: FinSecure Bank (ФинСекьюр Банк)**
+>
+> FinSecure имеет 200+ Tableau дашбордов. На board meeting CEO видит 3 числа: Tableau показывает $10M revenue, внутренний отчёт -- $12M, regulatory filing -- $11M. Все три "правильные", но используют разные определения: gross, net, adjusted.
+>
+> Governance-решение: **semantic layer** с именованными метриками:
+> - `gross_revenue` (Finance owns): all transactions before adjustments
+> - `net_revenue` (Finance owns): after refunds and discounts
+> - `adjusted_revenue` (Regulatory owns): per regulatory reporting standards
+>
+> Все дашборды обязаны использовать именованные метрики из semantic layer, а не raw SQL. Изменение определения метрики требует approval workflow с version history.
+
+### Governance семантического слоя
+
+| Элемент governance | Реализация |
+|-------------------|-----------|
+| **Metric Ownership** | Каждая метрика имеет владельца (business function): Finance owns "revenue", Product owns "DAU" |
+| **Single Definition** | Одно определение = один SQL. Не "revenue", а "gross_revenue", "net_revenue", "adjusted_revenue" |
+| **Version Control** | Изменение определения метрики -> PR в semantic layer repo -> review -> deploy. History сохраняется |
+| **Consumption Audit** | Отслеживание: кто использует какую метрику, сколько дашбордов зависят от определения |
+| **Deprecation Process** | Rename/remove метрики -> 30-day deprecation notice -> migration guide -> remove |
+
+<ToolDeepDive title="BI Tools и Semantic Layer">
+
+Разные BI-инструменты реализуют semantic layer по-разному:
+
+| Инструмент | Semantic Layer | Governance Features |
+|-----------|--------------|-------------------|
+| **Tableau** | Tableau Data Model + Certified Data Sources | "Certified" badge, data source certification, usage analytics |
+| **Metabase** | Models + Verified tables | "Verified" badge, collection permissions |
+| **Looker** | LookML (code-based) | Git-managed metrics, PR workflow, impact analysis |
+| **dbt Metrics** | dbt Semantic Layer | Metrics-as-code, version control, CI/CD |
+
+**Рекомендация для governance:** LookML и dbt metrics наиболее governance-friendly (code-based, version-controlled). Metabase и Tableau требуют дополнительных процессов для version control определений метрик.
+
+</ToolDeepDive>
+
+## Self-Service Analytics Governance -- Governance самообслуживания
+
+Self-service аналитика -- когда бизнес-пользователи самостоятельно создают дашборды и анализы -- **увеличивает productivity, но создаёт governance-риски**: ungoverned дашборды, shared via Slack, с неверифицированными данными.
+
+### Tiered Access Model
+
+| Tier | Доступ | Назначение | Governance |
+|------|--------|-----------|-----------|
+| **Sandbox** | Любой аналитик | Exploration, ad-hoc анализ, эксперименты | Нет ограничений (кроме PII). Результаты не для decision-making |
+| **Governed** | Certification required | Production дашборды для команды | Data source = certified only. Metrics = semantic layer only |
+| **Executive** | Steward + Owner approval | Board-level reporting, regulatory | Квартальная рецертификация. Audit trail. Change management |
+
+### Promotion Workflow: Exploration -> Governance
+
+Аналитик обнаружил insight в sandbox. Как перевести его в governed asset?
+
+<FlowRow>
+  <FlowNode variant="catalog" label="1. Discovery" sublabel="Аналитик находит insight в sandbox" />
+  <Arrow />
+  <FlowNode variant="pipeline" label="2. Submit" sublabel="Заявка на promotion с описанием" />
+  <Arrow />
+  <FlowNode variant="policy" label="3. Steward Review" sublabel="Data source + metrics check" />
+  <Arrow />
+  <FlowNode variant="process" label="4. Certification" sublabel="Certified badge, owner assigned" />
+</FlowRow>
+
+**Preventing "Shadow Analytics"** -- ungoverned дашборды, которые распространяются через Slack, email, screenshots:
+
+1. **Detection:** мониторинг Metabase/Tableau на дашборды с >10 unique viewers, не имеющие certified статус
+2. **Intervention:** notification owner: "Ваш exploratory дашборд просматривают 25 человек. Хотите submit на certification?"
+3. **Guardrails:** exploratory дашборды видны только автору + shared link. Для team-wide visibility -- certification required
+4. **Education:** training для аналитиков: "Sandbox для экспериментов, certified для решений"
+
+### RACI для BI Content Lifecycle
+
+<RACIMatrix
+  title="BI Content Lifecycle RACI"
+  activities={[
+    "Dashboard Creation",
+    "Dashboard Certification",
+    "Metric Definition",
+    "Recertification (quarterly)",
+    "Stale Dashboard Retirement",
+    "Semantic Layer Update"
+  ]}
+  roles={["Analyst", "Data Steward", "Business Owner", "Data Engineer", "DPO"]}
+  assignments={{
+    "Dashboard Creation": { "Analyst": "R", "Data Steward": "C", "Business Owner": "I", "Data Engineer": "I", "DPO": "I" },
+    "Dashboard Certification": { "Analyst": "I", "Data Steward": "R", "Business Owner": "A", "Data Engineer": "C", "DPO": "I" },
+    "Metric Definition": { "Analyst": "C", "Data Steward": "R", "Business Owner": "A", "Data Engineer": "C", "DPO": "I" },
+    "Recertification (quarterly)": { "Analyst": "C", "Data Steward": "R", "Business Owner": "A", "Data Engineer": "I", "DPO": "I" },
+    "Stale Dashboard Retirement": { "Analyst": "I", "Data Steward": "R", "Business Owner": "A", "Data Engineer": "C", "DPO": "I" },
+    "Semantic Layer Update": { "Analyst": "C", "Data Steward": "C", "Business Owner": "A", "Data Engineer": "R", "DPO": "I" }
+  }}
+/>
+
+## Usage Analytics -- Аналитика использования дашбордов
+
+Governance потребительского слоя невозможен без **данных об использовании** дашбордов. Usage analytics -- это governance-инструмент, а не просто метрика.
+
+### Ключевые метрики использования
+
+| Метрика | Формула | Governance-применение |
+|---------|---------|----------------------|
+| **Dashboard Views** | Количество просмотров за период | Ранжирование для certification priority |
+| **Unique Users** | Уникальные пользователи за 30 дней | Определение audience size (10+ -> needs certification) |
+| **View Frequency** | Views / Unique Users | Engagement: high frequency = daily decision tool |
+| **Stale Threshold** | 0 views за 90 дней | Trigger для retirement review |
+| **Creation Rate** | Новые дашборды / месяц | Dashboard sprawl detection: >10/мес. = governance risk |
+| **Certification Coverage** | Certified / Total дашборды | Target: certified дашборды покрывают 80%+ views |
+
+### Stale Dashboard Detection
+
+Автоматическая система обнаружения устаревших дашбордов:
+
+| Trigger | Action | Timeline |
+|---------|--------|---------|
+| 0 views за 60 дней | Warning email владельцу: "Ваш дашборд не просматривался 60 дней" | Day 60 |
+| 0 views за 90 дней | Status -> Deprecated. Предупреждение при открытии | Day 90 |
+| 0 views за 120 дней + owner confirmation | Archive: screenshot + metadata сохранены, дашборд удалён | Day 120 |
+| Owner не отвечает 14 дней | Escalation к Data Steward | Day 90 + 14 |
+
+### ROI дашборд-governance
+
+Экономический эффект governance потребительского слоя:
+
+| Метрика | Before | After | Impact |
+|---------|--------|-------|--------|
+| Дашборды | 80 | 40 (20 certified + 20 exploratory) | -50% maintenance |
+| "Какой дашборд правильный?" | 3 вопроса/неделю | 0 (certified badge) | -100% confusion |
+| Время создания дашборда | 2 дня (ищем правильные таблицы) | 4 часа (semantic layer) | -75% time-to-insight |
+| Конфликтующие метрики | 15 дашбордов | 0 (semantic layer) | Eliminated |
+
+<KnowledgeCheck
+  question="Дашборд CEO в DataTech просмотрен 2 раза за последний квартал. Дашборд маркетинговой команды просмотрен 500 раз. Какой требует governance-внимания и почему?"
+  answer="Оба требуют внимания, но по разным причинам. CEO дашборд (2 views): (1) Проверить, актуален ли -- возможно, CEO использует альтернативный источник (Excel? другой дашборд?). (2) Если CEO принимает решения НЕ на основе governed dashboard -- это governance gap. (3) Action: встреча с CEO -- узнать, чем пользуется для решений. Маркетинговый дашборд (500 views): (1) 500 views = high business impact -- если данные неверны, 500 решений на основе ошибки. (2) Проверить certification status: если Exploratory при 500 views -- critical risk. (3) Action: приоритетная сертификация, потому что охват аудитории максимальный. Governance-принцип: usage analytics определяет приоритеты certification -- не все дашборды равны."
+/>
+
+## Итоги
+
+- **Report Lifecycle:** 6 стадий -- Draft, Review, Certified, Active, Stale Detection, Retirement. Каждая стадия имеет owner и governance-правило
+- **Dashboard Certification:** 3 уровня (Certified, Exploratory, Deprecated). Критерии: data source verification, metric compliance, operational readiness. Квартальная рецертификация
+- **Semantic Layer:** Single source of metric definitions. Metric ownership (business function owns definition). Version control + deprecation process
+- **Self-Service Governance:** Tiered access (Sandbox / Governed / Executive). Promotion workflow (Discovery -> Submit -> Review -> Certification). Shadow analytics prevention
+- **Usage Analytics:** Views, unique users, frequency, stale detection. Governance-driven triage: certify by usage * criticality
+- **RACI:** Analyst creates, Steward certifies, Business Owner accountable, Engineer maintains semantic layer
+
+Модуль M09 завершён. Вы изучили ландшафт governance-инструментов (01), каталоги данных (02), quality/observability инструменты (03), deployment (04), structured evaluation (05) и governance потребительского слоя BI/Analytics (06).

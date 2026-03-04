@@ -3,7 +3,7 @@
   "moduleId": "09-tools-ecosystem",
   "_meta": {
     "idPrefix": "dg-exam-m09",
-    "description": "Use IDs: dg-exam-m09-q1 through dg-exam-m09-q10 (10 analytical questions)"
+    "description": "Use IDs: dg-exam-m09-q1 through dg-exam-m09-q11 (11 analytical questions)"
   },
   "questions": [
     {
@@ -165,6 +165,22 @@
       "hint": "Investment lock-in: 12 месяцев metadata + integrations + training + workflows. Vendor lock-in -- только один вид lock-in.",
       "bloomLevel": "analytical",
       "studyHint": "Повторите урок 5 (migration planning, 6 common selection mistakes: no exit plan)"
+    },
+    {
+      "id": "dg-exam-m09-q11",
+      "type": "multiple-choice",
+      "question": "DataTech решает внедрить dashboard certification program. Первая попытка: Data Engineer проверяет все 80 дашбордов за выходные. Результат: 60 certified, 20 not certified. Через 2 недели 5 'certified' дашбордов показывают некорректные данные, потому что data sources изменились после сертификации. Какие governance-улучшения необходимы?",
+      "options": [
+        { "id": "a", "text": "Увеличить время review до 2 недель вместо выходных -- более тщательная проверка" },
+        { "id": "b", "text": "Нанять выделенного QA инженера для постоянной проверки всех дашбордов" },
+        { "id": "c", "text": "4 улучшения: (1) Периодическая рецертификация (квартально, не one-time), (2) Автоматическое обнаружение изменений data source (при изменении схемы источника -- зависимые дашборды помечаются для re-review), (3) Критерии сертификации включают документацию data source и refresh schedule (не только визуальный review), (4) Ответственность owner -- certified дашборд имеет назначенного владельца, который получает уведомления об upstream изменениях" },
+        { "id": "d", "text": "Заменить Metabase на Tableau -- enterprise BI tool автоматически обеспечивает governance" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "One-time certification без ongoing governance -- governance anti-pattern: (1) Рецертификация (quarterly): data sources, metrics, refresh schedules изменяются -- certification должен быть periodic process, не one-time event. (2) Change detection: автоматический мониторинг upstream schema changes -> dependent dashboards flagged. Без этого certification устаревает при любом изменении source. (3) Criteria depth: визуальный review недостаточен -- нужна проверка data source provenance, metric definitions, refresh schedule documentation. (4) Owner accountability: certified dashboard без owner = orphaned asset. Owner получает automated alerts при upstream changes. Больше времени (A) -- улучшает качество one-time review, но не решает ongoing changes. QA engineer (B) -- не масштабируется (80+ дашбордов). Tableau (D) -- tool change не решает process problem. Повторите урок 06 (dashboard certification policy, recertification) и урок 05 (tool evaluation -- инструмент не заменяет процесс).",
+      "hint": "60 дашбордов certified за выходные. Через 2 недели 5 broken. Проблема в одноразовости процесса или в качестве review?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите урок 06 (BI governance: dashboard certification, recertification) и урок 05 (tool evaluation: process > tool) и урок 04 (deploying tool stack для мониторинга)"
     }
   ]
 }

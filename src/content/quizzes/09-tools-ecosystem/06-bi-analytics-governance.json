@@ -1,0 +1,68 @@
+{
+  "lessonSlug": "09-tools-ecosystem/06-bi-analytics-governance",
+  "moduleId": "09-tools-ecosystem",
+  "_meta": {
+    "idPrefix": "dg-m09-06",
+    "description": "Use IDs: dg-m09-06-q1 through dg-m09-06-q4"
+  },
+  "questions": [
+    {
+      "id": "dg-m09-06-q1",
+      "type": "multiple-choice",
+      "question": "DataTech имеет 80+ Metabase дашбордов. Triage выявил: 15 показывают конфликтующие метрики revenue, 30 не имеют документированного владельца, 20 не просматривались 6+ месяцев. Бюджет позволяет сертифицировать 20 дашбордов. Какая стратегия triage наиболее эффективна?",
+      "options": [
+        { "id": "a", "text": "Сертифицировать 20 старейших дашбордов -- они наиболее проверены временем" },
+        { "id": "b", "text": "Приоритизация по usage * business criticality: сертифицировать top 20 most-used дашбордов (покрывают ~80% ежедневных решений), пометить 20 не просматривавшихся для retirement, заморозить 15 с конфликтующими метриками до согласования определений в semantic layer. Usage-based triage даёт максимальный ROI при ограниченном бюджете" },
+        { "id": "c", "text": "Сертифицировать все 15 дашбордов с конфликтующими метриками первыми -- это самая острая проблема" },
+        { "id": "d", "text": "Назначить владельцев 30 дашбордам-сиротам -- без владельца сертификация невозможна" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Usage-based triage максимизирует governance ROI: (1) Top 20 по usage покрывают ~80% ежедневных решений -- сертификация даёт maximum impact. (2) 20 не просматривавшихся 6+ мес. -> retirement candidates (экономия maintenance). (3) 15 с конфликтами -> заморозка (Exploratory badge) до согласования semantic layer определений Finance Owner. (4) 30 без владельца -> назначение owner параллельно (не блокирует certification). Старейшие (A) -- возраст не коррелирует с usage. Конфликтующие первыми (C) -- нельзя сертифицировать без согласованных определений. Владельцы (D) -- необходимо, но не достаточно: без usage data неясно, какие 20 из 50 certified candidates. Повторите урок 06 (dashboard certification, triage strategy).",
+      "hint": "80 дашбордов, бюджет на 20. Какой критерий определяет приоритет: возраст, проблемность или usage impact?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите урок 06 (dashboard certification triage: usage * business criticality)"
+    },
+    {
+      "id": "dg-m09-06-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure имеет 3 определения 'revenue' в разных системах: Tableau показывает $10M (gross), внутренний отчёт -- $12M (net), regulatory filing -- $11M (adjusted). Board meeting использует все три числа interchangeably. Какое governance-действие разрешает конфликт?",
+      "options": [
+        { "id": "a", "text": "Выбрать одно определение revenue и удалить остальные -- business должен использовать одно число" },
+        { "id": "b", "text": "Установить semantic layer с именованными метриками: Finance team owns определение 'revenue', определяет 3 named metrics (gross_revenue, net_revenue, adjusted_revenue). Все дашборды обязаны ссылаться на named metrics из semantic layer (не raw SQL). Изменения определений -- через approval workflow с version history" },
+        { "id": "c", "text": "Добавить disclaimer на каждый дашборд: 'Числа могут отличаться от других источников'" },
+        { "id": "d", "text": "Создать единый dashboard с тремя вкладками -- gross, net, adjusted" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Semantic layer governance решает проблему multiple definitions: (1) Не удалять определения (A) -- все три нужны для разных целей (gross для marketing, net для internal P&L, adjusted для regulatory). (2) Именование: gross_revenue, net_revenue, adjusted_revenue -- делает явным, какое число используется. (3) Ownership: Finance team как single owner prevents unauthorized redefinition. (4) Enforcement: дашборды обязаны ссылаться на named metrics, не ad-hoc SQL формулы. (5) Version control: изменение определения -> PR -> review -> deploy. Disclaimer (C) -- не решает проблему, а маскирует. Единый dashboard (D) -- UI решение, не governance. Повторите урок 06 (semantic layer governance, metric ownership).",
+      "hint": "3 определения revenue -- все 'правильные' для своего контекста. Проблема не в количестве определений, а в отсутствии именования и ownership.",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите урок 06 (semantic layer governance: naming, ownership, version control)"
+    },
+    {
+      "id": "dg-m09-06-q3",
+      "type": "multiple-choice",
+      "question": "DataTech позволяет всем аналитикам создавать дашборды и делиться ими через Slack. Маркетинговый аналитик создал дашборд 'Revenue by Channel', поделился в Slack, его теперь используют 25 человек для ежедневных решений. Дашборд не прошёл review и использует raw production таблицы. Какой governance-фреймворк предотвращает 'shadow analytics'?",
+      "options": [
+        { "id": "a", "text": "Запретить аналитикам создавать дашборды -- только Data Team может создавать" },
+        { "id": "b", "text": "Tiered access model: (1) Sandbox для exploration (любой аналитик, без ограничений кроме PII), (2) Promotion workflow (exploration -> governance review -> certification) для team-wide sharing, (3) Certified data sources (аналитики строят только на governed data, не raw production tables), (4) Usage monitoring: дашборды с >10 consumers без certified status -> notification owner" },
+        { "id": "c", "text": "Ограничить доступ к Slack -- дашборды должны распространяться только через email" },
+        { "id": "d", "text": "Добавить watermark 'Not Verified' на все дашборды по умолчанию" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Tiered access model балансирует self-service и governance: (1) Sandbox не ограничивает exploration -- аналитики могут экспериментировать. (2) Promotion workflow создаёт governance gate перед широким распространением. (3) Certified data sources предотвращают использование raw production tables (с неверифицированными joins, без quality checks). (4) Monitoring 10+ consumers -- detection mechanism для shadow analytics. Запрет (A) -- убивает self-service, создаёт bottleneck. Slack ограничение (C) -- format, не governance. Watermark (D) -- визуальный warning, не enforcement. Повторите урок 06 (self-service analytics governance, promotion workflow).",
+      "hint": "25 человек используют неверифицированный дашборд для решений. Как позволить exploration, но предотвратить ungoverned production use?",
+      "bloomLevel": "applied",
+      "studyHint": "Повторите урок 06 (self-service analytics governance: tiered access, promotion workflow)"
+    },
+    {
+      "id": "dg-m09-06-q4",
+      "type": "true-false",
+      "question": "Жизненный цикл отчёта и жизненный цикл дашборда идентичны, потому что оба являются BI-артефактами.",
+      "correctAnswer": false,
+      "explanation": "Отчёты и дашборды имеют разные lifecycle patterns: (1) Отчёты -- versioned documents: создаются, рецензируются, публикуются, архивируются. Имеют фиксированную дату публикации и конкретную версию. Governance фокусируется на versioning, distribution list, retention period. (2) Дашборды -- continuously updated: обновляются по расписанию (real-time, hourly, daily). Не имеют фиксированной версии -- они эволюционируют. Governance фокусируется на refresh schedule, data freshness, stale detection, certification status. Оба -- BI-артефакты, но lifecycle governance для каждого различен. Повторите урок 06 (report lifecycle vs dashboard lifecycle).",
+      "hint": "Отчёт -- документ с версией и датой. Дашборд -- живой экран с refresh schedule. Governance одинаковый?",
+      "bloomLevel": "conceptual",
+      "studyHint": "Повторите урок 06 (report lifecycle: 6 стадий, report vs dashboard distinctions)"
+    }
+  ]
+}

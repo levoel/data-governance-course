@@ -1,6 +1,6 @@
 # Case Study Companies -- Data Governance Course
 
-**Last Updated:** 2026-03-03
+**Last Updated:** 2026-03-04
 **Companies:** 3 (governance maturity spectrum: Level 1, Level 2, Level 3)
 
 ## Purpose
@@ -321,6 +321,29 @@ This matrix defines which company is the primary scenario source for each module
 5. **Technology stack references are real** -- PostgreSQL, ClickHouse, Kafka, Snowflake, etc. are real products mentioned intentionally for realism. Version numbers in this document are fixed for consistency; do not update them in lesson content without updating this document.
 
 6. **Regulatory references are real** -- 152-FZ, GDPR, PCI DSS, 323-FZ are actual regulations. Follow the authoring guidelines for regulatory content framing (teach principles, not provisions; isolate article numbers; date-stamp).
+
+---
+
+## Phase 34 New Lesson Company Assignments
+
+Phase 34 (DMBOK2 Coverage Expansion) added 8 new lessons across 5 modules. Each lesson uses the company spectrum consistently:
+
+| Lesson | Module | Primary Company | Secondary Company |
+|--------|--------|-----------------|-------------------|
+| 07-master-data-management | M01 Foundations | DataTech (L1, 15% duplicates) | FinSecure (L3, Oracle+microservices) |
+| 07-data-integration-governance | M02 Architecture | DataTech (L1, 45 undocumented DAGs) | FinSecure (L3, 200+ Kafka topics) |
+| 07-streaming-data-governance | M03 Metadata | FinSecure (L3, 200+ topics) | DataTech (L1, planning streaming) |
+| 08-retention-archiving-disposal | M04 Quality | FinSecure (L3, 7-year retention) | BioGenesis (L2, clinical data) |
+| 06-data-lifecycle-management | M07 Implementation | DataTech (L1, no lifecycle mgmt) | FinSecure (L3, inconsistent enforcement) |
+| 07-third-party-data-governance | M07 Implementation | BioGenesis (L2, 8 external sources) | FinSecure (L3, EU cross-border) |
+| 08-governance-communication | M07 Implementation | DataTech (L1, CEO needs ROI proof) | FinSecure (L3, board reporting) |
+| 06-bi-analytics-governance | M09 Tools | DataTech (L1, 80+ dashboards) | FinSecure (L3, 200+ Tableau) |
+
+### Coverage Impact
+
+- **DataTech** appears as primary in 5/8 new lessons (MDM, integration, lifecycle, communication, BI governance)
+- **FinSecure** appears as primary in 2/8 new lessons (streaming, retention) and secondary in 6/8
+- **BioGenesis** appears as primary in 1/8 new lessons (third-party governance) and secondary in 1/8
 
 ---
 
