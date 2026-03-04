@@ -1,0 +1,187 @@
+---
+title: "Governance данных третьих сторон"
+description: "Vendor data governance, data sharing agreements, external API governance, data marketplace governance, third-party risk assessment"
+order: 7
+difficulty: "advanced"
+estimatedTime: 20
+audience: "leadership"
+topics: ["Third-Party Data", "Vendor Governance", "Data Sharing", "Risk Assessment"]
+---
+
+import { ComplianceChecklist, PolicyTemplate } from '../../../components/diagrams/governance';
+
+# Governance данных третьих сторон
+
+## Введение
+
+> **Сценарий: BioGenesis Lab (БиоГенезис Лаб)**
+>
+> BioGenesis получает данные из 8 внешних источников: лабораторные результаты от 5 вендоров (еженедельные CSV-файлы), данные клинических исследований от 3 CRO-партнёров (Contract Research Organizations), погодные данные для экологических исследований через API. **Ни один из 8 источников не имеет governance-соглашения.** Результат: 12% записей от Lab Vendor #3 содержат null patient_id, 8% записей от CRO #2 имеют invalid date formats. Эти данные загружаются в PostgreSQL без валидации и попадают в клинические анализы.
+>
+> В терминах lifecycle management (урок 06): данные от третьих сторон входят в организацию на стадии **Create**. Если governance не применяется при ingestion, некачественные внешние данные загрязняют всю downstream-цепочку.
+
+Предыдущий урок показал, как governance управляет внутренним жизненным циклом данных. Но современные организации зависят от **внешних данных**: вендорские поставки, партнёрские обмены, API-интеграции, данные с маркетплейсов. Третьи стороны -- это расширение вашего data estate за пределы контролируемой инфраструктуры. Governance данных третьих сторон определяет, как управлять качеством, безопасностью и compliance данных, которые вы не создаёте.
+
+## Vendor Data Governance
+
+### Vendor Risk Assessment Framework
+
+Прежде чем принять данные от вендора, организация должна оценить риски. Vendor risk assessment включает 5 категорий:
+
+| Категория риска | Что оценивается | Пример вопроса |
+|----------------|----------------|----------------|
+| **Data Quality** | Способность вендора обеспечить качество | Какой SLA на accuracy, completeness, timeliness? |
+| **Security** | Защита данных при передаче и хранении | Поддерживает ли вендор encryption in transit? |
+| **Compliance** | Соответствие регуляциям | Сертифицирован ли вендор по ISO 27001? |
+| **Business Continuity** | Устойчивость вендора | Что произойдёт, если вендор прекратит работу? |
+| **Data Sovereignty** | Юрисдикция хранения данных вендора | В какой стране хранятся данные? |
+
+<ComplianceChecklist
+  client:load
+  title="Vendor Data Governance Checklist"
+  items={[
+    { requirement: "Data Quality SLA определён", status: "partial", note: "Accuracy >= 99%, Completeness >= 98%, Timeliness <= 24h delivery. Penalty clauses за нарушение." },
+    { requirement: "Audit rights включены в контракт", status: "partial", note: "Право на аудит качества данных вендора 1 раз в год. Доступ к исходным системам для верификации." },
+    { requirement: "Exit strategy определена", status: "partial", note: "Формат экспорта данных при смене вендора. Transition period >= 90 дней. Полное удаление данных организации из систем вендора." },
+    { requirement: "Incident notification: < 48 часов", status: "compliant", note: "Вендор уведомляет о data quality incidents, breaches, system outages в течение 48 часов." },
+    { requirement: "Data lineage предоставляется", status: "partial", note: "Вендор документирует: источник данных, transformations, validation rules, delivery format." },
+    { requirement: "Backup и disaster recovery", status: "partial", note: "Вендор обеспечивает RPO < 24h, RTO < 48h для критичных data feeds." }
+  ]}
+/>
+
+> **Для сравнения: FinSecure Bank (ФинСекьюр Банк)**
+>
+> FinSecure получает данные кредитного скоринга от внешнего бюро. SLA: accuracy >= 99.5%, delivery <= 6 часов после запроса, completeness 100% для обязательных полей. Penalty: если accuracy < 99.5% три месяца подряд -> расторжение контракта. Audit right: FinSecure проверяет scoring модель вендора ежегодно. Exit strategy: данные в стандартном MISMO формате, transition period 180 дней.
+
+## Data Sharing Agreements
+
+**Data Sharing Agreement (DSA, соглашение об обмене данными)** -- юридический документ, определяющий правила обмена данными между организациями. DSA значительно шире, чем NDA (Non-Disclosure Agreement).
+
+<PolicyTemplate
+  client:load
+  title="Шаблон: Data Sharing Agreement (BioGenesis <-> CRO Partner)"
+  metadata={{ "Версия": "1.0", "Владелец": "Head of Research", "Статус": "Шаблон", "Обновлено": "2026-03" }}
+  sections={[
+    { heading: "1. Scope", content: "Обмен де-идентифицированными данными клинических исследований между BioGenesis и CRO для совместного анализа биомаркеров. Включает: lab results, demographics (de-identified), genomic markers." },
+    { heading: "2. Purpose Limitation", content: "Данные используются ИСКЛЮЧИТЕЛЬНО для проекта 'Biomarker Study 2026'. Любое иное использование запрещено без письменного согласия обеих сторон." },
+    { heading: "3. Retention", content: "CRO хранит данные в течение проекта + 12 месяцев после завершения. По истечении -- secure deletion с destruction certificate." },
+    { heading: "4. Security Requirements", content: "Encryption in transit (TLS 1.3+), encryption at rest (AES-256), access limited to named researchers (список в Приложении A), MFA обязательна." },
+    { heading: "5. Breach Notification", content: "При обнаружении data breach: уведомление другой стороны в течение 24 часов. Совместное расследование. Уведомление регуляторов по законодательству обеих юрисдикций." },
+    { heading: "6. Termination", content: "Любая сторона может расторгнуть DSA с уведомлением за 30 дней. При расторжении: secure deletion всех полученных данных, destruction certificate, return of physical media." }
+  ]}
+/>
+
+### Ключевые элементы DSA
+
+| Элемент | Описание | Почему критичен |
+|---------|----------|-----------------|
+| **Purpose limitation** | Конкретная цель использования | Предотвращает re-purposing данных |
+| **Data minimization** | Передача только необходимых полей | Снижает exposure при breach |
+| **Retention period** | Срок хранения у получателя | Данные не хранятся бесконечно |
+| **Security standards** | Минимальные требования безопасности | Защита за пределами вашей инфраструктуры |
+| **Breach notification** | Сроки и процедура уведомления | Время реагирования при инциденте |
+| **Audit rights** | Право проверки получателя | Верификация соблюдения DSA |
+| **Termination & deletion** | Процедура при расторжении | Данные не остаются у партнёра навсегда |
+
+<KnowledgeCheck
+  question="BioGenesis передаёт данные пациентов CRO-партнёру для клинического исследования. Что ОБЯЗАТЕЛЬНО должно включать соглашение об обмене данными помимо стандартного NDA?"
+  answer="NDA покрывает только конфиденциальность (non-disclosure). DSA для медицинских данных должен включать: (1) Purpose limitation -- данные только для конкретного исследования, не для любого использования. (2) De-identification requirements -- какие поля маскируются и каким методом (k-anonymity, pseudonymization). (3) IRB/Ethics board approval -- подтверждение этического комитета для обмена пациентскими данными. (4) Consent verification -- подтверждение, что consent пациентов покрывает передачу CRO. (5) Retention и secure deletion -- сроки хранения и процедура уничтожения после завершения исследования. (6) Re-identification prohibition -- запрет на попытки восстановления идентичности пациентов. (7) Breach notification -- 24 часа для медицинских данных. NDA без этих элементов не обеспечивает compliance для healthcare data sharing."
+/>
+
+## External API Governance
+
+Современные организации интегрируют десятки внешних API. Governance API-зависимостей критичен для stability и compliance.
+
+<FlowRow>
+  <FlowNode variant="stakeholder" label="External API" sublabel="Вендор / партнёр / public API" />
+  <Arrow />
+  <FlowNode variant="policy" label="Validation Gate" sublabel="Schema check, quality rules" />
+  <Arrow />
+  <FlowNode variant="pipeline" label="Quarantine" sublabel="Failed records" />
+</FlowRow>
+
+<FlowRow>
+  <FlowNode variant="stakeholder" label="External API" sublabel="Вендор / партнёр / public API" />
+  <Arrow />
+  <FlowNode variant="policy" label="Validation Gate" sublabel="Schema check, quality rules" />
+  <Arrow />
+  <FlowNode variant="catalog" label="Production" sublabel="Passed records" />
+</FlowRow>
+
+### API Governance Framework
+
+| Аспект | Governance-требование | Действие при нарушении |
+|--------|---------------------|----------------------|
+| **Schema validation** | Проверка формата каждого response | Quarantine + alert |
+| **Rate limit monitoring** | Отслеживание приближения к лимитам | Throttle + optimize |
+| **Version deprecation** | Мониторинг deprecation notices | Migration plan за 60+ дней |
+| **Fallback strategy** | Альтернативный источник данных | Switch to fallback + alert |
+| **Data quality at ingestion** | Quality checks на каждый batch/response | Reject + retry / quarantine |
+
+> **Сценарий: DataTech**
+>
+> DataTech интегрирует API маркетплейса для обогащения каталога товаров. API возвращает descriptions, categories, images. Без governance: API внезапно меняет формат response (v2 -> v3), 2,000 товаров получают broken categories. Время обнаружения: 3 дня (business user заметил). С governance: validation gate обнаруживает schema change в момент ingestion, quarantines 100% записей, alert Data Engineer -- fix за 2 часа.
+
+## Data Marketplace Governance
+
+Рынок данных (Data Marketplace) -- растущая реальность. Организации покупают данные (weather, demographics, industry benchmarks) и всё чаще создают internal data marketplaces для контролируемого обмена данными между подразделениями.
+
+### Internal Data Marketplace
+
+| Аспект | Governance-правило |
+|--------|-------------------|
+| **Data Product Certification** | Датасет проходит quality review перед публикацией |
+| **Usage Tracking** | Кто скачал, для какой цели, когда |
+| **Access Control** | RBAC на уровне data product |
+| **Freshness SLA** | Гарантия актуальности для каждого data product |
+| **Feedback Loop** | Потребители оценивают качество data product |
+
+### External Data Marketplace
+
+При покупке данных на внешнем marketplace governance включает:
+
+- **Due diligence:** Откуда данные? Как собраны? Есть ли consent субъектов?
+- **License compliance:** Разрешено ли использование для вашей цели?
+- **Quality assessment:** Провести quality check до покупки (sample data)
+- **Monetization governance:** Если вы продаёте данные -- classification, consent, de-identification обязательны
+
+## Third-Party Risk Assessment
+
+### Due Diligence Framework
+
+Risk assessment третьих сторон -- это не one-time event, а continuous process:
+
+| Фаза | Действия | Частота |
+|------|----------|---------|
+| **Pre-engagement** | Vendor questionnaire, security assessment, reference checks | До подписания контракта |
+| **Onboarding** | DSA подписание, quality baseline, access provisioning | При запуске |
+| **Ongoing monitoring** | Quality metrics review, compliance verification, incident tracking | Ежеквартально |
+| **Annual review** | Full risk re-assessment, SLA performance review, audit | Ежегодно |
+| **Offboarding** | Data deletion verification, access revocation, destruction certificate | При завершении |
+
+### Incident Response для третьих сторон
+
+Когда вендор допускает data quality failure или breach, governance определяет response:
+
+1. **Detect:** Мониторинг quality metrics на ingestion обнаруживает аномалию
+2. **Assess:** Масштаб воздействия -- какие downstream-системы затронуты?
+3. **Contain:** Quarantine вендорного data feed
+4. **Notify:** Уведомить affected teams + регуляторов (если PII)
+5. **Remediate:** Потребовать root cause analysis от вендора
+6. **Review:** Обновить SLA и quality gates
+
+<KnowledgeCheck
+  question="Вендор кредитного скоринга FinSecure допустил data breach. Персональные данные 50,000 клиентов FinSecure потенциально скомпрометированы. Какие governance actions FinSecure должен предпринять?"
+  answer="FinSecure несёт ответственность перед своими клиентами, даже если breach произошёл у вендора: (1) Немедленно: получить от вендора incident report -- масштаб, затронутые данные, timeline. (2) В течение 72 часов: уведомить регулятора (GDPR Art. 33 для EU-клиентов, Роскомнадзор для российских). (3) Оценить impact: какие данные затронуты (scoring data, PII, financial data?), какие системы FinSecure использовали эти данные. (4) Уведомить клиентов: GDPR Art. 34 требует уведомления субъектов при высоком риске. (5) Потребовать от вендора: root cause analysis, corrective action plan, timeline remediation. (6) Оценить contractual remedies: penalty clauses в DSA, вплоть до расторжения. (7) Провести internal review: усилить validation gates для вендорных данных, рассмотреть vendor diversification. Ключевой принцип: аутсорсинг обработки данных не освобождает от ответственности перед субъектами данных."
+/>
+
+## Итоги
+
+- **Vendor risk assessment** -- 5 категорий (quality, security, compliance, business continuity, data sovereignty) оцениваются до подписания контракта
+- **Data Sharing Agreement (DSA)** -- значительно шире NDA: purpose limitation, retention, security, breach notification, audit rights, termination
+- **API governance** -- validation gates на ingestion, schema checks, fallback strategies, version monitoring
+- **Data marketplace** -- certification, usage tracking, quality SLA для internal и due diligence для external
+- **Continuous risk assessment** -- pre-engagement, onboarding, ongoing monitoring, annual review, offboarding
+- **Incident response** -- даже при breach у вендора, ответственность перед клиентами остаётся у вашей организации
+
+Вы научились управлять внутренним жизненным циклом данных и внешними источниками. Теперь ключевой вопрос: как **коммуницировать результаты governance руководству**, которое мыслит бизнес-результатами, а не governance-процессами? В следующем уроке мы изучим язык governance-отчётности для C-level executives.

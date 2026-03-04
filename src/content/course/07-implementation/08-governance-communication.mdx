@@ -1,0 +1,228 @@
+---
+title: "Коммуникация governance-результатов руководству"
+description: "Board-level reporting, governance value storytelling, translating quality scores to business terms, executive dashboard design, ROI communication"
+order: 8
+difficulty: "advanced"
+estimatedTime: 20
+audience: "leadership"
+topics: ["Executive Communication", "Governance ROI", "Board Reporting", "Value Storytelling"]
+---
+
+import { QualityDashboard, PolicyTemplate, QualityGauge } from '../../../components/diagrams/governance';
+
+# Коммуникация governance-результатов руководству
+
+## Введение
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> CEO DataTech на quarterly review: "Мы потратили 6 месяцев на governance. Что мы получили?" VP Engineering отвечает: "Catalog coverage 85%." CEO: "Я не понимаю, что это значит для бизнеса." VP Engineering: "Data Quality Score 92%." CEO: "И что? Дайте мне ответ на один вопрос: governance окупается?"
+>
+> Это типичная ситуация. Governance-команда мыслит метриками процесса (coverage, quality score, compliance rate). Руководство мыслит бизнес-результатами (экономия, риски, revenue). Этот урок учит **переводить с языка governance на язык бизнеса** -- навык, который определяет, получит ли governance-программа бюджет на следующий год.
+
+В M07 мы построили governance-программу от проектирования (урок 01) через stakeholder engagement (урок 02), charter (урок 03), roadmap (урок 04), KPIs (урок 05), lifecycle management (урок 06) и governance третьих сторон (урок 07). Теперь ключевой вопрос: как коммуницировать результаты программы людям, которые принимают бюджетные решения?
+
+## Board-Level Reporting
+
+### Что видит CEO
+
+Руководитель тратит 5-10 минут на governance-обновление. Не 50-page technical report, а **one-page executive summary**.
+
+<PolicyTemplate
+  client:load
+  title="Шаблон: Executive Governance Report (Quarterly)"
+  metadata={{ "Версия": "1.0", "Владелец": "CDO / VP Engineering", "Статус": "Шаблон", "Обновлено": "2026-Q1" }}
+  sections={[
+    { heading: "1. Executive Summary", content: "Governance-программа DataTech (квартал 4): все 5 ключевых KPIs в зелёной зоне. Estimated savings: 5.5M RUB/год. Главный risk: 15% production данных без lifecycle policy (урок 06). Recommendation: выделить 1 FTE на lifecycle governance." },
+    { heading: "2. Business Impact", content: "Duplicate reduction 15% -> 2%: estimated 2.3M RUB/год экономии (маркетинг). Data search time -40%: equivalent 2 FTE = 3.2M RUB/год productivity gain. Data incidents 12 -> 3/quarter: reduced mean time to resolution 72h -> 18h." },
+    { heading: "3. Risk Status", content: "GREEN: PII classification 100%, Access review compliance 100%. AMBER: Lifecycle coverage 85% -- 15% production данных без retention policy. Action: lifecycle policy pilot for 'Customers' domain (3 месяца)." },
+    { heading: "4. Investment Recommendation", content: "Current spend: 8M RUB/год (team + tools). Estimated value delivered: 19.8M RUB/год (savings + risk prevention + productivity). ROI: 2.5x. Рекомендация: поддержать текущий уровень инвестиций, добавить 1 Data Steward (2.5M RUB/год) для lifecycle governance." }
+  ]}
+/>
+
+### Частота и формат reporting
+
+| Отчёт | Аудитория | Частота | Формат | Объём |
+|-------|-----------|---------|--------|-------|
+| **Board Summary** | CEO, Board | Ежеквартально | 1-page PDF + 5 min presentation | 5-7 KPIs + business impact |
+| **Executive Dashboard** | C-level | Ежемесячно | Interactive dashboard | Traffic lights + trends |
+| **Operational** | Data Council | Ежемесячно | Detailed report | All KPIs + remediation plans |
+| **Tactical** | Data Teams | Еженедельно | Slack/Email digest | Quality scores + incidents |
+
+## Governance Value Storytelling
+
+### От метрик к историям
+
+"Storytelling" -- это не приукрашивание. Это **перевод одних и тех же фактов на язык аудитории**.
+
+| Governance-метрика | Техническая формулировка | Business storytelling |
+|-------------------|------------------------|---------------------|
+| Catalog Coverage 85% | 170 из 200 таблиц каталогизированы | Аналитики находят данные за минуты вместо дней. Экономия: 600K RUB/год productivity |
+| Duplicate Rate 15% -> 2% | Дедупликация 65,000 записей клиентов | Маркетинг перестал отправлять 3 письма одному клиенту. Экономия: 2.3M RUB/год |
+| Quality Score 78% -> 95% | Доля записей, прошедших quality checks | CFO получает accurate revenue reports. До governance: 3 пересчёта в месяц. После: 0 |
+| Incident Response 72h -> 18h | Mean time to resolution data incidents | Время простоя клиентских сервисов сократилось на 75%. Customer satisfaction +12% |
+
+> **Сценарий: DataTech**
+>
+> DataTech governance team готовит квартальный отчёт для CEO. Первый черновик: "Catalog Coverage вырос с 60% до 85%. Quality Score с 78% до 92%. Policy Compliance с 70% до 88%." CEO скажет: "Хорошо. Но зачем мне это знать?"
+>
+> Второй черновик (после storytelling): "За 6 месяцев governance-программа DataTech: (1) Сэкономила 2.3M RUB на дубликатах в маркетинге. (2) Ускорила поиск данных аналитиками на 40%, что эквивалентно 2 FTE (3.2M RUB/год). (3) Сократила data incidents с 12 до 3 в квартал, снизив риск клиентских жалоб. (4) Классифицировала 100% PII-данных, закрыв 3 из 5 gaps в аудите 152-ФЗ."
+>
+> Один набор фактов. Два разных языка. Второй -- тот, который получит бюджет.
+
+<KnowledgeCheck
+  question="DataTech governance team сообщает CEO: 'Catalog coverage 85%.' Трансформируйте эту метрику в business-impact statement."
+  answer="Business-impact statement: 'До governance-программы аналитики тратили в среднем 3 дня на поиск нужных данных -- спрашивали коллег в Slack, искали таблицы вручную. После каталогизации 85% production данных среднее время поиска сократилось до 2 часов. При 12 аналитиках и ~50 запросах данных в месяц это экономит ~600 часов аналитического времени в год, что эквивалентно ~1.5 FTE или 2.4M RUB/год. Оставшиеся 15% некаталогизированных таблиц включают 3 critical PII-таблицы -- приоритет на Q2.' Структура: (1) Проблема до governance (конкретная, с цифрами). (2) Результат после (measurable improvement). (3) Финансовый эквивалент (рубли, FTE). (4) Следующий шаг (action item)."
+/>
+
+## Translating Quality Scores to Business Terms
+
+Перевод технических метрик в бизнес-impact -- ключевой навык governance-лидера.
+
+### Формула перевода
+
+**Technical Metric -> Affected Records -> Business Impact -> Currency Amount**
+
+Пример для DataTech:
+- **Metric:** Data Completeness 99.2%
+- **Affected Records:** 0.8% incomplete = 4,000 клиентов без email
+- **Business Impact:** 4,000 клиентов не получат маркетинговую рассылку
+- **Currency:** При конверсии 2% и среднем чеке 8,000 RUB = 4,000 * 0.02 * 8,000 = **640K RUB потенциальной выручки под риском**
+
+<QualityGauge
+  client:load
+  title="DataTech: Business Impact Quality Gauge"
+  value={0.992}
+  target={0.999}
+  thresholds={[
+    { value: 0.95, label: "High Risk (>25K records)", color: "red" },
+    { value: 0.99, label: "Moderate Risk (5K records)", color: "orange" },
+    { value: 0.999, label: "Target (<500 records)", color: "green" }
+  ]}
+  tooltip="Completeness 99.2% = ~4,000 incomplete customer records. Business impact: 640K RUB potential revenue at risk."
+/>
+
+> **Для сравнения: FinSecure Bank (ФинСекьюр Банк)**
+>
+> FinSecure переводит quality metrics для банковских регуляторов:
+> - **Metric:** Risk scoring completeness 99.2%
+> - **Affected Records:** 0.8% = ~4,000 клиентов без полного risk scoring
+> - **Regulatory Impact:** Incomplete risk scoring может привести к неадекватным capital reserves (Basel III violation)
+> - **Financial Risk:** Regulatory fine до 50M RUB + reputational damage
+> - **Remediation Cost:** 500K RUB (pipeline fix + 2 недели engineering)
+> - **ROI of fix:** 500K RUB fix предотвращает 50M RUB risk = **100x ROI**
+>
+> Для банковского регулятора язык другой: не "экономия", а "снижение regulatory risk". Аудитория определяет framing.
+
+## Executive Dashboard Design
+
+Executive dashboard отличается от operational dashboard принципиально: меньше метрик, крупнее шрифт, больше business context.
+
+<QualityDashboard
+  client:visible
+  title="DataTech: Executive Governance Dashboard (Q4 2026)"
+  dimensions={[
+    { name: "Business Savings", score: 0.92, target: 0.90, tooltip: "2.3M RUB сэкономлено на дубликатах + 3.2M RUB productivity gains = 5.5M RUB vs 8M RUB budget. On track." },
+    { name: "Data Incidents", score: 0.95, target: 0.90, tooltip: "3 incidents/quarter (was 12). Mean resolution time: 18h (was 72h). Trend: improving." },
+    { name: "Compliance Readiness", score: 1.00, target: 1.00, tooltip: "PII classified 100%. Access reviews 100%. 152-FZ gaps: 3/5 closed. GDPR prep: on track." },
+    { name: "Data Accessibility", score: 0.85, target: 0.90, tooltip: "85% catalog coverage. Analysts find data 40% faster. Gap: 30 tables not yet cataloged. ETA: Q1 2027." },
+    { name: "Lifecycle Governance", score: 0.70, target: 0.85, tooltip: "70% production data has lifecycle policy. Gap: 15% without retention rules. Priority: Customers domain pilot." }
+  ]}
+/>
+
+### Принципы дизайна executive dashboard
+
+1. **5-7 KPIs максимум** -- больше = information overload
+2. **Business language** -- "Business Savings", не "Duplicate Rate"
+3. **Traffic lights** -- мгновенная оценка без чтения цифр
+4. **Trend arrows** -- improving / stable / declining
+5. **Exception-based** -- подробности только для amber/red
+6. **Actionable** -- каждый amber/red имеет recommendation
+7. **Drill-down** -- summary -> detail on demand (не на одном экране)
+
+## ROI Communication
+
+### Структура ROI-аргумента
+
+ROI governance-программы строится на трёх компонентах:
+
+| Компонент | Формула | Пример DataTech |
+|-----------|---------|-----------------|
+| **Cost of Governance** | Team + Tools + Process | 6M RUB (team) + 2M RUB (tools) = 8M RUB/год |
+| **Value Delivered** | Savings + Productivity + Risk Prevention | 2.3M + 3.2M + 13.5M = 19M RUB/год |
+| **ROI** | (Value - Cost) / Cost | (19M - 8M) / 8M = **137% ROI (2.4x)** |
+
+### Value Categories
+
+**Direct Savings (измеримые):**
+- Duplicate reduction -> marketing savings
+- Storage optimization -> infrastructure savings
+- Automation -> manual work reduction
+
+**Productivity Gains (расчётные):**
+- Faster data discovery -> analyst time savings
+- Fewer data incidents -> less firefighting
+- Self-service data -> less ad-hoc requests to data team
+
+**Risk Prevention (оценочные):**
+- Incidents prevented * average incident cost
+- Regulatory fines avoided (probability * fine amount)
+- Breach prevention (average breach cost * probability reduction)
+
+> **Сценарий: DataTech -- ROI для скептичного CFO**
+>
+> CFO DataTech: "Мы потратили 8M RUB на governance. Я не вижу ROI."
+>
+> Governance Lead: "Позвольте показать три линии value:
+> 1. **Прямая экономия (2.3M RUB):** Duplicate Rate снизился с 15% до 2%. Маркетинг перестал отправлять тройные рассылки -- 2.3M RUB/год экономии на кампаниях.
+> 2. **Productivity (3.2M RUB):** Аналитики находят данные на 40% быстрее. Эквивалент 2 FTE = 3.2M RUB/год, высвобожденных для revenue-generating analysis.
+> 3. **Risk prevention (13.5M RUB):** Incidents сократились с 12 до 3 в квартал. Estimated cost per incident: 1.5M RUB. 9 prevented incidents * 1.5M = 13.5M RUB prevented losses.
+> **Total: 19M RUB value vs 8M RUB cost = 2.4x ROI.**
+>
+> Если хотите сравнение: средняя стоимость data breach в финтехе -- 50M RUB. Без governance, breach -- вопрос времени."
+
+<KnowledgeCheck
+  question="Governance-программа FinSecure стоит 15M RUB/год. Board спрашивает: 'Какой ROI?' Как структурировать ответ?"
+  answer="Структура ответа для банковского board: (1) Cost: 15M RUB/год (10M team + 5M tools). (2) Direct savings: 4M RUB (storage optimization через lifecycle management, automated reporting). (3) Productivity: 8M RUB (reduced manual compliance work -- 3 FTE equivalent, faster regulatory reporting). (4) Risk prevention: 35M RUB (2 prevented regulatory findings * estimated 10M RUB each + 1 prevented breach scenario * estimated 15M RUB = 35M). (5) Total value: 47M RUB vs 15M cost = 3.1x ROI. Для банковского board добавить: (6) Regulatory context: 'Без governance, следующий аудит ЦБ выявит gaps. Remediation post-audit стоит 3-5x больше, чем proactive governance.' (7) Peer comparison: 'Аналогичные банки инвестируют 12-20M RUB/год. FinSecure в нормальном диапазоне.' Ключевой принцип: для банковского board risk prevention весит больше, чем savings -- регулятор штрафует, а не хвалит."
+/>
+
+## Common Communication Mistakes
+
+### Anti-pattern 1: Слишком технично
+
+**Плохо:** "Мы внедрили RBAC с ABAC fallback на PostgreSQL 15 с row-level security policies. Audit trail через pg_audit extension с 30-day retention."
+
+**Хорошо:** "Только авторизованные сотрудники видят данные клиентов. Каждый доступ логируется. Несанкционированные попытки автоматически блокируются."
+
+### Anti-pattern 2: Слишком абстрактно
+
+**Плохо:** "Качество данных улучшилось."
+
+**Хорошо:** "Data Quality Score вырос с 78% до 95%. В бизнес-терминах: количество ошибок в billing-отчётах сократилось с 12 до 0 в месяц. CFO больше не пересчитывает revenue 3 раза."
+
+### Anti-pattern 3: Метрики без бизнес-impact
+
+**Плохо:** "Catalog Coverage: 85%. Policy Compliance: 88%. Incident Response: 95%."
+
+**Хорошо:** "Governance-программа сэкономила 5.5M RUB (подробности в разделе Business Impact). 3 из 5 compliance-gaps закрыты. Оставшиеся 2 -- в плане на Q2."
+
+### Anti-pattern 4: Проблемы без решений
+
+**Плохо:** "15% production данных без lifecycle policy. 30 таблиц не каталогизированы. 3 pipelines не покрыты quality checks."
+
+**Хорошо:** "15% production данных без lifecycle policy. **Recommendation:** пилот lifecycle governance для домена 'Customers' (3 месяца, 1 FTE). Expected outcome: coverage 85% -> 95%, storage cost reduction 200K RUB/год."
+
+## Итоги
+
+Модуль M07 завершён. Вы изучили полный цикл governance-программы: от проектирования (01) через stakeholder engagement (02), charter (03), roadmap (04), KPIs (05), lifecycle management (06), third-party governance (07) до коммуникации результатов руководству (08).
+
+Ключевые принципы коммуникации governance:
+
+- **Board-level reporting** -- 1-page summary, 5-7 KPIs, business language, quarterly cadence
+- **Value storytelling** -- не fabrication, а перевод технических метрик на язык аудитории
+- **Translation formula** -- Metric -> Affected Records -> Business Impact -> Currency Amount
+- **Executive dashboard** -- traffic lights, trends, exception-based, actionable recommendations
+- **ROI structure** -- Cost vs Value (Savings + Productivity + Risk Prevention)
+- **Anti-patterns** -- too technical, too abstract, metrics without impact, problems without solutions
+
+В экзамене вы примените знания из всех 8 уроков для решения аналитических сценариев DataTech и FinSecure.

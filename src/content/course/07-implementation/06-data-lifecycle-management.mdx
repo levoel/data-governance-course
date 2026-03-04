@@ -1,0 +1,216 @@
+---
+title: "Data Lifecycle Management"
+description: "Unified governance framework: Create, Store, Use, Share, Archive, Destroy -- stage-specific governance, cross-module integration, lifecycle policies, RACI across lifecycle"
+order: 6
+difficulty: "advanced"
+estimatedTime: 25
+audience: "leadership"
+topics: ["Data Lifecycle", "Lifecycle Governance", "Framework Synthesis"]
+---
+
+import { RACIMatrix, PolicyTemplate } from '../../../components/diagrams/governance';
+
+# Data Lifecycle Management
+
+## Введение
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> DataTech через 12 месяцев governance-программы провёл аудит: данные создаются 4 командами, хранятся в 3 системах (PostgreSQL, ClickHouse, MinIO), используются 12 аналитиками, передаются 2 партнёрам. Но ни один датасет никогда не архивировался и ни один не уничтожался. **Каждый гигабайт, когда-либо созданный DataTech, всё ещё существует** -- 4.2 TB в PostgreSQL, 8.1 TB в ClickHouse, 15 TB в MinIO.
+>
+> VP Engineering спрашивает: "KPIs в зелёной зоне -- Quality Score 95%, Catalog Coverage 90%. Зачем нам lifecycle management?" Ответ: потому что KPIs (урок 05) измеряют здоровье отдельных аспектов governance, но не показывают, как данные движутся через организацию от рождения до уничтожения. 27 TB данных без retention policy -- это compliance-бомба и растущие затраты на хранение.
+
+В предыдущих модулях мы изучали governance по отдельным областям: качество данных (M04), приватность (M05), безопасность (M06). В этом уроке мы объединим все области в **единый фреймворк жизненного цикла данных (Data Lifecycle Management, DLM)** -- сквозную модель, которая показывает, какие governance-правила применяются на каждом этапе жизни данных.
+
+## Unified Lifecycle Framework: 6 стадий
+
+Жизненный цикл данных состоит из 6 последовательных стадий. Каждая стадия имеет свои governance-требования и связана с конкретными модулями курса:
+
+<FlowRow>
+  <FlowNode variant="catalog" label="1. Create" sublabel="Создание и ingestion данных" />
+  <Arrow />
+  <FlowNode variant="default" label="2. Store" sublabel="Хранение и организация" />
+  <Arrow />
+  <FlowNode variant="pipeline" label="3. Use" sublabel="Обработка и анализ" />
+  <Arrow />
+  <FlowNode variant="stakeholder" label="4. Share" sublabel="Передача и обмен" />
+  <Arrow />
+  <FlowNode variant="policy" label="5. Archive" sublabel="Долгосрочное хранение" />
+  <Arrow />
+  <FlowNode variant="decision" label="6. Destroy" sublabel="Уничтожение и удаление" />
+</FlowRow>
+
+### Связь стадий с модулями курса
+
+| Стадия | Governance-фокус | Модуль курса | Ключевой вопрос |
+|--------|-----------------|--------------|-----------------|
+| **Create** | Классификация при создании, quality gates на ingestion | M02 (архитектура), M03 (метаданные) | Какие данные мы создаём и зачем? |
+| **Store** | Retention policies, encryption at rest, storage tiering | M04 (качество), M06 (безопасность) | Как долго и где мы храним данные? |
+| **Use** | Access control, audit logging, quality monitoring | M06 (безопасность), M04 (качество) | Кто использует данные и как? |
+| **Share** | Privacy impact, consent verification, data sharing agreements | M05 (приватность) | С кем мы делимся данными и на каком основании? |
+| **Archive** | Cold storage migration, metadata preservation, accessibility | M04 (качество) | Когда данные перестают быть активными? |
+| **Destroy** | Legal hold verification, secure deletion, destruction certificates | M05 (compliance) | Когда и как мы уничтожаем данные? |
+
+Lifecycle Management -- это не отдельная дисциплина. Это **синтез** всех governance-областей, организованный по временной оси жизни данных.
+
+## Stage-Specific Governance
+
+### Stage 1: Create (Создание)
+
+**Governance при создании данных** -- самая критичная стадия. Данные, не классифицированные при создании, становятся "тёмными данными" (dark data) -- существуют в системах, но никто не знает их содержание, владельца и правила обработки.
+
+| Требование | Контроль | Метрика |
+|-----------|----------|---------|
+| Классификация при ingestion | Auto-tagging на основе schema analysis | % данных, классифицированных в момент создания |
+| Quality gates | Validation rules на входе | % записей, прошедших quality checks при ingestion |
+| Metadata registration | Автоматическая регистрация в каталоге | Задержка между созданием и появлением в каталоге |
+| Owner assignment | Обязательное назначение Data Owner | % датасетов с назначенным владельцем |
+
+### Stage 2: Store (Хранение)
+
+**Governance хранения** определяет, где, как долго и в каком формате хранятся данные.
+
+| Требование | Контроль | Метрика |
+|-----------|----------|---------|
+| Retention policy | Срок хранения по классификации | % датасетов с определённым retention |
+| Storage tiering | Hot -> Warm -> Cold migration rules | Стоимость хранения / TB по tier |
+| Encryption at rest | Шифрование по классификации | % зашифрованных sensitive-датасетов |
+| Backup & recovery | RPO/RTO по критичности | Recovery test success rate |
+
+### Stage 3: Use (Использование)
+
+**Governance использования** контролирует, кто и как обрабатывает данные.
+
+| Требование | Контроль | Метрика |
+|-----------|----------|---------|
+| Access control | RBAC/ABAC по классификации | % данных с определённым access policy |
+| Audit logging | Логирование всех обращений к sensitive data | Coverage audit logging |
+| Quality monitoring | Continuous quality checks | Quality Score по dimension |
+| Purpose limitation | Использование только для разрешённых целей | Выявленные нарушения purpose limitation |
+
+### Stage 4: Share (Передача)
+
+**Governance передачи** -- наиболее рискованная стадия. Данные покидают контролируемую среду.
+
+| Требование | Контроль | Метрика |
+|-----------|----------|---------|
+| Consent verification | Проверка согласия перед передачей PII | % передач с верифицированным consent |
+| Data sharing agreement | Юридическое соглашение с получателем | % партнёров с DSA |
+| De-identification | Маскирование/анонимизация перед передачей | Уровень de-identification |
+| Transfer security | Encrypted transfer (TLS, SFTP) | % защищённых каналов передачи |
+
+### Stage 5: Archive (Архивирование)
+
+**Governance архивирования** определяет переход данных из активного состояния в долгосрочное хранение.
+
+| Требование | Контроль | Метрика |
+|-----------|----------|---------|
+| Archive trigger | Правила перехода (возраст, access frequency) | % данных, архивированных по trigger vs вручную |
+| Metadata preservation | Полные метаданные переносятся в архив | % архивов с сохранёнными метаданными |
+| Accessibility | Данные доступны для compliance-запросов | Время извлечения из архива |
+| Cost optimization | Cold storage для снижения затрат | Экономия vs active storage |
+
+### Stage 6: Destroy (Уничтожение)
+
+**Governance уничтожения** -- самая недооценённая стадия. Многие организации никогда не уничтожают данные.
+
+| Требование | Контроль | Метрика |
+|-----------|----------|---------|
+| Legal hold check | Проверка на judicial/regulatory holds | % уничтожений с legal hold verification |
+| Destruction authorization | Data Owner одобряет уничтожение | % уничтожений с authorization record |
+| Secure deletion | Cryptographic erasure или physical destruction | Метод уничтожения по классификации |
+| Destruction certificate | Документальное подтверждение | % уничтожений с сертификатом |
+
+<KnowledgeCheck
+  question="Аудит DataTech выявил: 2 TB данных о клиентах в PostgreSQL, возраст 4 года, доступ 2 аналитиков ежемесячно, никогда не рассматривалось для архивирования. Стоимость хранения $500/месяц. Какой lifecycle governance failure это раскрывает?"
+  answer="Отсутствие Archive trigger -- governance-правила перехода данных из стадии 'Use' в стадию 'Archive'. Данные с низкой частотой доступа (2 запроса в месяц) и возрастом 4 года должны были сработать trigger для архивирования: (1) Access frequency < 10 запросов/месяц в течение 6 месяцев -> trigger archive review. (2) Age > 2 лет без active use case -> trigger archive review. (3) Data Owner review каждые 12 месяцев для hot-storage данных. Без lifecycle governance данные накапливаются в дорогом hot storage бесконечно. Fix: определить access-frequency threshold и age-based trigger, мигрировать в cold storage (S3 Glacier), сохранив метаданные и accessibility для compliance."
+/>
+
+## Lifecycle Policies
+
+Lifecycle policy -- единый документ, определяющий governance-правила для всех 6 стадий. В отличие от отдельных политик (access policy, retention policy, privacy policy), lifecycle policy связывает все стадии в цепочку.
+
+<PolicyTemplate
+  client:load
+  title="Шаблон: Data Lifecycle Policy (DataTech)"
+  metadata={{ "Версия": "1.0", "Владелец": "VP Engineering (и.о. CDO)", "Статус": "Черновик", "Дата": "2026-03" }}
+  sections={[
+    { heading: "1. Scope", content: "Все production-данные DataTech: PostgreSQL (200+ таблиц), ClickHouse (analytics warehouse), MinIO (raw data lake). Исключения: dev/test environments." },
+    { heading: "2. Create", content: "Каждый новый датасет должен быть классифицирован в момент создания (Public/Internal/Confidential/Restricted). Data Owner назначается автоматически по source system. Quality gates: mandatory validation для Confidential+ данных." },
+    { heading: "3. Store", content: "Retention: Public -- 5 лет, Internal -- 3 года, Confidential -- 7 лет (regulatory), Restricted -- по legal hold. Storage tiering: Hot (0-6 мес.) -> Warm (6-24 мес.) -> Cold (24+ мес.)." },
+    { heading: "4. Use", content: "Access: RBAC по классификации (M06). Audit: логирование всех обращений к Confidential+ данным. Quality: weekly quality checks для critical pipelines." },
+    { heading: "5. Share", content: "External sharing: только с Data Sharing Agreement (DSA). PII sharing: consent verification обязательна. De-identification: обязательна для analytics sharing." },
+    { heading: "6. Archive/Destroy", content: "Archive trigger: access < 5 запросов/мес. в течение 6 мес. Destroy trigger: retention period expired + no legal hold. Destruction authorization: Data Owner + Legal sign-off. Certificate: обязателен для Confidential+ данных." }
+  ]}
+/>
+
+> **Сценарий: DataTech создаёт первую lifecycle policy**
+>
+> DataTech начинает с пилотного проекта: lifecycle policy для домена "Клиенты" (customers table + связанные данные). Пилот охватывает ~30% production данных, но самых чувствительных (PII). Результат пилота за 3 месяца: (1) обнаружено 800 GB данных без retention policy, (2) 200 GB мигрировано в cold storage (экономия $200/мес.), (3) 3 датасета уничтожены после истечения retention и legal hold verification.
+
+## Cross-Module Integration
+
+Lifecycle Management связывает все governance-области через единую RACI-матрицу. Для каждой стадии определяются роли и ответственности.
+
+<RACIMatrix
+  client:visible
+  title="RACI: Data Lifecycle Stages (DataTech)"
+  activities={[
+    "Create: классификация и регистрация",
+    "Store: retention и tiering",
+    "Use: access control и monitoring",
+    "Share: consent и DSA",
+    "Archive: trigger и migration",
+    "Destroy: authorization и certification"
+  ]}
+  roles={["Data Owner", "Data Steward", "Data Engineer", "Legal", "Security", "Privacy (DPO)"]}
+  assignments={[
+    ["A", "R", "C", "I", "I", "I"],
+    ["A", "R", "R", "C", "C", "I"],
+    ["I", "C", "R", "I", "A", "C"],
+    ["A", "C", "I", "R", "C", "R"],
+    ["A", "R", "R", "I", "I", "I"],
+    ["A", "C", "R", "R", "C", "C"]
+  ]}
+/>
+
+> **Для сравнения: FinSecure Bank (ФинСекьюр Банк)**
+>
+> FinSecure имеет иную RACI для lifecycle stages. Для финансовых данных: Legal является Accountable на стадиях Share и Destroy (regulatory requirements). Для маркетинговых данных: Data Owner (Marketing) является Accountable. Разные классы данных требуют разных lifecycle RACI -- единая матрица не работает для организации с 5+ доменами данных.
+>
+> FinSecure решает проблему через **classification-driven lifecycle rules**: каждый уровень классификации (Public, Internal, Confidential, Restricted) имеет свой набор lifecycle-правил и RACI-назначений. Это позволяет автоматизировать governance: система определяет класс данных и применяет соответствующие правила без ручного вмешательства.
+
+## Lifecycle Metrics
+
+Lifecycle Management добавляет новые метрики к KPI-dashboard (урок 05):
+
+| Метрика | Формула | Target | Частота |
+|---------|---------|--------|---------|
+| **Time-in-Stage** | avg(время в текущей стадии) | Varies by stage | Ежемесячно |
+| **Transition Compliance Rate** | transitions_per_policy / total_transitions | >= 95% | Ежемесячно |
+| **Disposal Verification Rate** | verified_destructions / total_destructions | 100% | Per event |
+| **Lifecycle Audit Frequency** | completed_audits / scheduled_audits | 100% | Ежеквартально |
+| **Dark Data Rate** | unclassified_data / total_data | < 5% | Ежемесячно |
+| **Storage Cost Efficiency** | data_in_correct_tier / total_data | >= 90% | Ежемесячно |
+
+**Time-in-Stage** -- ключевая lifecycle-метрика. Данные, "застревающие" на одной стадии, указывают на governance-пробел:
+
+- Данные в "Use" дольше 2 лет без review -> отсутствует archive trigger
+- Данные в "Store" без единого обращения -> "мёртвые данные", candidates for archive/destroy
+- Данные в "Share" без проверки consent -> compliance-риск
+
+<KnowledgeCheck
+  question="FinSecure проводит GDPR-аудит и обнаруживает: данные клиентов в стадии 'Share' (переданы маркетинговому партнёру 8 месяцев назад) не проверялись на актуальность consent. Какой lifecycle control не сработал?"
+  answer="Не сработал Share-stage control: periodic consent re-verification для переданных данных. При переходе в стадию 'Share' governance должен обеспечить: (1) Initial consent verification -- проверку согласия перед передачей (GDPR Art. 6). (2) Ongoing consent monitoring -- периодическую проверку, что согласие всё ещё действительно (не отозвано, не истёк срок). (3) Purpose limitation check -- проверку, что партнёр использует данные только для согласованных целей. FinSecure проверил consent при передаче (1), но не настроил ongoing monitoring (2). Fix: lifecycle rule -- 'Shared PII data: quarterly consent re-verification. If consent expired or revoked -> trigger data recall from partner.' Это требует связки между consent management system (M05) и lifecycle engine."
+/>
+
+## Итоги
+
+- **6 стадий жизненного цикла:** Create -> Store -> Use -> Share -> Archive -> Destroy
+- **Lifecycle Management** -- не отдельная дисциплина, а синтез Quality, Privacy, Security, Metadata governance по временной оси
+- **Classification-driven rules** -- разные классы данных требуют разных lifecycle-правил и RACI
+- **Lifecycle policy** -- единый документ, связывающий governance-правила для всех стадий
+- **Lifecycle metrics** -- Time-in-Stage, Transition Compliance Rate, Dark Data Rate дополняют KPI-dashboard
+- **Главный принцип:** governance начинается при создании данных (стадия Create) и заканчивается только после верифицированного уничтожения (стадия Destroy)
+
+Lifecycle management addresses internal data. But organizations also use external data from vendors, partners, and marketplaces. В следующем уроке мы изучим **governance данных третьих сторон** -- управление вендорными данными, соглашения об обмене данными и оценку рисков внешних источников.
