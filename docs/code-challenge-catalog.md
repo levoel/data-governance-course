@@ -1,8 +1,8 @@
 # Code Challenge Catalog -- Data Governance Course
 
-**Total Challenges:** 42
+**Total Challenges:** 45
 **Modules Covered:** M01-M10 (all except M00 Orientation)
-**Last Updated:** 2026-03-03
+**Last Updated:** 2026-03-04
 
 ## Purpose
 
@@ -17,17 +17,17 @@ All challenges use the five existing platform runners. No new dependencies are r
 | Python (Pyodide) | Python | pyodide | 12-15 | 15 |
 | SQL (sql.js) | SQL | sql.js | 5-7 | 5 |
 | JSON validation | JSON | json-validator | 8-10 | 12 |
-| YAML validation | YAML | yaml-validator | 8-10 | 8 |
+| YAML validation | YAML | yaml-validator | 8-10 | 11 |
 | JavaScript | JavaScript | js-sandbox | 2-3 | 2 |
-| **Total** | | | **36-44** | **42** |
+| **Total** | | | **36-44** | **45** |
 
 ## Bloom Level Distribution
 
 | Level | Target | Actual | Percentage |
 |-------|--------|--------|------------|
-| Apply | max 20% (max 8) | 8 | 19.0% |
-| Analyze | min 50% (min 21) | 22 | 52.4% |
-| Evaluate | remainder | 12 | 28.6% |
+| Apply | max 20% (max 9) | 9 | 20.0% |
+| Analyze | min 50% (min 22) | 24 | 53.3% |
+| Evaluate | remainder | 12 | 26.7% |
 
 ## Determinism Rules
 
@@ -42,7 +42,7 @@ Every challenge in this catalog is provably deterministic:
 
 ## Challenge ID Convention
 
-Format: `DG-CC-{NN}` where `{NN}` is a zero-padded sequential number (01-42).
+Format: `DG-CC-{NN}` where `{NN}` is a zero-padded sequential number (01-45).
 
 When implemented as quiz entries, the code challenge question ID follows: `dg-m{MM}-{LL}-code-{N}` (per quiz ID convention from 28-01).
 
@@ -225,7 +225,7 @@ Summary:
 
 ---
 
-## M02: Architecture (Архитектура и Моделирование Данных) -- 4 Challenges
+## M02: Architecture (Архитектура и Моделирование Данных) -- 7 Challenges
 
 ### DG-CC-05: Schema Quality Inspector
 
@@ -421,6 +421,197 @@ lineage:
 **Test Cases:** 2 visible + 1 hidden
 
 **Why Deterministic:** Structure validation with fixed required keys. The scenario provides fixed context so only one valid lineage structure satisfies all requirements.
+
+---
+
+### DG-CC-43: Minimal ODCS Data Contract
+
+**Module:** M02 (Архитектура и Моделирование Данных)
+**Target Lesson:** ODCS specification
+**Language:** YAML
+**Runner:** yaml-validator
+**Bloom Level:** Apply
+
+**Description:** Write a minimal ODCS v3.1.0 data contract with all 5 required fields (`apiVersion`, `kind`, `id`, `version`, `status`) plus the `fundamentals` section (`name`, `domain`, `description` with `purpose`, `limitations`, `usage`) for DataTech's customer data product.
+
+**Validation:** JSON.stringify of parsed YAML (exact match per Debezium pattern). NOT descriptive strings.
+
+**Input:** (student writes YAML from scratch based on requirements)
+
+**Expected Output:**
+```yaml
+apiVersion: v3.1.0
+kind: DataContract
+id: dt-customer-001
+version: 1.0.0
+status: active
+name: customer_data_product
+domain: crm
+description:
+  purpose: Customer master data for CRM and analytics
+  limitations: No financial transaction data included
+  usage: Use for customer segmentation and retention analysis
+```
+
+Test expectedOutput (JSON.stringify of parsed YAML):
+```
+{"apiVersion":"v3.1.0","kind":"DataContract","id":"dt-customer-001","version":"1.0.0","status":"active","name":"customer_data_product","domain":"crm","description":{"purpose":"Customer master data for CRM and analytics","limitations":"No financial transaction data included","usage":"Use for customer segmentation and retention analysis"}}
+```
+
+**Test Cases:** 2 visible + 1 hidden
+
+**Why Deterministic:** Fixed required fields, fixed values specified in requirements. Student must produce exact YAML structure with specified field values.
+
+---
+
+### DG-CC-44: Complete ODCS Contract with Schema and Quality
+
+**Module:** M02 (Архитектура и Моделирование Данных)
+**Target Lesson:** ODCS specification
+**Language:** YAML
+**Runner:** yaml-validator
+**Bloom Level:** Analyze
+
+**Description:** Write a complete ODCS v3.1.0 data contract for DataTech's `customer_data_product` including: required fields, schema section (customers table with 4 columns: `customer_id`, `email`, `full_name`, `created_at` with `logicalType`, `physicalType`, `required`, `classification`, and quality rules on email), `slaProperties` (latency 1d, retention 7y, availability 99.5), and `team` section.
+
+**Validation:** JSON.stringify of parsed YAML (exact match per Debezium pattern). NOT descriptive strings.
+
+**Input:** (student writes YAML based on detailed requirements)
+
+**Expected Output:**
+```yaml
+apiVersion: v3.1.0
+kind: DataContract
+id: dt-customer-001
+version: 1.0.0
+status: active
+name: customer_data_product
+domain: crm
+tenant: DataTech
+description:
+  purpose: Customer master data for CRM and analytics
+  limitations: No financial transaction data included
+  usage: Use for customer segmentation and retention analysis
+schema:
+  - name: customers
+    physicalName: customers
+    physicalType: table
+    description: Customer master data
+    properties:
+      - name: customer_id
+        logicalType: integer
+        physicalType: bigint
+        required: true
+        unique: true
+        primaryKey: true
+        classification: public
+      - name: email
+        logicalType: string
+        physicalType: varchar
+        required: true
+        classification: restricted
+        quality:
+          - metric: nullValues
+            mustBe: 0
+            type: library
+            dimension: completeness
+      - name: full_name
+        logicalType: string
+        physicalType: varchar
+        required: true
+        classification: restricted
+      - name: created_at
+        logicalType: timestamp
+        physicalType: timestamp
+        required: true
+        classification: public
+slaProperties:
+  - property: latency
+    value: 1
+    unit: d
+  - property: retention
+    value: 7
+    unit: y
+  - property: availability
+    value: 99.5
+team:
+  name: CRM Domain Team
+  members:
+    - username: aivanov
+      role: Data Steward
+      dateIn: "2025-01-15"
+    - username: mpetrov
+      role: Data Engineer
+      dateIn: "2025-01-15"
+```
+
+Test expectedOutput: JSON.stringify of parsed YAML (exact match).
+
+**Test Cases:** 2 visible + 1 hidden
+
+**Why Deterministic:** All field values specified in the challenge requirements. Student must produce exact YAML structure with specified column definitions, quality rules, SLA values, and team members.
+
+---
+
+### DG-CC-45: ODCS Quality Rules Definition
+
+**Module:** M02 (Архитектура и Моделирование Данных)
+**Target Lesson:** ODCS specification
+**Language:** YAML
+**Runner:** yaml-validator
+**Bloom Level:** Analyze
+
+**Description:** Write ODCS quality rules for DataTech's orders table: `rowCount` > 1000, `nullValues` = 0 for `order_id`, `duplicateValues` = 0 for `order_id`, a SQL-based email format validation, and a freshness check. Include severity levels and scheduling.
+
+**Validation:** JSON.stringify of parsed YAML (exact match per Debezium pattern). NOT descriptive strings.
+
+**Input:** (student writes YAML based on detailed requirements)
+
+**Expected Output:**
+```yaml
+quality:
+  - metric: rowCount
+    mustBeGreaterThan: 1000
+    type: library
+    dimension: completeness
+    severity: error
+    scheduler: cron
+    schedule: "0 20 * * *"
+  - metric: nullValues
+    mustBe: 0
+    type: library
+    dimension: completeness
+    severity: error
+    arguments:
+      properties:
+        - order_id
+  - metric: duplicateValues
+    mustBe: 0
+    type: library
+    dimension: uniqueness
+    severity: warning
+    arguments:
+      properties:
+        - order_id
+  - type: sql
+    query: "SELECT COUNT(*) FROM orders WHERE email NOT LIKE '%@%.%'"
+    mustBe: 0
+    dimension: conformity
+    description: Email format validation
+    severity: error
+  - type: library
+    metric: freshness
+    mustBeLessThan: 24
+    unit: hours
+    dimension: timeliness
+    severity: warning
+```
+
+Test expectedOutput: JSON.stringify of parsed YAML (exact match).
+
+**Test Cases:** 2 visible + 1 hidden
+
+**Why Deterministic:** Fixed quality rule structure, fixed metric values, fixed SQL query text. All field values are specified in the challenge requirements.
 
 ---
 
@@ -2708,16 +2899,16 @@ Industry Insight: AI Governance is the weakest dimension across all companies (a
 | Python (Pyodide) | 15 | M01, M04, M05, M06, M08, M10 |
 | SQL (sql.js) | 5 | M02, M04, M06 |
 | JSON (json-validator) | 12 | M01, M03, M05, M06, M07, M08, M10 |
-| YAML (yaml-validator) | 8 | M02, M04, M07, M09 |
+| YAML (yaml-validator) | 11 | M02, M04, M07, M09 |
 | JavaScript (js-sandbox) | 2 | M06, M08 |
-| **Total** | **42** | **M01-M10** |
+| **Total** | **45** | **M01-M10** |
 
 ### Module Distribution Summary
 
 | Module | Challenges | Runners Used |
 |--------|-----------|-------------|
 | M01 Foundations | 4 | Python (3), JSON (1) |
-| M02 Architecture | 4 | SQL (2), YAML (2) |
+| M02 Architecture | 7 | SQL (2), YAML (5) |
 | M03 Metadata & Catalogs | 4 | JSON (3), Python (1) |
 | M04 Data Quality | 7 | Python (3), SQL (2), YAML (2) |
 | M05 Privacy & Compliance | 5 | Python (3), JSON (2) |
@@ -2731,9 +2922,9 @@ Industry Insight: AI Governance is the weakest dimension across all companies (a
 
 | Level | Count | Percentage | Challenges |
 |-------|-------|------------|------------|
-| Apply | 8 | 19.0% | DG-CC-03, DG-CC-07, DG-CC-09, DG-CC-14, DG-CC-18, DG-CC-24, DG-CC-31, DG-CC-38 |
-| Analyze | 22 | 52.4% | DG-CC-01, DG-CC-02, DG-CC-04, DG-CC-05, DG-CC-06, DG-CC-08, DG-CC-10, DG-CC-12, DG-CC-13, DG-CC-15, DG-CC-16, DG-CC-17, DG-CC-19, DG-CC-20, DG-CC-22, DG-CC-26, DG-CC-28, DG-CC-30, DG-CC-32, DG-CC-34, DG-CC-35, DG-CC-39 |
-| Evaluate | 12 | 28.6% | DG-CC-11, DG-CC-21, DG-CC-23, DG-CC-25, DG-CC-27, DG-CC-29, DG-CC-33, DG-CC-36, DG-CC-37, DG-CC-40, DG-CC-41, DG-CC-42 |
+| Apply | 9 | 20.0% | DG-CC-03, DG-CC-07, DG-CC-09, DG-CC-14, DG-CC-18, DG-CC-24, DG-CC-31, DG-CC-38, DG-CC-43 |
+| Analyze | 24 | 53.3% | DG-CC-01, DG-CC-02, DG-CC-04, DG-CC-05, DG-CC-06, DG-CC-08, DG-CC-10, DG-CC-12, DG-CC-13, DG-CC-15, DG-CC-16, DG-CC-17, DG-CC-19, DG-CC-20, DG-CC-22, DG-CC-26, DG-CC-28, DG-CC-30, DG-CC-32, DG-CC-34, DG-CC-35, DG-CC-39, DG-CC-44, DG-CC-45 |
+| Evaluate | 12 | 26.7% | DG-CC-11, DG-CC-21, DG-CC-23, DG-CC-25, DG-CC-27, DG-CC-29, DG-CC-33, DG-CC-36, DG-CC-37, DG-CC-40, DG-CC-41, DG-CC-42 |
 
 ### Challenge Index
 
@@ -2747,6 +2938,9 @@ Industry Insight: AI Governance is the weakest dimension across all companies (a
 | DG-CC-06 | Naming Convention Checker | M02 | SQL | Analyze |
 | DG-CC-07 | Data Model Documentation Generator | M02 | YAML | Apply |
 | DG-CC-08 | Data Lineage YAML Descriptor | M02 | YAML | Analyze |
+| DG-CC-43 | Minimal ODCS Data Contract | M02 | YAML | Apply |
+| DG-CC-44 | Complete ODCS Contract with Schema and Quality | M02 | YAML | Analyze |
+| DG-CC-45 | ODCS Quality Rules Definition | M02 | YAML | Analyze |
 | DG-CC-09 | Data Catalog Entry Creator | M03 | JSON | Apply |
 | DG-CC-10 | Metadata Lineage Graph Builder | M03 | JSON | Analyze |
 | DG-CC-11 | Metadata Schema Validator | M03 | JSON | Evaluate |
