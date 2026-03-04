@@ -87,11 +87,11 @@ import { OrgChart, DecisionMatrix } from '../../../components/diagrams/governanc
   client:load
   title="Выбор модели Governance для организации"
   criteria={[
-    { name: "Размер организации (100-500)", weight: 2 },
-    { name: "Количество доменов данных", weight: 3 },
-    { name: "Зрелость governance (Level 1-2)", weight: 3 },
-    { name: "Скорость принятия решений", weight: 2 },
-    { name: "Единообразие стандартов", weight: 2 }
+    { name: "Размер организации (100-500)", weight: 0.17 },
+    { name: "Количество доменов данных", weight: 0.25 },
+    { name: "Зрелость governance (Level 1-2)", weight: 0.25 },
+    { name: "Скорость принятия решений", weight: 0.17 },
+    { name: "Единообразие стандартов", weight: 0.17 }
   ]}
   options={[
     { name: "Централизованная", scores: [5, 2, 5, 2, 5] },

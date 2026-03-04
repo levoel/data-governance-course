@@ -50,31 +50,27 @@ import { DecisionMatrix, MaturityModel } from '../../../components/diagrams/gove
   client:load
   title="Сравнение архитектурных паттернов MDM"
   criteria={[
-    { name: "Сложность внедрения", weight: 3, description: "Объём работ и ресурсы для запуска" },
-    { name: "Качество данных", weight: 4, description: "Насколько паттерн улучшает DQ" },
-    { name: "Инвазивность", weight: 3, description: "Изменения в существующих системах" },
-    { name: "Единая версия правды", weight: 5, description: "Гарантия единого golden record" }
+    { name: "Сложность внедрения", weight: 0.20, description: "Объём работ и ресурсы для запуска" },
+    { name: "Качество данных", weight: 0.27, description: "Насколько паттерн улучшает DQ" },
+    { name: "Инвазивность", weight: 0.20, description: "Изменения в существующих системах" },
+    { name: "Единая версия правды", weight: 0.33, description: "Гарантия единого golden record" }
   ]}
   options={[
     {
       name: "Registry",
-      scores: { "Сложность внедрения": 4, "Качество данных": 2, "Инвазивность": 5, "Единая версия правды": 2 },
-      description: "Перекрёстный индекс между системами без перемещения данных"
+      scores: [4, 2, 5, 2]
     },
     {
       name: "Consolidation",
-      scores: { "Сложность внедрения": 3, "Качество данных": 4, "Инвазивность": 3, "Единая версия правды": 4 },
-      description: "Golden record в отдельном хабе для аналитики, источники остаются operational"
+      scores: [3, 4, 3, 4]
     },
     {
       name: "Coexistence",
-      scores: { "Сложность внедрения": 2, "Качество данных": 4, "Инвазивность": 2, "Единая версия правды": 4 },
-      description: "Двунаправленная синхронизация: хаб <-> источники"
+      scores: [2, 4, 2, 4]
     },
     {
       name: "Centralized (Hub)",
-      scores: { "Сложность внедрения": 1, "Качество данных": 5, "Инвазивность": 1, "Единая версия правды": 5 },
-      description: "MDM-хаб -- единственный system of record"
+      scores: [1, 5, 1, 5]
     }
   ]}
 />

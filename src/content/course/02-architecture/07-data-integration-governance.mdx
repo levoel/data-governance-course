@@ -142,12 +142,12 @@ Schema compatibility определяет, какие изменения produce
   client:load
   title="Schema Compatibility Types"
   criteria={[
-    { name: "Добавление опционального поля", weight: 2 },
-    { name: "Удаление поля", weight: 3 },
-    { name: "Изменение типа поля", weight: 3 },
-    { name: "Добавление required поля", weight: 2 },
-    { name: "Гибкость producer", weight: 1 },
-    { name: "Защита consumer", weight: 3 }
+    { name: "Добавление опционального поля", weight: 0.14 },
+    { name: "Удаление поля", weight: 0.21 },
+    { name: "Изменение типа поля", weight: 0.21 },
+    { name: "Добавление required поля", weight: 0.14 },
+    { name: "Гибкость producer", weight: 0.07 },
+    { name: "Защита consumer", weight: 0.21 }
   ]}
   options={[
     { name: "BACKWARD", scores: [5, 2, 1, 2, 2, 5] },
@@ -222,12 +222,12 @@ FinSecure: после 3 инцидентов перешли с NONE на BACKWAR
   client:load
   title="Integration Pattern Governance Comparison"
   criteria={[
-    { name: "Ownership complexity", weight: 3 },
-    { name: "Latency requirements", weight: 2 },
-    { name: "Testing difficulty", weight: 2 },
-    { name: "Rollback capability", weight: 3 },
-    { name: "Schema governance", weight: 2 },
-    { name: "Monitoring maturity needed", weight: 1 }
+    { name: "Ownership complexity", weight: 0.23 },
+    { name: "Latency requirements", weight: 0.15 },
+    { name: "Testing difficulty", weight: 0.15 },
+    { name: "Rollback capability", weight: 0.23 },
+    { name: "Schema governance", weight: 0.15 },
+    { name: "Monitoring maturity needed", weight: 0.08 }
   ]}
   options={[
     { name: "Batch ETL", scores: [4, 2, 4, 5, 3, 3] },
@@ -238,7 +238,7 @@ FinSecure: после 3 инцидентов перешли с NONE на BACKWAR
 />
 
 - **Batch ETL** (Airflow DAGs): простой ownership (DAG = owner), лёгкий rollback (перезапуск), но высокая latency. Подходит DataTech (Level 1).
-- **Streaming CDC** (Debezium, Kafka): сложный ownership (topic = producer + N consumers), трудный rollback, но near-realtime. Требует Level 3+ governance. Подробнее -- в [курсе Debezium](/debezium/06-etl-elt-patterns/).
+- **Streaming CDC** (Debezium, Kafka): сложный ownership (topic = producer + N consumers), трудный rollback, но near-realtime. Требует Level 3+ governance. Подробнее -- в [курсе Debezium](/debezium/06-module-6/06-etl-elt-patterns/).
 - **API**: средняя сложность, хороший контроль через versioning и rate limiting. DataTech: 8 APIs.
 - **File Exchange**: простейший governance (файл = snapshot), но нет schema enforcement. BioGenesis B2B exchange.
 
