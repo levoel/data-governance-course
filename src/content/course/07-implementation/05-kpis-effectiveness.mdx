@@ -1,0 +1,217 @@
+---
+title: "KPIs и метрики эффективности Governance"
+description: "Leading vs lagging indicators, governance KPI categories, dashboard design, reporting cadence, common measurement mistakes"
+order: 5
+difficulty: "advanced"
+estimatedTime: 25
+audience: "leadership"
+topics: ["Governance KPIs", "Metrics", "Effectiveness Measurement"]
+---
+
+import { QualityDashboard } from '../../../components/diagrams/governance';
+
+# KPIs и метрики эффективности Governance
+
+## Введение
+
+"What gets measured gets managed" -- принцип Питера Друкера особенно важен для governance. Без метрик невозможно определить, работает ли программа, оправдывает ли инвестиции и в каком направлении развивается. В этом уроке мы определим **KPI (Key Performance Indicators)** для governance-программы, построим dashboard и разберём типичные ошибки измерений.
+
+## Leading vs Lagging Indicators
+
+**Leading Indicators (опережающие показатели)** предсказывают будущие результаты. **Lagging Indicators (запаздывающие показатели)** фиксируют уже произошедшие события.
+
+| Тип | Характеристика | Пример | Ценность |
+|-----|---------------|--------|----------|
+| **Leading** | Предсказывает результат | % таблиц с quality checks | Позволяет предотвратить проблемы |
+| **Lagging** | Фиксирует результат | Количество data incidents в месяц | Показывает эффективность прошлых действий |
+
+### Баланс Leading и Lagging
+
+Эффективная governance-программа отслеживает оба типа:
+
+- **Leading:** Catalog coverage (процент документированных таблиц) -- растёт -> снижение времени поиска данных
+- **Lagging:** Incidents (количество инцидентов с данными) -- снижается -> quality checks работают
+- **Leading:** Training completion (обученные сотрудники) -- растёт -> меньше нарушений политик
+- **Lagging:** Audit findings (нарушения на аудите) -- снижаются -> compliance улучшается
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> DataTech в конце Phase 4 (месяц 12) определяет первые KPIs. VP Engineering настаивает только на lagging indicators: "Покажите мне, сколько инцидентов мы предотвратили." Data Steward Алексей предлагает добавить leading indicators.
+>
+> **Алексей прав:** Если отслеживать только incidents (lagging), DataTech узнает о проблемах постфактум. Catalog coverage (leading) покажет, что 40% таблиц не документированы -- потенциальный риск ещё до инцидента. Quality check coverage (leading) покажет, что 30% critical pipelines без проверок -- time bomb.
+
+## Категории Governance KPIs
+
+### 1. Quality (Качество данных)
+
+| KPI | Формула | Target | Частота |
+|-----|---------|--------|---------|
+| **Data Quality Score** | sum(dimension_score * weight) / sum(weights) | >= 95% | Еженедельно |
+| **Quality Check Coverage** | pipelines_with_checks / total_critical_pipelines | >= 90% | Ежемесячно |
+| **Duplicate Rate** | duplicate_records / total_records | < 2% | Еженедельно |
+
+### 2. Metadata (Каталог и документация)
+
+| KPI | Формула | Target | Частота |
+|-----|---------|--------|---------|
+| **Catalog Coverage** | cataloged_datasets / total_production_datasets | >= 90% | Ежемесячно |
+| **Metadata Completeness** | datasets_with_full_metadata / total_cataloged | >= 80% | Ежемесячно |
+| **Time to Data** | avg(access_granted - access_requested) | < 24 часа | Per request |
+
+### 3. Privacy & Compliance
+
+| KPI | Формула | Target | Частота |
+|-----|---------|--------|---------|
+| **PII Inventory Completeness** | classified_pii_assets / total_pii_assets | 100% | Ежемесячно |
+| **Policy Compliance Rate** | compliant_processes / audited_processes | >= 90% | Ежеквартально |
+| **Consent Coverage** | valid_consents / total_data_subjects | >= 99% | Ежемесячно |
+
+### 4. Security (Безопасность)
+
+| KPI | Формула | Target | Частота |
+|-----|---------|--------|---------|
+| **Access Review Compliance** | completed_reviews / scheduled_reviews | 100% | Ежеквартально |
+| **Incident Response Time** | avg(resolution_time - detection_time) | < 24 часа | Per incident |
+| **Unauthorized Access Attempts** | denied_access_count (flagged) | Trend down | Ежемесячно |
+
+### 5. Governance Program (Программные метрики)
+
+| KPI | Формула | Target | Частота |
+|-----|---------|--------|---------|
+| **Steward Engagement** | active_stewards / assigned_stewards | 100% | Ежемесячно |
+| **Training Completion** | trained_staff / total_data_staff | >= 95% | Ежеквартально |
+| **Policy Currency** | policies_updated_within_sla / total_policies | 100% | Ежеквартально |
+
+## Governance Dashboard
+
+Dashboard -- единая точка мониторинга всех KPIs. Ключевые принципы дизайна:
+
+1. **Executive view** -- 5-7 ключевых KPIs с traffic light (Red/Amber/Green)
+2. **Drill-down** -- возможность углубиться в каждый KPI
+3. **Trend** -- динамика за последние 6-12 месяцев
+4. **Actionable** -- каждый Red/Amber KPI имеет owner и remediation plan
+
+<QualityDashboard
+  client:visible
+  title="DataTech: Governance KPI Dashboard (Month 12)"
+  dimensions={[
+    { name: "Data Quality Score", score: 0.92, target: 0.95, tooltip: "92% -- amber. 3 модели не проходят freshness check. Owner: Data Engineer Алексей" },
+    { name: "Catalog Coverage", score: 0.85, target: 0.90, tooltip: "85% -- amber. 30 таблиц из 200 без метаданных. Owner: Data Steward Мария" },
+    { name: "PII Classification", score: 1.00, target: 1.00, tooltip: "100% -- green. Все 47 PII-таблиц классифицированы" },
+    { name: "Policy Compliance", score: 0.88, target: 0.90, tooltip: "88% -- amber. 3 pipeline не соблюдают naming convention. Owner: Data Steward Алексей" },
+    { name: "Access Review", score: 1.00, target: 1.00, tooltip: "100% -- green. Все quarterly reviews выполнены вовремя" },
+    { name: "Incident Response", score: 0.95, target: 0.90, tooltip: "95% инцидентов решены < 24 часов -- green. 1 инцидент из 20 превысил SLA" }
+  ]}
+/>
+
+### Threshold Levels (Red/Amber/Green)
+
+Для каждого KPI определяются три уровня:
+
+| Цвет | Значение | Действие |
+|------|----------|----------|
+| **Green** | Target достигнут или превышен | Продолжать текущий подход |
+| **Amber** | Ниже target, но в допустимом диапазоне | Remediation plan, мониторинг |
+| **Red** | Критически ниже target | Немедленное вмешательство, эскалация |
+
+Пример для Data Quality Score:
+- **Green:** >= 95%
+- **Amber:** >= 85%
+- **Red:** < 85%
+
+### Код-челлендж: Governance KPI Definitions
+
+В квизе к этому уроку вы создадите **YAML-файл с KPI definitions** (CC-33) -- 6+ KPIs с measurement methodology, data source, formula, target, thresholds (red/amber/green), owner и reporting frequency.
+
+## Reporting Cadence
+
+| Отчёт | Аудитория | Частота | Содержание |
+|-------|-----------|---------|------------|
+| **Operational** | Data Council | Ежемесячно | Все KPIs, trends, action items |
+| **Executive** | CEO / Board | Ежеквартально | Top 5 KPIs, ROI, risk summary |
+| **Tactical** | Data Teams | Еженедельно | Quality scores, incidents, tasks |
+| **Ad-hoc** | Stakeholders | По запросу | Specific KPI deep-dive |
+
+### Ежемесячный отчёт Data Council
+
+Структура:
+
+1. **KPI Summary** -- traffic light для каждого KPI + trend (up/down/flat)
+2. **Red/Amber Items** -- что не в target, root cause, remediation plan, owner
+3. **Achievements** -- что улучшилось за месяц
+4. **Risks** -- потенциальные проблемы (leading indicators)
+5. **Decisions Required** -- вопросы для Council
+
+## Common Measurement Mistakes
+
+### 1. Vanity Metrics
+
+**Ошибка:** Измерять количество каталогизированных таблиц (абсолютное число) вместо coverage (процент).
+**Почему ошибка:** "Мы каталогизировали 150 таблиц!" звучит впечатляюще. Но если всего таблиц 300, coverage всего 50%.
+**Решение:** Всегда использовать relative metrics (проценты, ratios).
+
+### 2. Measuring Activities, Not Outcomes
+
+**Ошибка:** "Мы провели 12 заседаний Data Council и написали 8 политик."
+**Почему ошибка:** Заседания и политики -- не результат. Результат -- снижение инцидентов, рост quality score.
+**Решение:** Activities как leading indicators, Outcomes как lagging indicators. Отслеживать оба.
+
+### 3. Too Many KPIs
+
+**Ошибка:** Отслеживать 30 KPIs на dashboard.
+**Почему ошибка:** Information overload. Никто не читает dashboard с 30 метриками.
+**Решение:** 5-7 ключевых KPIs на executive dashboard. Остальные -- в drill-down.
+
+### 4. No Baseline
+
+**Ошибка:** Установить target "Data Quality Score >= 95%" без измерения текущего состояния.
+**Почему ошибка:** Если текущий score 60%, target 95% через 3 месяца -- нереалистичен. Если 93% -- реалистичен.
+**Решение:** Phase 1 -- baseline measurement. Phase 2+ -- targets на основе baseline.
+
+> **Для сравнения: FinSecure Bank (ФинСекьюр Банк)**
+>
+> FinSecure при запуске governance-программы установил target "100% policy compliance" без baseline. Через год обнаружил: compliance всего 62%. Демотивация команды.
+>
+> **Правильный подход FinSecure (год 2):**
+> - Baseline: 62%
+> - Год 2 target: 80% (+18%)
+> - Год 3 target: 90% (+10%)
+> - Long-term: 95%+
+>
+> Realistic targets с progressive improvement -- эффективнее амбициозных targets без baseline.
+
+<KnowledgeCheck
+  question="DataTech в конце Phase 1 (месяц 3) имеет Data Quality Score 78%. VP Engineering предлагает target 95% к концу Phase 2 (месяц 6). Реалистично ли это?"
+  answer="Нереалистично. Рост с 78% до 95% за 3 месяца (+17%) требует: (1) найти и исправить все source data проблемы (дубликаты, nulls, invalid formats), (2) добавить quality checks на все критичные пайплайны, (3) обучить команду new processes. Реалистичнее: 78% -> 85% к Phase 2 (месяц 6), 85% -> 90% к Phase 3 (месяц 9), 90% -> 95% к Phase 4 (месяц 12). Progressive improvement: +7% за фазу, а не +17% за одну. Устанавливать targets на основе baseline и capacity -- ключевой принцип governance KPIs."
+/>
+
+## Connecting KPIs to Business Outcomes
+
+Governance KPIs имеют ценность только если связаны с бизнес-результатами:
+
+| Governance KPI | Бизнес-Outcome | Как связаны |
+|----------------|---------------|-------------|
+| Data Quality Score 78% -> 95% | Revenue accuracy +X% | Меньше ошибок в billing и отчётности |
+| Catalog Coverage 0% -> 90% | Time to Data: дни -> часы | Аналитики находят данные быстрее |
+| Duplicate Rate 15% -> 2% | Marketing ROI +Y% | Кампании не дублируют клиентов |
+| Incident Response < 24h | Customer trust maintained | Быстрое устранение проблем |
+| Policy Compliance 90%+ | Compliance risk reduced | Штрафы 152-ФЗ минимизированы |
+
+Ежеквартальный Executive Report должен содержать не только governance KPIs, но и их связь с бизнес-метриками. CEO не интересует "Catalog Coverage 85%". CEO интересует: "Аналитики тратят на 40% меньше времени на поиск данных, что эквивалентно 600K RUB/год экономии."
+
+<KnowledgeCheck
+  question="DataTech отслеживает 'Количество каталогизированных таблиц' (150 из 200). Почему это vanity metric и как её превратить в actionable KPI?"
+  answer="'150 каталогизированных таблиц' -- vanity metric, потому что: (1) Не показывает progress rate (150 из 200 = 75%, но как быстро растёт?). (2) Не различает critical и non-critical (все 50 необработанных таблиц могут быть critical). (3) Не учитывает completeness (таблица может быть 'в каталоге' с пустым description). Actionable KPI: 'Catalog Coverage: % critical production datasets с full metadata (description, owner, classification, lineage) >= 90%'. Добавляем: (1) Focus on critical, (2) Full metadata requirement, (3) Percentage (не абсолют), (4) Target (90%)."
+/>
+
+## Итоги
+
+- **Leading vs Lagging** -- опережающие индикаторы предсказывают, запаздывающие фиксируют. Отслеживать оба
+- **5 категорий KPIs:** Quality, Metadata, Privacy/Compliance, Security, Program
+- **Dashboard:** 5-7 ключевых KPIs с traffic light, trends, drill-down
+- **Thresholds:** Red/Amber/Green для каждого KPI с конкретными действиями
+- **Reporting cadence:** Weekly (tactical) -> Monthly (operational) -> Quarterly (executive)
+- **Pitfalls:** vanity metrics, measuring activities not outcomes, too many KPIs, no baseline
+- **Business connection:** каждый governance KPI должен быть связан с бизнес-outcome
+
+Это завершающий урок модуля M07. В экзамене вы применив знания из всех 5 уроков -- от проектирования программы до измерения её эффективности -- для решения аналитических сценариев DataTech и FinSecure.

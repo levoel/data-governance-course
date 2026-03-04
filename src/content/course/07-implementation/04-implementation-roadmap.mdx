@@ -1,0 +1,222 @@
+---
+title: "Roadmap внедрения программы Governance"
+description: "Implementation Roadmap: фазированное внедрение, Governance Maturity Model, resource planning, common pitfalls, industry-specific patterns"
+order: 4
+difficulty: "intermediate"
+estimatedTime: 25
+audience: "leadership"
+topics: ["Implementation Roadmap", "Governance Maturity", "Phased Implementation"]
+---
+
+import { MaturityModel } from '../../../components/diagrams/governance';
+
+# Roadmap внедрения программы Governance
+
+## Введение
+
+Governance-программа -- это не проект с фиксированным дедлайном, а **непрерывный процесс зрелости**. Попытка внедрить всё сразу ("big bang") -- самая распространённая причина провала governance-инициатив. В этом уроке мы построим phased roadmap с конкретными milestones, dependencies и success criteria.
+
+## Четыре фазы внедрения
+
+### Phase 1: Foundation (Quick Wins) -- Месяцы 1-3
+
+**Цель:** Доказать ценность программы, получить buy-in stakeholders.
+
+| Milestone | Deliverables | Owner | Success Criteria |
+|-----------|-------------|-------|------------------|
+| Charter утверждён | Charter document, RACI | CDO | Подписан всеми членами Council |
+| Data Stewards назначены | Role descriptions, training | CDO | 3+ stewards назначены и обучены |
+| Quick win: quality checks | 10 critical checks | Data Engineer | 15%+ дубликатов обнаружено |
+| Naming convention | Standard + enforcement | Data Steward | Документ утверждён Council |
+
+**Ключевой принцип:** Foundation -- не про инструменты, а про людей и процессы. Не покупайте Collibra на первом месяце.
+
+### Phase 2: Core (Инфраструктура) -- Месяцы 4-6
+
+**Цель:** Развернуть базовую инфраструктуру governance.
+
+| Milestone | Deliverables | Owner | Success Criteria |
+|-----------|-------------|-------|------------------|
+| Data Catalog запущен | Platform deployed, top 50 datasets | Data Steward | 50+ datasets с полными метаданными |
+| Quality monitoring | Checks на critical pipelines | Data Engineer | 95%+ quality на критичных datasets |
+| Classification policy | 4 уровня, все PII-таблицы | Data Steward | 100% PII-таблиц классифицированы |
+| Access policies | RBAC для PostgreSQL | DBA | Индивидуальные аккаунты, нет shared credentials |
+
+### Phase 3: Advanced (Расширение) -- Месяцы 7-9
+
+**Цель:** Расширить coverage, добавить compliance и security.
+
+| Milestone | Deliverables | Owner | Success Criteria |
+|-----------|-------------|-------|------------------|
+| Privacy compliance | PII inventory, consent management | DPO/Legal | 152-ФЗ аудит пройден |
+| Automated access control | RBAC + audit logging | Data Engineer | Zero unauthorized access incidents |
+| Lineage tracking | 80%+ models documented | Data Steward | End-to-end lineage для critical pipelines |
+| Training program | Governance curriculum | CDO | 100% data team прошли обучение |
+
+### Phase 4: Optimization (Зрелость) -- Месяцы 10-12
+
+**Цель:** Автоматизировать, измерять, оптимизировать.
+
+| Milestone | Deliverables | Owner | Success Criteria |
+|-----------|-------------|-------|------------------|
+| KPI dashboard | Автоматический мониторинг | Business Analyst | Все charter KPIs отслеживаются |
+| Maturity assessment | Self-assessment, improvement plan | CDO | Level 2 достигнут, план Level 3 утверждён |
+| Policy automation | Policy-as-Code для 5+ политик | Data Engineer | Automated enforcement через CI/CD |
+| Federated governance | Domain stewardship | CDO | Каждый домен самостоятельно управляет данными |
+
+### Визуализация фаз
+
+<FlowRow>
+  <FlowColumn>
+    <FlowNode variant="governance" label="Phase 1" sublabel="Foundation: Charter, Stewards, Quick Wins" />
+    <FlowNode variant="default" label="Месяцы 1-3" sublabel="Люди и процессы" />
+  </FlowColumn>
+  <Arrow />
+  <FlowColumn>
+    <FlowNode variant="governance" label="Phase 2" sublabel="Core: Catalog, Quality, Classification" />
+    <FlowNode variant="default" label="Месяцы 4-6" sublabel="Инфраструктура" />
+  </FlowColumn>
+  <Arrow />
+  <FlowColumn>
+    <FlowNode variant="governance" label="Phase 3" sublabel="Advanced: Privacy, Security, Lineage" />
+    <FlowNode variant="default" label="Месяцы 7-9" sublabel="Расширение" />
+  </FlowColumn>
+  <Arrow />
+  <FlowColumn>
+    <FlowNode variant="governance" label="Phase 4" sublabel="Optimization: KPIs, Automation, Maturity" />
+    <FlowNode variant="default" label="Месяцы 10-12" sublabel="Зрелость" />
+  </FlowColumn>
+</FlowRow>
+
+### Код-челлендж: Implementation Roadmap Timeline
+
+В квизе к этому уроку вы создадите **YAML-roadmap** (CC-32) для DataTech с 4 фазами, milestones, deliverables, dependencies и success criteria. Валидация проверит: фазы последовательны, dependencies ссылаются на существующие milestones, каждая фаза содержит минимум 2 milestones.
+
+## Governance Maturity Model
+
+**Maturity Model (модель зрелости)** -- инструмент для оценки текущего состояния и планирования роста. Пять уровней зрелости:
+
+| Level | Название | Характеристика | Пример |
+|-------|----------|----------------|--------|
+| **1** | Initial | Нет формальных процессов, ad-hoc подход | DataTech сегодня |
+| **2** | Managed | Базовые процессы определены и документированы | DataTech через 6 месяцев |
+| **3** | Defined | Стандартизированные процессы, метрики, enforcement | DataTech через 12 месяцев |
+| **4** | Measured | Количественное управление, predictive analytics | FinSecure текущий уровень |
+| **5** | Optimizing | Непрерывное совершенствование, data-driven governance | Целевое состояние |
+
+<MaturityModel
+  client:visible
+  currentLevel={1}
+  title="Roadmap зрелости DataTech: от Level 1 к Level 3"
+  levels={[
+    { name: "Level 1: Initial", description: "Текущее состояние DataTech. Ad-hoc подход, нет формального governance" },
+    { name: "Level 2: Managed", description: "Цель Phase 2: каталог, quality checks, classification. Месяц 6" },
+    { name: "Level 3: Defined", description: "Цель Phase 4: стандарты, enforcement, KPI dashboard. Месяц 12" },
+    { name: "Level 4: Measured", description: "Будущее: predictive quality, automated compliance. Год 2" },
+    { name: "Level 5: Optimizing", description: "Долгосрочная перспектива: data-driven governance. Год 3+" }
+  ]}
+/>
+
+### Как FinSecure достиг Level 3
+
+> **Для сравнения: FinSecure Bank (ФинСекьюр Банк)**
+>
+> FinSecure потратил **3 года** на путь от Level 1 к Level 3:
+>
+> - **Год 1:** Назначен CDO, создан DGO из 5 человек, написано 20 политик
+> - **Год 2:** Развёрнут каталог (Collibra), внедрён RBAC на Oracle, пройден первый 152-ФЗ аудит
+> - **Год 3:** Автоматизированы quality checks, настроен audit logging, обучены 30 человек
+>
+> **Текущие проблемы Level 3:** 47 политик, но enforcement неоднородный. 2 Data Steward на 800+ таблиц. 12 политик не обновлялись более 2 лет. FinSecure демонстрирует, что Level 3 -- не конечная точка, а этап.
+
+<KnowledgeCheck
+  question="DataTech планирует достичь Level 3 за 12 месяцев, в то время как FinSecure потратил 3 года. Реалистично ли это и почему?"
+  answer="Реалистично, потому что: (1) Масштаб разный: DataTech -- 500 сотрудников, 200+ таблиц, 7 человек в data-команде. FinSecure -- 2000+ сотрудников, 800+ таблиц Oracle, 30 человек. (2) Инструменты стали зрелее: OpenMetadata, dbt, Great Expectations не существовали 3 года назад. (3) DataTech учится на ошибках FinSecure (не начинать с 47 политик). Но есть риски: (1) 20% allocation Stewards может быть недостаточно при сохранении основных обязанностей. (2) Организационные изменения (уход ключевых людей) могут задержать программу. 12 месяцев реалистичны при стабильном executive sponsorship."
+/>
+
+## Resource Planning
+
+### Типовые ресурсы по фазам
+
+| Ресурс | Phase 1 | Phase 2 | Phase 3 | Phase 4 |
+|--------|---------|---------|---------|---------|
+| CDO (и.о.) | 30% | 40% | 30% | 20% |
+| Data Stewards (x3) | 10% | 20% | 20% | 20% |
+| Data Engineer | 10% | 30% | 20% | 15% |
+| Legal/DPO | 5% | 5% | 20% | 10% |
+| **Бюджет (инструменты)** | 0 | OpenMetadata (open-source) | GE, дополнительные инструменты | Dashboard, automation |
+| **Общий FTE** | ~0.5 | ~1.5 | ~1.5 | ~1.0 |
+
+### Распределение бюджета DataTech (1.5M RUB/год)
+
+| Статья | Сумма | % |
+|--------|-------|---|
+| Время Data Stewards (20%) | 800K | 53% |
+| Каталог данных (OpenMetadata) | 300K | 20% |
+| Обучение | 200K | 13% |
+| Инфраструктура (мониторинг, CI/CD) | 200K | 13% |
+
+## Common Pitfalls: ловушки внедрения
+
+### 1. Big Bang Approach
+
+**Ошибка:** Пытаться внедрить всё одновременно -- каталог, quality checks, RBAC, compliance, training -- за 3 месяца.
+**Следствие:** Ни один компонент не доведён до рабочего состояния. Команда выгорает. Программа закрывается.
+**Решение:** Фазированный подход. Phase 1 -- только charter, stewards и quick wins.
+
+### 2. Tool-First Approach
+
+**Ошибка:** Начинать с покупки дорогого инструмента (Collibra, Alation) без определённых процессов.
+**Следствие:** Инструмент простаивает, бюджет потрачен, ROI отрицательный.
+**Решение:** Process first, tool second. Phase 1 -- люди и процессы. Phase 2 -- инструменты (open-source).
+
+### 3. Governance for Governance's Sake
+
+**Ошибка:** Создавать политики ради политик, без привязки к бизнес-проблемам.
+**Следствие:** 47 политик, как у FinSecure, из которых 12 устарели и 8 противоречат друг другу.
+**Решение:** Каждая политика решает конкретную проблему. Начинать с 5-7 ключевых.
+
+### 4. Ignoring Change Management
+
+**Ошибка:** Внедрять governance без вовлечения stakeholders и управления сопротивлением.
+**Следствие:** "Бумажный" governance -- политики есть, но никто не следует.
+**Решение:** Quick wins, регулярная коммуникация, executive sponsorship.
+
+## Industry-Specific Patterns
+
+### Fintech (FinSecure)
+
+Regulatory-driven implementation -- программа запускается из-за требований регулятора (ЦБ РФ, 152-ФЗ):
+- **Phase 1** фокусируется на compliance: classification, access control, audit trail
+- **Phase 2** добавляет quality и catalog
+- **Драйвер:** штрафы и лицензионные риски
+
+### Healthcare (BioGenesis)
+
+Data-driven implementation -- программа запускается для обеспечения качества данных клинических исследований:
+- **Phase 1** фокусируется на quality и consent management
+- **Phase 2** добавляет classification и security
+- **Драйвер:** IRB requirements, надёжность данных
+
+### E-commerce (DataTech)
+
+Value-driven implementation -- программа запускается для получения бизнес-ценности:
+- **Phase 1** фокусируется на quality (дубликаты стоят денег)
+- **Phase 2** добавляет catalog и classification
+- **Драйвер:** ROI, операционная эффективность
+
+<KnowledgeCheck
+  question="Почему FinSecure начинает governance с compliance (classification, access control), а DataTech -- с quality (дубликаты, quality checks)? Обе компании строят governance-программу -- в чём разница?"
+  answer="Разница в драйверах: (1) FinSecure (fintech L3) регулируется ЦБ РФ и подлежит 152-ФЗ аудитам. Несоблюдение = штрафы + лицензионный риск. Compliance -- existential threat. (2) DataTech (e-commerce L1) не находится под жёстким регуляторным давлением. Их проблема -- операционная: 15% дубликатов клиентов стоят 3.75M RUB/год. Quality -- biggest pain point. Governance-программа должна начинать с biggest pain point организации, а не по универсальному шаблону. Если DataTech начнёт с compliance, а не с quality -- не получит quick wins и потеряет stakeholder buy-in."
+/>
+
+## Итоги
+
+- **4 фазы:** Foundation (quick wins) -> Core (инфраструктура) -> Advanced (расширение) -> Optimization (зрелость)
+- **12 месяцев** от Level 1 до Level 3 -- реалистично для средних организаций с executive sponsorship
+- **Maturity Model** -- инструмент для оценки прогресса: Level 1 -> Level 5
+- **Resource planning:** ~0.5-1.5 FTE на каждую фазу, 1.5M RUB/год для DataTech
+- **Pitfalls:** Big Bang, Tool-First, Governance for Governance's Sake, Ignoring Change Management
+- **Industry patterns:** fintech (regulatory-driven), healthcare (data-driven), e-commerce (value-driven)
+
+В следующем уроке мы определим **KPIs и метрики эффективности** -- как измерять, что governance-программа работает.

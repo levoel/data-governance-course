@@ -1,0 +1,202 @@
+---
+title: "Governance Charter: устав программы"
+description: "Governance Charter компоненты: scope, objectives, roles, decision rights, escalation process, policy writing, версионирование"
+order: 3
+difficulty: "intermediate"
+estimatedTime: 25
+audience: "leadership"
+topics: ["Governance Charter", "Policy Writing", "Governance Framework"]
+---
+
+import { PolicyTemplate } from '../../../components/diagrams/governance';
+
+# Governance Charter: устав программы
+
+## Введение
+
+**Governance Charter (устав программы governance)** -- формальный документ, закрепляющий основу governance-программы: миссию, scope, организационную структуру, decision rights, escalation process и метрики. Charter -- это "конституция" программы: на него ссылаются при принятии решений, разрешении конфликтов и оценке эффективности.
+
+Без charter программа governance существует только в головах участников. Когда VP Engineering уходит в отпуск, никто не знает, кто принимает решения о классификации новых данных.
+
+## Компоненты Charter
+
+### 1. Mission и Scope
+
+**Mission (миссия)** -- одно предложение, определяющее цель программы:
+
+> "Обеспечить качество, безопасность и compliance данных DataTech Solutions для принятия data-driven решений."
+
+**Scope (область действия)** определяет границы программы:
+
+| В scope | Вне scope |
+|---------|-----------|
+| Все production-базы данных | Dev/sandbox-окружения |
+| Analytics warehouse | Данные третьих сторон (SaaS) |
+| ML model training data | Архивные данные (> 3 лет) |
+| Customer-facing данные | Тестовые datasets |
+
+Чёткий scope предотвращает две ошибки: (1) слишком широкий scope ("всё") -- парализует команду, (2) слишком узкий scope ("только production") -- пропускает критичные данные.
+
+### 2. Principles
+
+**Principles (принципы)** -- 4-6 руководящих принципов, определяющих философию программы:
+
+1. **Данные -- общий актив организации.** Ни один отдел не "владеет" данными монопольно.
+2. **Качество данных -- ответственность каждого.** Не только команды данных.
+3. **Privacy by Design.** Защита персональных данных закладывается в архитектуру, а не добавляется позже.
+4. **Минимально необходимый доступ.** Least Privilege Principle -- доступ ограничивается минимумом, необходимым для выполнения задачи.
+5. **Прозрачность.** Lineage, audit trail и документация -- для каждого dataset.
+
+### 3. Organizational Structure
+
+Организационная структура определяет роли, подчинённость и cadence:
+
+- **Governance Council** -- 4-6 человек, ежемесячные заседания
+- **CDO (или и.о.)** -- Chair Council, финальное решение при конфликтах
+- **Data Stewards** -- по одному на домен, 20-100% времени на governance
+- **Meeting cadence** -- monthly (operational), quarterly (strategic)
+
+### 4. Decision Rights
+
+**Decision Rights (права принятия решений)** -- кто принимает, кто утверждает:
+
+| Домен решения | Decision Maker | Approver | SLA |
+|---------------|---------------|----------|-----|
+| Классификация данных | Data Steward | CDO | 5 рабочих дней |
+| Запросы на доступ | Data Steward | DPO | 2 рабочих дня |
+| Пороги качества | Data Engineer | Data Steward | 3 рабочих дня |
+| Изменения политик | CDO | Governance Council | 10 рабочих дней |
+| Исключения из политик | CDO | Executive Sponsor | 5 рабочих дней |
+
+### 5. Escalation Process
+
+**Escalation Process (процесс эскалации)** -- путь разрешения конфликтов и блокирующих вопросов:
+
+| Level | Handler | SLA | Пример |
+|-------|---------|-----|--------|
+| **L1** | Data Steward | 24 часа | Спор о классификации таблицы |
+| **L2** | CDO | 48 часов | Конфликт между доменами |
+| **L3** | Governance Council | 1 неделя | Стратегическое решение |
+| **L4** | Executive Sponsor | 2 недели | Бюджетные решения, организационные изменения |
+
+## Шаблон Charter для DataTech
+
+<PolicyTemplate
+  client:load
+  title="Data Governance Charter: DataTech Solutions"
+  metadata={{
+    "Версия": "1.0",
+    "Владелец": "VP Engineering (и.о. CDO)",
+    "Статус": "Утверждена",
+    "Дата утверждения": "2025-01-15",
+    "Следующий пересмотр": "2025-07-15"
+  }}
+  sections={[
+    {
+      heading: "1. Миссия",
+      content: "Обеспечить качество, безопасность и compliance данных DataTech Solutions для принятия data-driven решений. Программа охватывает все production-базы данных, analytics warehouse, ML training data и customer-facing данные."
+    },
+    {
+      heading: "2. Принципы",
+      content: "Данные -- общий актив. Качество -- ответственность каждого. Privacy by Design. Минимально необходимый доступ. Прозрачность через lineage и audit trail."
+    },
+    {
+      heading: "3. Организационная структура",
+      content: "Governance Council (4 человека): VP Engineering (Chair), Head of Marketing, Lead Data Engineer, Legal Counsel. 3 Domain Data Stewards (part-time 20%). Ежемесячные заседания Council."
+    },
+    {
+      heading: "4. Decision Rights",
+      content: "Классификация данных: Steward -> CDO (5 дней). Доступ: Steward -> DPO (2 дня). Качество: Engineer -> Steward (3 дня). Политики: CDO -> Council (10 дней)."
+    },
+    {
+      heading: "5. Эскалация",
+      content: "L1: Data Steward (24ч). L2: CDO (48ч). L3: Governance Council (1 неделя). L4: Executive Sponsor / CEO (2 недели)."
+    },
+    {
+      heading: "6. Метрики",
+      content: "Data Quality Score >= 95%. Policy Compliance >= 90%. Catalog Coverage >= 80%. Incident Response <= 24 часа. Ежемесячный отчёт Council."
+    },
+    {
+      heading: "7. Review Schedule",
+      content: "Ежегодный полный пересмотр. Ежеквартальный review метрик. Ad-hoc пересмотр при организационных изменениях (M&A, новый регулятор, смена CDO)."
+    }
+  ]}
+/>
+
+### Код-челлендж: Governance Charter Structure
+
+В квизе к этому уроку вы создадите **JSON-структуру charter** (CC-31) для DataTech Solutions, включающую все обязательные секции: mission, scope, principles, organizational structure, decision rights, escalation process, metrics и review schedule.
+
+## Policy Writing: лучшие практики
+
+Charter порождает **политики** -- конкретные правила для отдельных областей governance. Хорошая политика:
+
+### Структура политики
+
+1. **Purpose** -- зачем эта политика нужна (1-2 предложения)
+2. **Scope** -- к чему применяется (системы, данные, роли)
+3. **Policy Statement** -- конкретные правила (императивная форма: "ДОЛЖЕН", "ЗАПРЕЩАЕТСЯ")
+4. **Roles and Responsibilities** -- кто за что отвечает
+5. **Exceptions** -- когда правило не применяется и кто утверждает исключения
+6. **Enforcement** -- как проверяется соблюдение (automated checks, audits)
+7. **Revision History** -- кто, когда, что изменил
+
+### Принципы написания политик
+
+| Принцип | Плохо | Хорошо |
+|---------|-------|--------|
+| **Конкретность** | "Данные должны быть защищены" | "PII-столбцы шифруются AES-256 at rest" |
+| **Измеримость** | "Качество должно быть высоким" | "Data Quality Score >= 95% еженедельно" |
+| **Исполнимость** | "Все должны соблюдать" | "Quality checks в CI/CD блокируют deploy при нарушении" |
+| **Exceptions** | "Без исключений" | "Исключения утверждает CDO с обоснованием и сроком" |
+
+> **Для сравнения: FinSecure Bank (ФинСекьюр Банк)**
+>
+> FinSecure имеет **47 governance-политик**, созданных за 5 лет. Проблемы:
+> - 12 политик не обновлялись более 2 лет
+> - 8 политик противоречат друг другу (разные требования к срокам хранения в Policy #14 и Policy #31)
+> - Enforcement автоматизирован только для 15 из 47 политик
+>
+> Урок для DataTech: **начинать с 5-7 ключевых политик**, а не пытаться покрыть всё сразу. Каждая политика -- с automated enforcement.
+
+<KnowledgeCheck
+  question="DataTech создаёт первую политику -- 'Политика классификации данных'. VP Engineering написал: 'Все данные должны быть классифицированы по уровню конфиденциальности. Ответственный -- Data Steward.' Что не так с этой формулировкой?"
+  answer="Политика нарушает все три принципа: (1) Не конкретна -- 'уровень конфиденциальности' не определён (Public/Internal/Confidential/Restricted? или другая шкала?). (2) Не измерима -- нет target (100% таблиц за какой срок? какие метаданные обязательны?). (3) Не исполнима -- нет enforcement mechanism (ручная проверка? automated scan? CI/CD check?). Правильно: 'Все production-таблицы ДОЛЖНЫ иметь classification tag (public/internal/confidential/restricted) в каталоге данных в течение 30 дней после создания. Data Steward домена отвечает за классификацию. Automated scan еженедельно проверяет наличие classification tag.'"
+/>
+
+## Версионирование и обслуживание Charter
+
+Charter -- живой документ. Без регулярного обновления он устаревает и теряет актуальность.
+
+### Semantic Versioning для политик
+
+Заимствуя подход из software engineering:
+
+- **Major (1.x -> 2.0)** -- фундаментальные изменения (новая организационная структура, изменение scope)
+- **Minor (1.0 -> 1.1)** -- добавление секции, новая политика
+- **Patch (1.0.0 -> 1.0.1)** -- исправление формулировок, обновление дат
+
+### Review цикл
+
+| Триггер | Тип review | Пример |
+|---------|-----------|--------|
+| **Ежегодный** | Полный пересмотр | Все секции, метрики, роли |
+| **Ежеквартальный** | Метрики и KPIs | Актуальны ли targets? Нужны ли новые KPIs? |
+| **Event-driven** | Targeted review | M&A, новый регулятор, инцидент, смена CDO |
+
+<KnowledgeCheck
+  question="FinSecure имеет 12 политик, не обновлявшихся более 2 лет. Почему это проблема, если содержание политик остаётся верным?"
+  answer="Устаревшие политики создают несколько рисков: (1) Compliance-риск: регуляторы изменили требования, а политики не обновлены (152-ФЗ регулярно дополняется). (2) Доверие: сотрудники видят дату '2023' и сомневаются в актуальности. (3) Контакты: владелец политики мог сменить должность -- кто теперь Accountable? (4) Технологии: политика ссылается на системы, которые заменены (Oracle -> PostgreSQL). (5) Audit: аудитор расценит устаревшие даты как отсутствие governance-процесса пересмотра. Даже если содержание верное, scheduled review подтверждает это формально."
+/>
+
+## Итоги
+
+- **Governance Charter** -- "конституция" программы: mission, scope, principles, structure, decision rights, escalation, metrics, review
+- **Decision Rights** -- кто принимает решение, кто утверждает, с каким SLA
+- **Escalation Process** -- 4 уровня: Steward -> CDO -> Council -> Executive Sponsor
+- **Policy Writing** -- конкретность, измеримость, исполнимость, исключения
+- **Версионирование** -- semantic versioning + ежегодный полный review + event-driven updates
+- DataTech: начинать с 5-7 ключевых политик с automated enforcement
+- FinSecure: 47 политик без поддержки -- анти-паттерн
+
+В следующем уроке мы построим **Implementation Roadmap** -- пошаговый план внедрения governance-программы с фазами, milestones и зависимостями.
