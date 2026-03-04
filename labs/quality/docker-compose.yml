@@ -1,0 +1,47 @@
+# Quality Lab - Great Expectations Data Quality Environment
+# Usage: cp .env.example .env && docker compose up -d --build
+# Access: JupyterLab at http://localhost:28888
+
+services:
+  postgresql:
+    # TODO: Pin with SHA digest when Docker is available:
+    # docker pull postgres:16 && docker inspect --format='{{index .RepoDigests 0}}' postgres:16
+    image: postgres:16
+    container_name: quality-lab-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-quality_lab}
+      POSTGRES_USER: ${POSTGRES_USER:-lab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lab_password}
+    ports:
+      - "${POSTGRES_PORT:-25432}:5432"
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d:ro
+      - pg-quality-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lab} -d ${POSTGRES_DB:-quality_lab}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    container_name: quality-lab-jupyter
+    ports:
+      - "${JUPYTER_PORT:-28888}:8888"
+    volumes:
+      - ./notebooks:/home/jovyan/work
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8888/api || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  pg-quality-data:

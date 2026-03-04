@@ -1,0 +1,32 @@
+# Quality Lab - JupyterLab with Great Expectations
+# Extends official Jupyter minimal image with GE 1.x and PostgreSQL drivers
+
+# TODO: Pin with SHA digest when Docker is available:
+# docker pull quay.io/jupyter/minimal-notebook:latest && \
+#   docker inspect --format='{{index .RepoDigests 0}}' quay.io/jupyter/minimal-notebook:latest
+FROM quay.io/jupyter/minimal-notebook:latest
+
+LABEL maintainer="Data Governance Course"
+LABEL description="JupyterLab environment for Great Expectations data quality exercises"
+
+# Install PostgreSQL client library (required for psycopg2)
+USER root
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
+USER ${NB_UID}
+
+# Install Great Expectations 1.x and database drivers
+RUN pip install --no-cache-dir \
+    great-expectations==1.13.0 \
+    psycopg2-binary \
+    sqlalchemy
+
+# Set working directory to mounted notebooks volume
+WORKDIR /home/jovyan/work
+
+# Expose JupyterLab port
+EXPOSE 8888
+
+# Default command - no auth for local development lab
+CMD ["start-notebook.sh", "--NotebookApp.token=''", "--NotebookApp.password=''"]
