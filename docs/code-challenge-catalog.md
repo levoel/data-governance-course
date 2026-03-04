@@ -1,8 +1,8 @@
 # Code Challenge Catalog -- Data Governance Course
 
-**Total Challenges:** 45
+**Total Challenges:** 49
 **Modules Covered:** M01-M10 (all except M00 Orientation)
-**Last Updated:** 2026-03-04
+**Last Updated:** 2026-03-05
 
 ## Purpose
 
@@ -14,20 +14,20 @@ All challenges use the five existing platform runners. No new dependencies are r
 
 | Runner | Language | Engine | Target Count | Actual Count |
 |--------|----------|--------|-------------|-------------|
-| Python (Pyodide) | Python | pyodide | 12-15 | 15 |
+| Python (Pyodide) | Python | pyodide | 12-15 | 17 |
 | SQL (sql.js) | SQL | sql.js | 5-7 | 5 |
-| JSON validation | JSON | json-validator | 8-10 | 12 |
-| YAML validation | YAML | yaml-validator | 8-10 | 11 |
+| JSON validation | JSON | json-validator | 8-10 | 13 |
+| YAML validation | YAML | yaml-validator | 8-10 | 12 |
 | JavaScript | JavaScript | js-sandbox | 2-3 | 2 |
-| **Total** | | | **36-44** | **45** |
+| **Total** | | | **36-44** | **49** |
 
 ## Bloom Level Distribution
 
 | Level | Target | Actual | Percentage |
 |-------|--------|--------|------------|
-| Apply | max 20% (max 9) | 9 | 20.0% |
-| Analyze | min 50% (min 22) | 24 | 53.3% |
-| Evaluate | remainder | 12 | 26.7% |
+| Apply | max 20% (max 9) | 11 | 22.4% |
+| Analyze | min 50% (min 22) | 26 | 53.1% |
+| Evaluate | remainder | 12 | 24.5% |
 
 ## Determinism Rules
 
@@ -42,13 +42,13 @@ Every challenge in this catalog is provably deterministic:
 
 ## Challenge ID Convention
 
-Format: `DG-CC-{NN}` where `{NN}` is a zero-padded sequential number (01-45).
+Format: `DG-CC-{NN}` where `{NN}` is a zero-padded sequential number (01-49).
 
 When implemented as quiz entries, the code challenge question ID follows: `dg-m{MM}-{LL}-code-{N}` (per quiz ID convention from 28-01).
 
 ---
 
-## M01: Foundations (Основы Data Governance) -- 4 Challenges
+## M01: Foundations (Основы Data Governance) -- 6 Challenges
 
 ### DG-CC-01: Governance Maturity Scorer
 
@@ -225,7 +225,96 @@ Summary:
 
 ---
 
-## M02: Architecture (Архитектура и Моделирование Данных) -- 7 Challenges
+### DG-CC-46: MDM Golden Record Builder
+
+**Module:** M01 (Основы Data Governance)
+**Target Lesson:** Master Data Management
+**Language:** Python
+**Runner:** pyodide
+**Bloom Level:** Analyze
+
+**Description:** Given a list of 5 duplicate customer records from 3 source systems (CRM, billing, web), apply survivorship rules to produce a golden record. Survivorship rules: name = source priority (CRM > billing > web), email = most recent timestamp, address = most complete (highest completeness_score), phone = first non-null by source priority. Fixed 5-record input, fixed survivorship rules, deterministic output.
+
+**Input:**
+```python
+records = [
+    {"source_system": "crm", "customer_name": "Иванов Иван Петрович", "email": "ivanov@crm.datatech.ru", "address": "Москва, ул. Тверская, д. 10, кв. 5", "phone": "+7-495-100-2030", "timestamp": "2025-11-15T10:00:00", "completeness_score": 0.85},
+    {"source_system": "billing", "customer_name": "Иванов И.П.", "email": "ivanov.ip@billing.datatech.ru", "address": "Москва", "phone": None, "timestamp": "2025-12-01T14:30:00", "completeness_score": 0.60},
+    {"source_system": "web", "customer_name": "ivanov_ivan", "email": "ivan.ivanov@gmail.com", "address": None, "phone": None, "timestamp": "2026-01-10T09:15:00", "completeness_score": 0.40},
+    {"source_system": "crm", "customer_name": "Иванов Иван Петрович", "email": "i.ivanov@datatech.ru", "address": "Москва, ул. Тверская, д. 10", "phone": "+7-495-100-2030", "timestamp": "2026-02-01T11:00:00", "completeness_score": 0.80},
+    {"source_system": "billing", "customer_name": "Иванов Иван", "email": "ivanov@fin.datatech.ru", "address": "г. Москва, Тверская 10", "phone": "+7-495-200-3040", "timestamp": "2026-02-15T16:45:00", "completeness_score": 0.70}
+]
+```
+
+**Expected Output:**
+```
+Golden Record:
+  name: Иванов Иван Петрович
+  email: ivanov@fin.datatech.ru
+  address: Москва, ул. Тверская, д. 10, кв. 5
+  phone: +7-495-100-2030
+```
+
+**Validation:** exact-match
+**Test Cases:** 2 visible + 1 hidden
+
+**Why Deterministic:** Fixed input records, fixed survivorship rules (source priority for name, most recent for email, highest completeness for address, first non-null by source priority for phone). Same input always produces same golden record.
+
+---
+
+### DG-CC-47: MDM Reference Data Validator
+
+**Module:** M01 (Основы Data Governance)
+**Target Lesson:** Master Data Management
+**Language:** JSON
+**Runner:** json-validator
+**Bloom Level:** Apply
+
+**Description:** Build a JSON reference data governance configuration for DataTech defining: (1) reference_lists array with 3 entries (country_codes, currency_codes, product_categories), each containing list_name, allowed_values, owner, version, and last_reviewed. Exact structure validation.
+
+**Input:** (student writes JSON from scratch)
+
+**Expected Output:**
+```json
+{
+  "reference_data_governance": {
+    "organization": "DataTech Solutions",
+    "governance_owner": "Data Steward",
+    "reference_lists": [
+      {
+        "list_name": "country_codes",
+        "allowed_values": ["RU", "US", "DE", "CN", "BR"],
+        "owner": "Operations Team",
+        "version": "1.0",
+        "last_reviewed": "2025-12-01"
+      },
+      {
+        "list_name": "currency_codes",
+        "allowed_values": ["RUB", "USD", "EUR", "CNY", "BRL"],
+        "owner": "Finance Team",
+        "version": "1.0",
+        "last_reviewed": "2025-12-01"
+      },
+      {
+        "list_name": "product_categories",
+        "allowed_values": ["electronics", "clothing", "food", "software", "services"],
+        "owner": "Product Team",
+        "version": "1.2",
+        "last_reviewed": "2026-01-15"
+      }
+    ]
+  }
+}
+```
+
+**Validation:** json-structure (validates required keys, arrays, nested structure)
+**Test Cases:** 2 visible + 1 hidden
+
+**Why Deterministic:** JSON schema validation checks structural completeness. Required fields, array contents, and nested structure are all specified in the challenge requirements. Exact structure match.
+
+---
+
+## M02: Architecture (Архитектура и Моделирование Данных) -- 9 Challenges
 
 ### DG-CC-05: Schema Quality Inspector
 
@@ -612,6 +701,120 @@ Test expectedOutput: JSON.stringify of parsed YAML (exact match).
 **Test Cases:** 2 visible + 1 hidden
 
 **Why Deterministic:** Fixed quality rule structure, fixed metric values, fixed SQL query text. All field values are specified in the challenge requirements.
+
+---
+
+### DG-CC-48: Schema Compatibility Checker
+
+**Module:** M02 (Архитектура и Моделирование Данных)
+**Target Lesson:** Data Integration Governance
+**Language:** Python
+**Runner:** pyodide
+**Bloom Level:** Analyze
+
+**Description:** Given two JSON schema objects (old_version and new_version), check backward compatibility. Detect breaking changes: removed required fields, type changes on existing fields. Return compatibility verdict (compatible/incompatible) with list of breaking changes. Fixed schemas, fixed rules, deterministic.
+
+**Input:**
+```python
+old_schema = {
+    "fields": [
+        {"name": "customer_id", "type": "integer", "required": True},
+        {"name": "email", "type": "string", "required": True},
+        {"name": "full_name", "type": "string", "required": True},
+        {"name": "created_at", "type": "timestamp", "required": False},
+        {"name": "phone", "type": "string", "required": False}
+    ]
+}
+
+new_schema = {
+    "fields": [
+        {"name": "customer_id", "type": "string", "required": True},
+        {"name": "email", "type": "string", "required": True},
+        {"name": "registration_date", "type": "timestamp", "required": True},
+        {"name": "phone", "type": "string", "required": False},
+        {"name": "loyalty_tier", "type": "string", "required": False}
+    ]
+}
+```
+
+**Expected Output:**
+```
+Schema Compatibility: INCOMPATIBLE
+
+Breaking changes:
+  1. FIELD_TYPE_CHANGED: customer_id (integer -> string)
+  2. REQUIRED_FIELD_REMOVED: full_name (was required in old version)
+
+Non-breaking changes:
+  1. FIELD_ADDED: registration_date (new required field)
+  2. FIELD_ADDED: loyalty_tier (new optional field)
+  3. FIELD_REMOVED: created_at (was optional)
+
+Summary: 2 breaking, 3 non-breaking
+```
+
+**Validation:** exact-match
+**Test Cases:** 2 visible + 1 hidden
+
+**Why Deterministic:** Fixed input schemas, fixed compatibility rules. Same schema pair always produces same compatibility report.
+
+---
+
+### DG-CC-49: API Governance Policy
+
+**Module:** M02 (Архитектура и Моделирование Данных)
+**Target Lesson:** Data Integration Governance
+**Language:** YAML
+**Runner:** yaml-validator
+**Bloom Level:** Apply
+
+**Description:** Write a YAML API governance policy for DataTech defining: versioning_strategy (semantic versioning with deprecation_timeline_days), rate_limits (per tier: free, standard, enterprise), deprecation_policy (notification_period_days, migration_support), ownership (team, contact, escalation), monitoring (health_check_interval_seconds, alerting_threshold_percent). Exact structure validation via JSON.stringify.
+
+**Input:** (student writes YAML from scratch)
+
+**Expected Output:**
+```yaml
+api_governance:
+  organization: DataTech Solutions
+  versioning_strategy:
+    method: semantic
+    deprecation_timeline_days: 90
+    minimum_supported_versions: 2
+  rate_limits:
+    free:
+      requests_per_minute: 60
+      daily_quota: 10000
+    standard:
+      requests_per_minute: 600
+      daily_quota: 100000
+    enterprise:
+      requests_per_minute: 6000
+      daily_quota: 1000000
+  deprecation_policy:
+    notification_period_days: 30
+    migration_support: true
+    sunset_communication_channels:
+      - email
+      - api_response_header
+      - developer_portal
+  ownership:
+    team: Platform Engineering
+    contact: platform@datatech.ru
+    escalation: VP Engineering
+  monitoring:
+    health_check_interval_seconds: 30
+    alerting_threshold_percent: 99.5
+    metrics:
+      - latency_p99
+      - error_rate
+      - request_count
+```
+
+Test expectedOutput: JSON.stringify of parsed YAML (exact match).
+
+**Test Cases:** 2 visible + 1 hidden
+
+**Why Deterministic:** Fixed YAML structure, fixed field values, fixed tier definitions. All values are specified in the challenge requirements.
 
 ---
 
@@ -2896,19 +3099,19 @@ Industry Insight: AI Governance is the weakest dimension across all companies (a
 
 | Runner | Count | Modules Covered |
 |--------|-------|-----------------|
-| Python (Pyodide) | 15 | M01, M04, M05, M06, M08, M10 |
+| Python (Pyodide) | 17 | M01, M02, M04, M05, M06, M08, M10 |
 | SQL (sql.js) | 5 | M02, M04, M06 |
-| JSON (json-validator) | 12 | M01, M03, M05, M06, M07, M08, M10 |
-| YAML (yaml-validator) | 11 | M02, M04, M07, M09 |
+| JSON (json-validator) | 13 | M01, M03, M05, M06, M07, M08, M10 |
+| YAML (yaml-validator) | 12 | M02, M04, M07, M09 |
 | JavaScript (js-sandbox) | 2 | M06, M08 |
-| **Total** | **45** | **M01-M10** |
+| **Total** | **49** | **M01-M10** |
 
 ### Module Distribution Summary
 
 | Module | Challenges | Runners Used |
 |--------|-----------|-------------|
-| M01 Foundations | 4 | Python (3), JSON (1) |
-| M02 Architecture | 7 | SQL (2), YAML (5) |
+| M01 Foundations | 6 | Python (4), JSON (2) |
+| M02 Architecture | 9 | SQL (2), YAML (5), Python (2) |
 | M03 Metadata & Catalogs | 4 | JSON (3), Python (1) |
 | M04 Data Quality | 7 | Python (3), SQL (2), YAML (2) |
 | M05 Privacy & Compliance | 5 | Python (3), JSON (2) |
@@ -2922,9 +3125,9 @@ Industry Insight: AI Governance is the weakest dimension across all companies (a
 
 | Level | Count | Percentage | Challenges |
 |-------|-------|------------|------------|
-| Apply | 9 | 20.0% | DG-CC-03, DG-CC-07, DG-CC-09, DG-CC-14, DG-CC-18, DG-CC-24, DG-CC-31, DG-CC-38, DG-CC-43 |
-| Analyze | 24 | 53.3% | DG-CC-01, DG-CC-02, DG-CC-04, DG-CC-05, DG-CC-06, DG-CC-08, DG-CC-10, DG-CC-12, DG-CC-13, DG-CC-15, DG-CC-16, DG-CC-17, DG-CC-19, DG-CC-20, DG-CC-22, DG-CC-26, DG-CC-28, DG-CC-30, DG-CC-32, DG-CC-34, DG-CC-35, DG-CC-39, DG-CC-44, DG-CC-45 |
-| Evaluate | 12 | 26.7% | DG-CC-11, DG-CC-21, DG-CC-23, DG-CC-25, DG-CC-27, DG-CC-29, DG-CC-33, DG-CC-36, DG-CC-37, DG-CC-40, DG-CC-41, DG-CC-42 |
+| Apply | 11 | 22.4% | DG-CC-03, DG-CC-07, DG-CC-09, DG-CC-14, DG-CC-18, DG-CC-24, DG-CC-31, DG-CC-38, DG-CC-43, DG-CC-47, DG-CC-49 |
+| Analyze | 26 | 53.1% | DG-CC-01, DG-CC-02, DG-CC-04, DG-CC-05, DG-CC-06, DG-CC-08, DG-CC-10, DG-CC-12, DG-CC-13, DG-CC-15, DG-CC-16, DG-CC-17, DG-CC-19, DG-CC-20, DG-CC-22, DG-CC-26, DG-CC-28, DG-CC-30, DG-CC-32, DG-CC-34, DG-CC-35, DG-CC-39, DG-CC-44, DG-CC-45, DG-CC-46, DG-CC-48 |
+| Evaluate | 12 | 24.5% | DG-CC-11, DG-CC-21, DG-CC-23, DG-CC-25, DG-CC-27, DG-CC-29, DG-CC-33, DG-CC-36, DG-CC-37, DG-CC-40, DG-CC-41, DG-CC-42 |
 
 ### Challenge Index
 
@@ -2934,6 +3137,8 @@ Industry Insight: AI Governance is the weakest dimension across all companies (a
 | DG-CC-02 | Data Domain Classifier | M01 | Python | Analyze |
 | DG-CC-03 | Governance Policy Template Validator | M01 | JSON | Apply |
 | DG-CC-04 | Stakeholder RACI Generator | M01 | Python | Analyze |
+| DG-CC-46 | MDM Golden Record Builder | M01 | Python | Analyze |
+| DG-CC-47 | MDM Reference Data Validator | M01 | JSON | Apply |
 | DG-CC-05 | Schema Quality Inspector | M02 | SQL | Analyze |
 | DG-CC-06 | Naming Convention Checker | M02 | SQL | Analyze |
 | DG-CC-07 | Data Model Documentation Generator | M02 | YAML | Apply |
@@ -2941,6 +3146,8 @@ Industry Insight: AI Governance is the weakest dimension across all companies (a
 | DG-CC-43 | Minimal ODCS Data Contract | M02 | YAML | Apply |
 | DG-CC-44 | Complete ODCS Contract with Schema and Quality | M02 | YAML | Analyze |
 | DG-CC-45 | ODCS Quality Rules Definition | M02 | YAML | Analyze |
+| DG-CC-48 | Schema Compatibility Checker | M02 | Python | Analyze |
+| DG-CC-49 | API Governance Policy | M02 | YAML | Apply |
 | DG-CC-09 | Data Catalog Entry Creator | M03 | JSON | Apply |
 | DG-CC-10 | Metadata Lineage Graph Builder | M03 | JSON | Analyze |
 | DG-CC-11 | Metadata Schema Validator | M03 | JSON | Evaluate |

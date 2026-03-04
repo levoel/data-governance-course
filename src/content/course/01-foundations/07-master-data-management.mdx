@@ -1,0 +1,260 @@
+---
+title: "Master Data Management (MDM)"
+description: "MDM architectural patterns (Registry, Consolidation, Coexistence, Hub), reference data governance, golden record lifecycle, survivorship rules"
+order: 7
+difficulty: "intermediate"
+estimatedTime: 20
+audience: "both"
+topics: ["MDM", "Master Data", "Golden Record", "Reference Data", "Survivorship Rules"]
+---
+
+import { DecisionMatrix, MaturityModel } from '../../../components/diagrams/governance';
+
+# Master Data Management (MDM)
+
+## Введение
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> VP Engineering открывает отчёт по качеству данных: 15% клиентских записей -- дубликаты. Клиент ID 12345 имеет 3 разных адреса в 3 системах: CRM хранит полный адрес, billing -- только город, web analytics -- null. VP спрашивает: "Почему один и тот же клиент выглядит по-разному в каждой системе?"
+
+Ответ на этот вопрос -- **Master Data Management (управление мастер-данными)**, одна из ключевых knowledge areas DMBOK2 (DAMA-DMBOK2, ISBN 978-5-9693-0404-8). В уроке 04 мы определили домены данных и владение, в уроке 06 -- политики и enforcement. Теперь рассмотрим governance-процессы для особого типа данных, который пересекает все домены.
+
+## Определение и область применения MDM
+
+**Master Data (мастер-данные)** -- это данные, описывающие ключевые бизнес-сущности: клиенты, продукты, поставщики, локации, сотрудники. В отличие от **транзакционных данных** (заказы, платежи, логи), мастер-данные:
+
+- **Не привязаны к событию** -- клиент существует независимо от заказов
+- **Используются множеством систем** -- CRM, billing, analytics, marketing
+- **Меняются медленно** -- адрес клиента меняется реже, чем появляются заказы
+- **Критичны для согласованности** -- один клиент = один golden record
+
+| Тип данных | Примеры | Характер изменений | Количество систем |
+|-----------|---------|-------------------|-------------------|
+| **Master Data** | Клиенты, Продукты, Поставщики, Локации | Медленные, редкие | 3-10+ |
+| **Reference Data** | Коды стран, валют, категорий | Очень медленные | 5-20+ |
+| **Transactional Data** | Заказы, Платежи, Логи | Постоянные, высокочастотные | 1-3 |
+
+**Reference Data (справочные данные)** -- подмножество мастер-данных: коды стран (RU, US, DE), валюты (RUB, USD, EUR), категории продуктов. Governance reference data -- часть MDM-дисциплины.
+
+<KnowledgeCheck
+  question="DataTech имеет клиентские записи в CRM, billing и web analytics. Таблица orders содержит заказы клиентов. Какие из этих данных являются master data и почему?"
+  answer="Master data -- это клиентские записи (customers), потому что они описывают ключевую бизнес-сущность (клиент), используются множеством систем (CRM, billing, web analytics), меняются медленно (адрес, имя) и требуют единого golden record. Заказы (orders) -- транзакционные данные: они привязаны к событию (покупка), создаются однократно и обычно хранятся в 1-2 системах. Транзакционные данные ссылаются на master data (order.customer_id), но сами мастер-данными не являются."
+/>
+
+## Четыре архитектурных паттерна MDM
+
+Выбор архитектуры MDM -- одно из ключевых решений governance-программы. DMBOK2 описывает 4 паттерна:
+
+<DecisionMatrix
+  client:load
+  title="Сравнение архитектурных паттернов MDM"
+  criteria={[
+    { name: "Сложность внедрения", weight: 3, description: "Объём работ и ресурсы для запуска" },
+    { name: "Качество данных", weight: 4, description: "Насколько паттерн улучшает DQ" },
+    { name: "Инвазивность", weight: 3, description: "Изменения в существующих системах" },
+    { name: "Единая версия правды", weight: 5, description: "Гарантия единого golden record" }
+  ]}
+  options={[
+    {
+      name: "Registry",
+      scores: { "Сложность внедрения": 4, "Качество данных": 2, "Инвазивность": 5, "Единая версия правды": 2 },
+      description: "Перекрёстный индекс между системами без перемещения данных"
+    },
+    {
+      name: "Consolidation",
+      scores: { "Сложность внедрения": 3, "Качество данных": 4, "Инвазивность": 3, "Единая версия правды": 4 },
+      description: "Golden record в отдельном хабе для аналитики, источники остаются operational"
+    },
+    {
+      name: "Coexistence",
+      scores: { "Сложность внедрения": 2, "Качество данных": 4, "Инвазивность": 2, "Единая версия правды": 4 },
+      description: "Двунаправленная синхронизация: хаб <-> источники"
+    },
+    {
+      name: "Centralized (Hub)",
+      scores: { "Сложность внедрения": 1, "Качество данных": 5, "Инвазивность": 1, "Единая версия правды": 5 },
+      description: "MDM-хаб -- единственный system of record"
+    }
+  ]}
+/>
+
+### Registry (Реестровый паттерн)
+
+**Принцип:** создать перекрёстный индекс (cross-reference) между ID клиентов в разных системах, не перемещая данные. CRM ID 12345 = Billing ID A-789 = Web ID usr_abc.
+
+**Когда использовать:** Level 1-2 организации, ограниченные ресурсы, нужна видимость без изменений.
+
+**DataTech рекомендация:** Registry -- стартовый паттерн. Не требует изменений в CRM, billing, web. Даёт ответ на вопрос VP Engineering: "ID 12345 = A-789 = usr_abc".
+
+### Consolidation (Консолидация)
+
+**Принцип:** данные из всех источников копируются в MDM-хаб, где создаётся **golden record** -- единая каноническая версия. Хаб доступен аналитике и BI, но источники продолжают работать автономно.
+
+**Когда использовать:** Level 2-3, потребность в аналитике на golden records, нет необходимости обновлять источники.
+
+### Coexistence (Сосуществование)
+
+**Принцип:** golden records в MDM-хабе синхронизируются обратно в источники. Изменения в хабе обновляют CRM; изменения в CRM обновляют хаб.
+
+**Когда использовать:** Level 3+, legacy + microservices, потребность в согласованности operational систем.
+
+> **FinSecure Bank (ФинСекьюр Банк)**
+>
+> FinSecure (Level 3, 2000+ сотрудников) имеет Oracle (800+ таблиц core banking) + 15 микросервисов на PostgreSQL. Для клиентских данных FinSecure выбрала Coexistence: golden record в MDM-хабе синхронизируется с Oracle и микросервисами. Это единственный паттерн, обеспечивающий согласованность в гибридной архитектуре без полной миграции на centralized hub.
+
+### Centralized / Hub (Централизованный хаб)
+
+**Принцип:** MDM-хаб -- единственное место, где создаются и редактируются мастер-данные. Все системы читают из хаба.
+
+**Когда использовать:** Level 4-5, greenfield проекты, полный контроль над архитектурой. Максимальное качество, максимальная инвазивность.
+
+### Эволюция паттерна
+
+Типичная эволюция для DataTech: **Registry (Level 1)** -> **Consolidation (Level 2)** -> **Coexistence (Level 3)**. Не нужно начинать с Centralized Hub -- это антипаттерн для организаций без зрелых governance-процессов.
+
+## Governance справочных данных
+
+**Reference Data (справочные данные)** -- коды стран, валют, категорий -- используются всеми системами DataTech. Без governance каждая команда ведёт свои справочники:
+
+- CRM: `Russia`, `Russian Federation`, `RU`, `RUS`
+- Billing: `Россия`, `643` (ISO numeric)
+- Web: `ru`, `ru-RU`
+
+Результат: joins не работают, аналитика показывает 6 "разных стран" вместо одной.
+
+### Принципы governance справочных данных
+
+1. **Единый владелец** -- один Data Steward на каждый справочник
+2. **Канонический формат** -- ISO 3166-1 alpha-2 для стран (`RU`), ISO 4217 для валют (`RUB`)
+3. **Версионирование** -- каждое изменение имеет версию и дату
+4. **Change management** -- добавление нового значения требует одобрения владельца
+5. **Распространение** -- все системы получают обновления из единого источника
+
+В этом модуле вы встретите код-челлендж **CC-47 (MDM Reference Data Validator)**: JSON-задание, в котором нужно создать конфигурацию governance справочных данных с массивом reference_lists, владельцами и версионированием.
+
+## Жизненный цикл Golden Record
+
+Golden record -- не одноразовая операция, а непрерывный процесс из 5 этапов:
+
+<FlowRow>
+  <FlowNode variant="catalog" label="1. Identify" sublabel="Найти кандидатов на матчинг" />
+  <Arrow />
+  <FlowNode variant="pipeline" label="2. Match" sublabel="Определить дубликаты" />
+  <Arrow />
+  <FlowNode variant="governance" label="3. Merge" sublabel="Создать golden record" />
+  <Arrow />
+  <FlowNode variant="success" label="4. Publish" sublabel="Распространить в системы" />
+  <Arrow />
+  <FlowNode variant="default" label="5. Maintain" sublabel="Мониторинг + обновление" />
+</FlowRow>
+
+### DataTech: от дубликатов к golden record
+
+**Identify:** DataTech сканирует CRM, billing, web -- находит 3 записи для Иванова И.П.:
+- CRM: `{name: "Иванов Иван Петрович", email: "ivanov@crm.datatech.ru", address: "Москва, ул. Тверская, д. 10, кв. 5"}`
+- Billing: `{name: "Иванов И.П.", email: "ivanov.ip@billing.datatech.ru", address: "Москва"}`
+- Web: `{name: "ivanov_ivan", email: "ivan.ivanov@gmail.com", address: null}`
+
+**Match:** Алгоритм определяет, что все 3 записи -- один клиент (совпадение email-домена, фамилии, телефона).
+
+**Merge:** Применяются **survivorship rules** (правила выживания) -- какое значение каждого поля "выживает" в golden record.
+
+**Publish:** Golden record становится доступен всем системам через Registry/Consolidation/Coexistence.
+
+**Maintain:** Мониторинг новых дубликатов, обновление golden records при изменениях в источниках.
+
+## Правила выживания (Survivorship Rules)
+
+Survivorship rules определяют, какое значение каждого поля "побеждает" при создании golden record. Основные стратегии:
+
+| Стратегия | Принцип | Пример DataTech |
+|-----------|---------|-----------------|
+| **Source Priority** | Доверяем источнику с наивысшим приоритетом | name: CRM > billing > web |
+| **Most Recent** | Берём самое свежее значение по timestamp | email: последний обновлённый |
+| **Most Complete** | Берём самое полное значение (highest completeness_score) | address: полный адрес из CRM |
+| **First Non-Null** | Берём первое непустое значение по приоритету | phone: первый non-null по source priority |
+| **Custom Business Rule** | Специфичная логика для домена | tax_id: только из billing (авторитетный источник) |
+
+### DataTech: survivorship rules для клиента
+
+```
+Поле: customer_name
+  Правило: Source Priority (CRM > billing > web)
+  CRM: "Иванов Иван Петрович" <-- ВЫБРАНО (CRM = highest priority)
+  billing: "Иванов И.П."
+  web: "ivanov_ivan"
+
+Поле: email
+  Правило: Most Recent (по timestamp)
+  CRM (2025-11-15): "ivanov@crm.datatech.ru"
+  billing (2026-02-15): "ivanov@fin.datatech.ru" <-- ВЫБРАНО (самый свежий)
+  web (2026-01-10): "ivan.ivanov@gmail.com"
+
+Поле: address
+  Правило: Most Complete (highest completeness_score)
+  CRM (0.85): "Москва, ул. Тверская, д. 10, кв. 5" <-- ВЫБРАНО (самый полный)
+  billing (0.60): "Москва"
+  web (0.40): null
+```
+
+В этом модуле вы встретите код-челлендж **CC-46 (MDM Golden Record Builder)**: Python-задание, в котором нужно реализовать survivorship rules и создать golden record из 5 записей.
+
+<KnowledgeCheck
+  question="DataTech создаёт golden record. Для поля email используется правило 'Most Recent', для name -- 'Source Priority (CRM > billing > web)'. CRM обновил email 2025-11-15, billing -- 2026-02-15. Какой email будет в golden record и почему?"
+  answer="В golden record будет email из billing: 'ivanov@fin.datatech.ru'. Правило Most Recent выбирает значение с самым поздним timestamp. Billing (2026-02-15) обновлён позже, чем CRM (2025-11-15). Важно: правило Source Priority не применяется к email -- у каждого поля своё survivorship rule. Это типичная ошибка: путать правила между полями. Source Priority для name (CRM выигрывает), Most Recent для email (billing выигрывает)."
+/>
+
+## MDM-зрелость
+
+MDM-процессы развиваются вместе с общей зрелостью governance:
+
+<MaturityModel
+  client:load
+  title="MDM Maturity Model"
+  levels={[
+    {
+      level: 1,
+      name: "Ad-hoc",
+      description: "Дубликаты накапливаются, нет процесса дедупликации",
+      characteristics: ["Каждая система -- свой справочник", "15%+ дубликатов", "Нет golden record"]
+    },
+    {
+      level: 2,
+      name: "Reactive",
+      description: "Периодическая дедупликация, ручные процессы",
+      characteristics: ["Registry паттерн", "Ежеквартальная очистка", "Один steward на master data"]
+    },
+    {
+      level: 3,
+      name: "Proactive",
+      description: "Автоматический matching, Consolidation/Coexistence",
+      characteristics: ["Survivorship rules определены", "Golden record обновляется автоматически", "Мониторинг дубликатов"]
+    },
+    {
+      level: 4,
+      name: "Managed",
+      description: "MDM-хаб интегрирован со всеми системами",
+      characteristics: ["SLA на golden record freshness", "Reference data governance автоматизирован", "KPI: duplicate rate < 2%"]
+    },
+    {
+      level: 5,
+      name: "Optimized",
+      description: "MDM как платформа, self-service, continuous improvement",
+      characteristics: ["Real-time matching и merge", "ML-driven survivorship", "Cross-domain MDM"]
+    }
+  ]}
+/>
+
+DataTech находится на Level 1 (ad-hoc): 15% дубликатов, нет процесса дедупликации. Roadmap: Level 1 -> Level 2 (Registry + ручная дедупликация) -> Level 3 (Consolidation + автоматический matching). Путь к Level 2 описан в уроке 05 (бизнес-кейс и оценка зрелости).
+
+## Итоги
+
+- **Master Data (мастер-данные)** -- клиенты, продукты, поставщики -- ключевые бизнес-сущности, пересекающие все домены
+- **Reference Data (справочные данные)** -- коды стран, валют, категорий -- подмножество мастер-данных, требующее единого владельца и канонического формата
+- **4 архитектурных паттерна MDM:** Registry (индекс), Consolidation (golden record для аналитики), Coexistence (двусторонняя синхронизация), Centralized Hub (единый system of record)
+- **Golden record lifecycle:** Identify -> Match -> Merge -> Publish -> Maintain
+- **Survivorship rules** определяют, какое значение "выживает": source priority, most recent, most complete, first non-null
+- MDM -- не дедупликация, а **governance-дисциплина**: процессы, роли, правила, мониторинг
+
+В этом уроке мы изучили MDM как governance-дисциплину. MDM формализует процессы, которые DataTech ранее выполняла ad-hoc. Модуль M01 завершён: от определения governance (урок 01) через DMBOK-фреймворки (02), организационные роли (03), домены данных (04), бизнес-кейс (05), политики (06) до управления мастер-данными (07). В следующем модуле мы перейдём к **Архитектуре и Моделированию Данных** -- техническому фундаменту любой программы governance.
