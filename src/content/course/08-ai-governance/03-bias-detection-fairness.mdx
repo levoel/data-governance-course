@@ -1,0 +1,169 @@
+---
+title: "Bias Detection и Fairness Metrics"
+description: "Типы предвзятости в ML-моделях, метрики справедливости (Demographic Parity, Equalized Odds, Disparate Impact), рабочий процесс обнаружения bias, trade-offs между метриками"
+order: 3
+difficulty: "advanced"
+estimatedTime: 30
+audience: "both"
+topics: ["Bias Detection", "Fairness Metrics", "Demographic Parity", "Equalized Odds"]
+---
+
+import { QualityDashboard } from '../../../components/diagrams/governance';
+
+# Bias Detection и Fairness Metrics
+
+## Введение
+
+Модель машинного обучения может быть технически точной (high AUC-ROC) и при этом глубоко несправедливой. **Bias (предвзятость)** в ML -- это систематическое отклонение модели, приводящее к несоразмерному воздействию на определённые группы людей. **Fairness Metrics (метрики справедливости)** -- это количественные инструменты для обнаружения и измерения такой предвзятости.
+
+В этом уроке мы разберём типы bias, ключевые fairness-метрики, рабочий процесс обнаружения предвзятости и неизбежные trade-offs между различными определениями справедливости.
+
+## Типы Bias в ML-моделях
+
+### Selection Bias (предвзятость выборки)
+
+Обучающая выборка не репрезентативна для целевой популяции. Модель хорошо работает для представленных групп и плохо -- для недостаточно представленных.
+
+> **Сценарий: FinSecure Bank**
+>
+> FinSecure обучает Credit Scoring Model на данных за 5 лет. В выборке 80% заявок из Москвы и Санкт-Петербурга, 20% -- из регионов. Модель показывает AUC-ROC 0.92 для крупных городов и 0.71 для регионов. **Selection Bias**: региональные заявители систематически получают менее точные кредитные решения.
+
+### Measurement Bias (предвзятость измерения)
+
+Данные собраны с систематической ошибкой: разное качество данных для разных групп, proxy-переменные, неодинаковые стандарты записи.
+
+### Aggregation Bias (предвзятость агрегации)
+
+Одна модель применяется к разнородным группам, хотя группы имеют принципиально разные паттерны. Универсальная модель кредитного скоринга для физических лиц и ИП -- aggregation bias.
+
+### Representation Bias (предвзятость представления)
+
+Определённая группа систематически недопредставлена в данных. Если BioGenesis обучает модель скрининга на 90% данных пациентов-мужчин, модель будет менее точна для женщин.
+
+### Historical Bias (историческая предвзятость)
+
+Данные отражают исторические неравенства. Если в прошлом менеджеры FinSecure чаще одобряли заявки мужчин, модель, обученная на этих данных, воспроизведёт эту предвзятость.
+
+## Fairness Metrics: количественное измерение
+
+### Demographic Parity (демографический паритет)
+
+**Demographic Parity** (или **Statistical Parity**) -- модель одобряет одинаковую долю заявок в каждой группе, независимо от фактических различий.
+
+**Формула:**
+```
+Demographic Parity Difference = |P(Y=1|A=a) - P(Y=1|A=b)|
+```
+
+Где Y -- решение модели, A -- защищённый атрибут (пол, возраст).
+
+**Порог:** DPD < 0.10 считается приемлемым.
+
+**Пример FinSecure:**
+- Группа A (мужчины): одобрено 75% заявок → P(Y=1|A=M) = 0.75
+- Группа B (женщины): одобрено 58% заявок → P(Y=1|A=F) = 0.58
+- **DPD = |0.75 - 0.58| = 0.17** → FAIL (> 0.10)
+
+### Equalized Odds (выровненные шансы)
+
+**Equalized Odds** -- модель имеет одинаковые True Positive Rate (TPR) и False Positive Rate (FPR) для каждой группы. В отличие от Demographic Parity, учитывает фактические исходы.
+
+**Формула:**
+```
+Equalized Odds Difference = max(|TPR_a - TPR_b|, |FPR_a - FPR_b|)
+```
+
+**Порог:** EOD < 0.10 считается приемлемым.
+
+**Пример FinSecure:**
+- Группа A (мужчины): TPR = 0.85, FPR = 0.15
+- Группа B (женщины): TPR = 0.70, FPR = 0.08
+- **EOD = max(|0.85-0.70|, |0.15-0.08|) = max(0.15, 0.07) = 0.15** → FAIL
+
+### Disparate Impact Ratio (коэффициент несоразмерного воздействия)
+
+**Disparate Impact Ratio** -- отношение доли одобрений в "непривилегированной" группе к доле одобрений в "привилегированной" группе. Принцип "правила 80%": ratio < 0.80 указывает на дискриминацию.
+
+**Формула:**
+```
+Disparate Impact Ratio = P(Y=1|A=unprivileged) / P(Y=1|A=privileged)
+```
+
+**Порог:** DIR >= 0.80 считается приемлемым.
+
+**Пример FinSecure:**
+- DIR = 0.58 / 0.75 = **0.77** → FAIL (< 0.80)
+
+### Calibration (калибровка)
+
+**Calibration** -- если модель предсказывает вероятность одобрения 70%, то среди всех заявок с предсказанием 70% фактически одобрено должно быть ~70%, одинаково для всех групп.
+
+<QualityDashboard
+  client:load
+  title="Fairness Metrics: Credit Scoring Model v3.0 (FinSecure)"
+  dimensions={[
+    { name: "Demographic Parity Diff", score: 0.17, threshold: 0.10, description: "Разница в доле одобрений: мужчины 75%, женщины 58%. DPD = 0.17 > 0.10" },
+    { name: "Equalized Odds Diff", score: 0.15, threshold: 0.10, description: "Разница в TPR: мужчины 0.85, женщины 0.70. EOD = 0.15 > 0.10" },
+    { name: "Disparate Impact Ratio", score: 0.77, threshold: 0.80, description: "DIR = 0.58/0.75 = 0.77 < 0.80 (правило 80%)" },
+    { name: "Calibration Diff", score: 0.05, threshold: 0.10, description: "Калибровка в норме: предсказания близки к фактическим по обеим группам" }
+  ]}
+/>
+
+<KnowledgeCheck
+  question="Credit Scoring Model FinSecure показывает: для клиентов 18-25 лет одобрение 45%, для 26-60 лет -- 72%. Рассчитайте Demographic Parity Difference и Disparate Impact Ratio. Какие метрики нарушены?"
+  answer="DPD = |0.72 - 0.45| = 0.27 (порог 0.10 -- FAIL). DIR = 0.45 / 0.72 = 0.625 (порог 0.80 -- FAIL). Обе метрики значительно нарушены. DPD 0.27 -- в 2.7 раза выше порога. DIR 0.625 -- модель одобряет молодым клиентам на 37.5% меньше, чем старшим. Возможные причины: (1) Historical Bias -- в прошлом молодым чаще отказывали. (2) Selection Bias -- молодых клиентов меньше в обучающей выборке. (3) Proxy-переменные -- стаж работы и доход коррелируют с возрастом. Следующий шаг: Equalized Odds анализ -- если TPR для молодых тоже ниже, предвзятость подтверждена."
+/>
+
+## Trade-offs между Fairness Metrics
+
+Фундаментальная проблема: **невозможно одновременно удовлетворить все метрики справедливости** (теорема Chouldechova-Kleinberg). Организация должна выбирать приоритетную метрику на основе контекста применения.
+
+| Метрика | Когда приоритетна | Пример |
+|---------|-------------------|--------|
+| **Demographic Parity** | Когда важно равное представление в outcome | Рекрутинг: одинаковая доля приглашений на интервью |
+| **Equalized Odds** | Когда важна равная точность для всех групп | Медицина: одинаковый TPR для обнаружения заболевания |
+| **Disparate Impact** | Когда есть юридическое требование (правило 80%) | Кредитный скоринг: regulatory compliance |
+| **Calibration** | Когда важна правильность вероятностных оценок | Страхование: точные риск-оценки для ценообразования |
+
+> **Для FinSecure (кредитный скоринг):**
+>
+> Приоритетные метрики: (1) **Disparate Impact Ratio** -- юридическое требование (правило 80%). (2) **Equalized Odds** -- равная точность для всех групп. Demographic Parity менее приоритетна: различия в одобрении допустимы, если отражают реальные различия в кредитоспособности. Но Disparate Impact < 0.80 -- сигнал, что различия чрезмерны.
+
+## Bias Detection Workflow
+
+Рабочий процесс обнаружения и устранения предвзятости:
+
+<FlowRow>
+  <FlowNode variant="catalog" label="1. Data Audit" sublabel="Анализ обучающей выборки: representation, proxy vars" />
+  <Arrow />
+  <FlowNode variant="pipeline" label="2. Metric Calculation" sublabel="DPD, EOD, DIR по каждому protected attribute" />
+  <Arrow />
+  <FlowNode variant="policy" label="3. Root Cause Analysis" sublabel="Тип bias, источник, severity" />
+  <Arrow />
+  <FlowNode variant="classification" label="4. Debiasing" sublabel="Pre/in/post-processing коррекция" />
+</FlowRow>
+
+### Debiasing Strategies
+
+1. **Pre-processing** -- коррекция данных до обучения: resampling, reweighting, удаление proxy-переменных
+2. **In-processing** -- модификация алгоритма обучения: fairness constraints, adversarial debiasing
+3. **Post-processing** -- коррекция выходов модели: threshold adjustment по группам, calibration
+
+Каждая стратегия имеет trade-off с точностью модели. Pre-processing сохраняет интерпретируемость, но может снизить accuracy. In-processing оптимален по fairness-accuracy balance, но сложнее в реализации. Post-processing прост, но может создавать перевёрнутую дискриминацию.
+
+<KnowledgeCheck
+  question="FinSecure хочет устранить bias в Credit Scoring Model. ML-команда предлагает post-processing: снизить порог одобрения для женщин. Почему это проблематично и какая стратегия предпочтительна?"
+  answer="Post-processing (снижение порога для женщин) проблематичен: (1) Создаёт 'перевёрнутую дискриминацию' -- разные стандарты для разных групп. (2) Не устраняет root cause -- предвзятость остаётся в модели. (3) Может увеличить default rate среди женщин -- одобряются менее кредитоспособные заявки. Предпочтительная стратегия: (1) Pre-processing -- аудит обучающих данных на historical bias, resampling для балансировки, удаление proxy-переменных (семейное положение коррелирует с полом). (2) In-processing -- retrain модель с fairness constraint (Equalized Odds regularization). (3) Мониторинг после retraining: все три метрики (DPD, EOD, DIR) должны быть в пределах порогов. Root cause fix (pre+in-processing) предпочтительнее symptom fix (post-processing)."
+/>
+
+## Итоги
+
+- **5 типов bias**: Selection, Measurement, Aggregation, Representation, Historical
+- **4 ключевые fairness-метрики**: Demographic Parity, Equalized Odds, Disparate Impact Ratio, Calibration
+- **Порог Disparate Impact**: >= 0.80 (правило 80%)
+- **Trade-off**: невозможно удовлетворить все метрики одновременно -- выбор зависит от контекста
+- **Bias Detection Workflow**: Data Audit → Metric Calculation → Root Cause → Debiasing
+- **Debiasing стратегии**: Pre-processing (данные), In-processing (алгоритм), Post-processing (выходы)
+- **Pre+In-processing предпочтительнее Post-processing**: устранение root cause, а не симптомов
+
+В следующем уроке мы рассмотрим **Model Documentation** -- как создать Model Card, обеспечить версионирование моделей и организовать governance-процессы вокруг ML-артефактов.

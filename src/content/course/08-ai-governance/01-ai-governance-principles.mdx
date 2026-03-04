@@ -1,0 +1,157 @@
+---
+title: "Принципы AI Governance"
+description: "Ответственный ИИ, принципы AI Governance (прозрачность, подотчётность, справедливость, безопасность), связь с Data Governance, фреймворки NIST AI RMF и ISO/IEC 42001"
+order: 1
+difficulty: "intermediate"
+estimatedTime: 20
+audience: "both"
+topics: ["AI Governance", "Responsible AI", "AI Ethics"]
+---
+
+import { PolicyTemplate, QualityDashboard } from '../../../components/diagrams/governance';
+
+# Принципы AI Governance
+
+## Введение
+
+Организации всё чаще используют модели машинного обучения для принятия решений: от кредитного скоринга до медицинской диагностики. Но модель, принимающая решения о людях, -- это не просто код. Это система с юридическими, этическими и социальными последствиями. **AI Governance (руководство искусственным интеллектом)** -- это набор политик, процессов и ролей, обеспечивающих ответственное создание, развёртывание и мониторинг AI-систем.
+
+В этом уроке мы разберём фундаментальные принципы AI Governance, их связь с Data Governance, и фреймворки, на которые опираются организации при построении программы руководства ИИ.
+
+## Что такое AI Governance
+
+**AI Governance** -- расширение Data Governance на жизненный цикл AI-систем. Если Data Governance отвечает на вопрос "как управлять данными как активом", то AI Governance отвечает на вопрос "как управлять моделями, которые используют эти данные для принятия решений".
+
+Ключевые отличия AI Governance от классического Data Governance:
+
+| Аспект | Data Governance | AI Governance |
+|--------|-----------------|---------------|
+| **Объект управления** | Данные (таблицы, пайплайны, метаданные) | Модели (обучение, inference, решения) |
+| **Риски** | Качество, приватность, безопасность данных | Предвзятость, непрозрачность, ошибочные решения |
+| **Регуляции** | GDPR, 152-ФЗ, CCPA | EU AI Act, NIST AI RMF, ISO/IEC 42001 |
+| **Жизненный цикл** | Сбор -> хранение -> обработка -> удаление | Данные -> обучение -> валидация -> развёртывание -> мониторинг |
+| **Ключевая метрика** | Data Quality Score | Fairness Score, Explainability, Model Performance |
+
+> **Сценарий: FinSecure Bank (ФинСекьюр Банк)**
+>
+> FinSecure использует **Credit Scoring Model v3.0** для определения кредитных лимитов. Модель обрабатывает 50,000 заявок в месяц и определяет лимиты от 0 до 5,000,000 рублей. У FinSecure зрелая Data Governance программа (Level 3), но нет AI Governance: модель создана ML-командой из 4 человек, без формального процесса валидации, документации и мониторинга предвзятости.
+>
+> **Проблемы без AI Governance:**
+> 1. Модель обучена на исторических данных, содержащих предвзятость ручных решений
+> 2. Нет объяснения отказов -- клиенты получают "отказано" без причины
+> 3. Нет мониторинга fairness-метрик -- неизвестно, дискриминирует ли модель по возрасту или полу
+> 4. Нет Model Card -- новый сотрудник ML-команды не знает ограничений модели
+>
+> AI Governance решает каждую из этих проблем через формальные процессы и политики.
+
+## Принципы Responsible AI
+
+**Responsible AI (ответственный ИИ)** -- подход к разработке и использованию AI-систем, при котором соблюдаются этические принципы, права человека и общественные интересы. Пять фундаментальных принципов:
+
+### 1. Transparency (прозрачность)
+
+Способность объяснить, как модель принимает решения. Для Data Engineer это означает: логирование входных данных, feature importance, промежуточных результатов.
+
+**Уровни прозрачности:**
+- **Алгоритмическая**: какой алгоритм используется и почему
+- **Данные**: на каких данных обучена модель, какие features используются
+- **Решения**: почему модель приняла конкретное решение для конкретного клиента
+
+### 2. Accountability (подотчётность)
+
+Каждая AI-система имеет владельца (**Model Owner**), который несёт ответственность за результаты модели. Подотчётность включает: кто обучил модель, кто утвердил развёртывание, кто мониторит производительность.
+
+### 3. Fairness (справедливость)
+
+Модель не должна дискриминировать по защищённым атрибутам (пол, возраст, этничность). Fairness измеряется количественными метриками: **Demographic Parity (демографический паритет)**, **Equalized Odds (выровненные шансы)**, **Disparate Impact Ratio (коэффициент несоразмерного воздействия)**.
+
+### 4. Privacy (конфиденциальность)
+
+AI-система обрабатывает персональные данные в соответствии с принципами Privacy by Design. Минимизация данных, анонимизация обучающих выборок, защита от inference attacks (атак на вывод данных).
+
+### 5. Safety (безопасность)
+
+AI-система не должна причинять вред. Это включает: robustness (устойчивость к adversarial атакам), graceful degradation (корректная деградация при сбоях), human override (возможность человеческого вмешательства).
+
+<PolicyTemplate
+  client:load
+  title="Принципы Responsible AI: реализация в FinSecure"
+  sections={[
+    { name: "Transparency", description: "SHAP-объяснения для каждого кредитного решения. Feature importance в Model Card. Клиенту -- plain-language причина отказа." },
+    { name: "Accountability", description: "ML Lead -- Model Owner. Model Risk Committee утверждает deploy. Квартальный audit отчёт для CDO." },
+    { name: "Fairness", description: "Ежемесячный мониторинг demographic parity, equalized odds, disparate impact по полу, возрасту, региону." },
+    { name: "Privacy", description: "Обучение на агрегированных данных. PII маскирование в feature engineering. Дифференциальная приватность для synthetic data." },
+    { name: "Safety", description: "Human review для лимитов > 1M рублей. Fallback на ручной скоринг при model drift > 5%. Kill switch для отключения модели." }
+  ]}
+/>
+
+<KnowledgeCheck
+  question="FinSecure обнаруживает, что Credit Scoring Model v3.0 одобряет 75% заявок мужчин и 58% заявок женщин. Какой принцип Responsible AI нарушен и какие метрики нужно проверить?"
+  answer="Нарушен принцип Fairness (справедливость). Разница в одобрении 75% vs 58% = 17 процентных пунктов -- это потенциальная дискриминация по полу. Метрики для проверки: (1) Demographic Parity Difference = |0.75 - 0.58| = 0.17 (порог обычно 0.10 -- FAIL). (2) Disparate Impact Ratio = 0.58 / 0.75 = 0.77 (порог 0.80 -- FAIL). (3) Equalized Odds -- нужно проверить TPR и FPR по группам. Все три метрики указывают на значительную предвзятость. Требуется немедленный аудит: анализ proxy-переменных, проверка обучающих данных на исторические bias, тестирование debiasing-стратегий."
+/>
+
+## AI Governance vs Data Governance: связь и различия
+
+AI Governance не заменяет Data Governance -- он расширяет его. Качественные данные (результат Data Governance) -- необходимое условие для справедливого и точного ИИ.
+
+<FlowRow>
+  <FlowNode variant="catalog" label="Data Governance" sublabel="Качество, приватность, каталог, классификация" />
+  <Arrow />
+  <FlowNode variant="pipeline" label="ML Pipeline" sublabel="Feature engineering, обучение, валидация" />
+  <Arrow />
+  <FlowNode variant="policy" label="AI Governance" sublabel="Fairness, прозрачность, мониторинг, документация" />
+</FlowRow>
+
+**Точки пересечения:**
+
+1. **Training Data Quality** -- качество обучающих данных определяет качество модели. Data Quality Score < 0.85 на обучающих данных = risk flag для AI Governance
+2. **Data Lineage -> Model Lineage** -- lineage данных от источника до feature engineering, затем до обучения модели
+3. **Data Classification -> Model Risk** -- если модель использует данные classified как PII, это high-risk AI система
+4. **Data Catalog -> Model Registry** -- каталог данных расширяется Model Registry с метаданными моделей
+
+## Фреймворки AI Governance
+
+### NIST AI Risk Management Framework (AI RMF)
+
+**NIST AI RMF** -- фреймворк Национального института стандартов и технологий США для управления рисками AI-систем. Структура из 4 функций:
+
+1. **Govern** -- установить governance-структуру, роли, политики AI
+2. **Map** -- понять контекст использования AI, выявить риски
+3. **Measure** -- оценить риски количественно (fairness metrics, performance)
+4. **Manage** -- внедрить контроли, мониторинг, incident response
+
+### ISO/IEC 42001: AI Management System
+
+**ISO/IEC 42001** -- международный стандарт для системы менеджмента искусственного интеллекта. Определяет требования к организации для ответственного управления AI на протяжении всего жизненного цикла.
+
+<QualityDashboard
+  client:load
+  title="Точки контроля AI Governance в жизненном цикле модели"
+  dimensions={[
+    { name: "Data Quality", score: 0.92, threshold: 0.85, description: "Качество обучающих данных: completeness, accuracy, freshness" },
+    { name: "Fairness Metrics", score: 0.78, threshold: 0.80, description: "Demographic parity, equalized odds, disparate impact ratio" },
+    { name: "Model Performance", score: 0.87, threshold: 0.80, description: "AUC-ROC, precision, recall, F1 на validation set" },
+    { name: "Documentation", score: 0.60, threshold: 0.90, description: "Model Card completeness: training details, limitations, fairness" },
+    { name: "Monitoring", score: 0.45, threshold: 0.70, description: "Production monitoring: drift detection, fairness alerts, performance tracking" }
+  ]}
+/>
+
+> **Результат для FinSecure:**
+>
+> QualityDashboard показывает: Data Quality (0.92) и Model Performance (0.87) -- в норме. Но Fairness (0.78 < 0.80), Documentation (0.60 < 0.90) и Monitoring (0.45 < 0.70) -- критически ниже порогов. Именно эти три области покрывает AI Governance: fairness-аудит, Model Card документация и production monitoring.
+
+<KnowledgeCheck
+  question="Почему Data Governance является необходимым, но недостаточным условием для AI Governance? Приведите пример из FinSecure."
+  answer="Data Governance обеспечивает качество входных данных: completeness, accuracy, classification. Но даже идеальные данные могут привести к предвзятой модели. Пример FinSecure: Data Quality Score = 0.92 (отлично), но Fairness Score = 0.78 (ниже порога). Причина: исторические данные кредитных решений содержат системную предвзятость -- в прошлом менеджеры банка чаще одобряли заявки мужчин. Данные 'качественные' (полные, точные, свежие), но содержат bias. AI Governance добавляет: (1) fairness-аудит обучающих данных на bias, (2) debiasing-стратегии, (3) мониторинг fairness в production. Data Governance -- фундамент, AI Governance -- надстройка."
+/>
+
+## Итоги
+
+- **AI Governance** -- расширение Data Governance на жизненный цикл AI-систем: от данных до решений
+- **5 принципов Responsible AI**: Transparency, Accountability, Fairness, Privacy, Safety
+- **AI Governance не заменяет Data Governance** -- качественные данные необходимы, но недостаточны для справедливого ИИ
+- **NIST AI RMF** -- 4 функции: Govern, Map, Measure, Manage
+- **ISO/IEC 42001** -- международный стандарт для AI Management System
+- **Fairness, Documentation, Monitoring** -- три критические области, где AI Governance дополняет Data Governance
+
+В следующем уроке мы рассмотрим **EU AI Act** -- первый в мире всеобъемлющий регуляторный фреймворк для AI, основанный на риск-ориентированном подходе.

@@ -1,0 +1,169 @@
+---
+title: "Model Documentation и Governance"
+description: "Model Cards (Mitchell et al.), требования к документации моделей, версионирование и lineage, роли Model Owner и Model Validator, audit trail"
+order: 4
+difficulty: "intermediate"
+estimatedTime: 25
+audience: "both"
+topics: ["Model Card", "Model Governance", "AI Documentation", "Model Lineage"]
+---
+
+import { PolicyTemplate } from '../../../components/diagrams/governance';
+
+# Model Documentation и Governance
+
+## Введение
+
+AI-модель без документации -- это чёрный ящик. Никто не знает, на каких данных она обучена, какие у неё ограничения, для каких групп она менее точна. **Model Card (карточка модели)** -- стандартизированный формат документации ML-моделей, предложенный Margaret Mitchell и соавторами в 2019 году. Model Card решает проблему прозрачности: делает модель понятной для всех стейкхолдеров -- от ML-инженера до compliance-офицера.
+
+В этом уроке мы разберём: что входит в Model Card, как организовать версионирование и lineage моделей, какие роли участвуют в governance моделей, и как обеспечить audit trail для AI-решений.
+
+## Model Cards: стандарт документации
+
+**Model Card** (Mitchell et al., 2019) -- одностраничный документ, описывающий ML-модель по стандартизированной структуре. Цель: обеспечить прозрачность и воспроизводимость.
+
+### Обязательные секции Model Card
+
+<PolicyTemplate
+  client:load
+  title="Структура Model Card (Mitchell et al., 2019)"
+  sections={[
+    { name: "Model Details", description: "Название, версия, тип (classification/regression), алгоритм, дата обучения, владелец" },
+    { name: "Intended Use", description: "Для чего модель предназначена, для чего НЕ предназначена (out-of-scope use cases)" },
+    { name: "Training Data", description: "Dataset, размер, features, split ratio, preprocessing, дата сбора данных" },
+    { name: "Performance Metrics", description: "Accuracy, Precision, Recall, F1, AUC-ROC -- overall и по субгруппам" },
+    { name: "Fairness Assessment", description: "Demographic Parity, Equalized Odds, Disparate Impact по каждому protected attribute" },
+    { name: "Limitations", description: "Известные ограничения, ситуации, когда модель не должна использоваться, degradation scenarios" },
+    { name: "Governance", description: "Владелец, утвердивший deploy, дата review, следующий review, data classification" }
+  ]}
+/>
+
+> **Сценарий: BioGenesis Pharma**
+>
+> BioGenesis разрабатывает AI-модель для приоритизации молекул-кандидатов в drug discovery. ML-команда из 3 человек обучила модель 6 месяцев назад, но Model Card не существует. Проблемы:
+>
+> 1. **Новый сотрудник** не понимает, какие features использует модель и почему
+> 2. **Compliance Officer** не может ответить регулятору, как модель принимает решения
+> 3. **Исследователь** не знает, для каких типов молекул модель менее точна (limitations)
+> 4. **CTO** не знает, когда модель последний раз валидировалась
+>
+> Все 4 проблемы решаются одним документом -- Model Card.
+
+### Performance по субгруппам
+
+Ключевая идея Mitchell et al.: aggregate performance маскирует проблемы. Модель с overall AUC-ROC 0.90 может иметь AUC-ROC 0.95 для одной группы и 0.72 для другой.
+
+**Model Card требует:**
+- Performance breakdown по каждому protected attribute (пол, возраст, этничность, регион)
+- Performance breakdown по каждому ключевому use case
+- Чётко обозначенные области, где performance ниже приемлемого
+
+<KnowledgeCheck
+  question="BioGenesis обучила модель скрининга пациентов. Overall precision = 0.88. Precision для мужчин 45-65 лет = 0.93, для женщин 18-35 лет = 0.61. Какую проблему выявляет Model Card и что делать?"
+  answer="Model Card выявляет критическую проблему performance disparty: overall precision 0.88 маскирует низкую precision 0.61 для женщин 18-35 лет. Это означает, что 39% предсказаний модели для этой субгруппы -- false positives (модель включает неподходящих пациенток). Действия: (1) В секции Limitations Model Card -- указать: 'Precision для женщин 18-35 значительно ниже (0.61 vs 0.93). Не рекомендуется использовать модель как единственный критерий для этой субгруппы.' (2) Root cause: вероятно Representation Bias -- молодые женщины составляют <10% обучающей выборки. (3) Mitigation: resampling обучающей выборки, отдельная валидация по субгруппам. (4) Human Oversight: для женщин 18-35 -- обязательный ручной review врачом."
+/>
+
+## Версионирование и Model Lineage
+
+### Semantic Versioning для моделей
+
+Model versioning следует принципу semantic versioning с адаптацией для ML:
+
+| Изменение | Версия | Пример |
+|-----------|--------|--------|
+| **Major** (X.0.0) | Новая архитектура, новые features, новый training dataset | v2.0.0 → v3.0.0: переход с logistic regression на gradient boosting |
+| **Minor** (X.Y.0) | Retrain на свежих данных, hyperparameter tuning | v3.0.0 → v3.1.0: retrain на данных Q4 2025 |
+| **Patch** (X.Y.Z) | Bug fix, threshold adjustment | v3.1.0 → v3.1.1: исправлен bug в feature encoding |
+
+### Model Lineage
+
+**Model Lineage (происхождение модели)** -- полная цепочка от исходных данных через feature engineering и обучение до deployed модели.
+
+<FlowRow>
+  <FlowNode variant="catalog" label="Source Data" sublabel="customers, transactions, credit_history" />
+  <Arrow />
+  <FlowNode variant="pipeline" label="Feature Engineering" sublabel="200+ raw → 23 features" />
+  <Arrow />
+  <FlowNode variant="pipeline" label="Training" sublabel="gradient_boosting, 80/20 split" />
+  <Arrow />
+  <FlowNode variant="policy" label="Validation" sublabel="AUC 0.91, fairness check" />
+  <Arrow />
+  <FlowNode variant="classification" label="Deployment" sublabel="v3.0.0 → production" />
+</FlowRow>
+
+**Model Lineage отвечает на вопросы:**
+1. Из каких таблиц пришли данные? (Data Lineage)
+2. Какие transformations применены? (Feature Engineering)
+3. На каком snapshot данных обучена конкретная версия? (Training Data Version)
+4. Какие hyperparameters использованы? (Training Config)
+5. Кто утвердил deploy? (Approval Trail)
+
+## Model Governance Roles
+
+### Model Owner
+
+**Model Owner (владелец модели)** -- лицо, несущее конечную ответственность за модель: её точность, справедливость, документацию и compliance. Обычно ML Lead или Senior Data Scientist.
+
+**Обязанности:**
+- Поддержание актуального Model Card
+- Инициация re-training при drift detection
+- Escalation при fairness violations
+- Ответы на запросы compliance и аудиторов
+
+### Model Validator
+
+**Model Validator (валидатор модели)** -- независимый специалист (не из команды разработки), проверяющий модель перед deploy и при каждом major/minor обновлении.
+
+**Обязанности:**
+- Независимая валидация performance на hold-out данных
+- Проверка fairness-метрик по всем protected attributes
+- Review Model Card на полноту и точность
+- Вето на deploy при нарушении threshold'ов
+
+### Model Risk Committee
+
+**Model Risk Committee** -- орган, утверждающий deploy high-risk моделей. Состав: CDO, Head of ML, Compliance Officer, Business Owner (пользователь модели).
+
+> **BioGenesis Model Governance:**
+>
+> 1. **Model Owner**: Lead Data Scientist (команда Drug Discovery ML)
+> 2. **Model Validator**: Biostatistician из отдельной команды Clinical Statistics
+> 3. **Model Risk Committee**: CTO, Head of Research, Regulatory Affairs, DPO
+> 4. **Процесс**: ML разрабатывает → Biostatistician валидирует → Model Risk Committee утверждает deploy
+
+## Audit Trail для AI-решений
+
+**Audit Trail (аудиторский след)** -- запись каждого решения AI-системы с достаточным контекстом для воспроизведения и объяснения.
+
+**Минимальный audit record:**
+
+```
+{
+  "decision_id": "CS-2025-11-00042389",
+  "model_version": "v3.0.0",
+  "timestamp": "2025-11-15T10:23:45Z",
+  "input_features": { /* 23 features */ },
+  "output": { "decision": "approved", "limit": 500000, "confidence": 0.87 },
+  "explanation": { "top_features": ["income", "credit_history", "employment_years"] },
+  "human_override": null
+}
+```
+
+**Retention:** Audit records хранятся минимум в соответствии с отраслевыми требованиями (банки: 5-7 лет; медицина: 10+ лет).
+
+<KnowledgeCheck
+  question="BioGenesis хочет внедрить Model Governance. CTO предлагает, чтобы ML-команда сама валидировала свои модели (self-review). Почему это неприемлемо для high-risk AI и как организовать процесс правильно?"
+  answer="Self-review неприемлем для high-risk AI по принципу независимости валидации: (1) Конфликт интересов -- разработчик заинтересован в deploy, а не в обнаружении проблем. (2) Blind spots -- разработчик не видит проблемы, которые очевидны внешнему reviewer. (3) Регуляторные требования -- EU AI Act и ISO/IEC 42001 требуют независимой оценки high-risk AI. Правильный процесс: (1) Model Owner (ML Lead) разрабатывает и документирует модель (Model Card). (2) Independent Model Validator (Biostatistician из Clinical Statistics) проверяет performance, fairness, документацию. (3) Model Risk Committee (CTO + Head of Research + Regulatory Affairs) утверждает deploy на основе отчёта валидатора. Критично: валидатор не должен подчиняться Model Owner."
+/>
+
+## Итоги
+
+- **Model Card** (Mitchell et al., 2019) -- стандартизированная документация ML-модели: Model Details, Intended Use, Training Data, Performance, Fairness, Limitations, Governance
+- **Performance по субгруппам** критичнее overall performance -- aggregate маскирует проблемы
+- **Semantic Versioning**: Major (архитектура), Minor (retrain), Patch (bug fix)
+- **Model Lineage** -- цепочка от исходных данных до deployed модели
+- **3 ключевые роли**: Model Owner (ответственность), Model Validator (независимая проверка), Model Risk Committee (утверждение deploy)
+- **Audit Trail** -- запись каждого AI-решения для воспроизведения и объяснения
+- **Независимость валидации** -- валидатор не должен подчиняться разработчику
+
+В следующем уроке мы перейдём к практической реализации: **Fairness Implementation** -- как встроить fairness-проверки в production pipeline, CI/CD и непрерывный мониторинг.

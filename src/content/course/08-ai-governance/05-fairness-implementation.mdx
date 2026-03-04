@@ -1,0 +1,209 @@
+---
+title: "Fairness Implementation"
+description: "Реализация fairness-проверок в production, fairness scoring, pre/in/post-processing debiasing, непрерывный мониторинг, fairness в CI/CD"
+order: 5
+difficulty: "advanced"
+estimatedTime: 25
+audience: "both"
+topics: ["Fairness Implementation", "Fairness Scoring", "Responsible AI Implementation"]
+---
+
+import { QualityGauge } from '../../../components/diagrams/governance';
+
+# Fairness Implementation
+
+## Введение
+
+Знать, что модель несправедлива, -- недостаточно. Нужно уметь **встроить fairness-проверки в production pipeline**: автоматически вычислять метрики, блокировать deploy при нарушении порогов, мониторить справедливость в реальном времени. В этом уроке мы рассмотрим практическую реализацию fairness: от scoring-функций до CI/CD интеграции.
+
+## Fairness Scoring: композитная оценка
+
+**Fairness Score** -- единое числовое значение, агрегирующее несколько fairness-метрик в одну оценку. Позволяет быстро оценить общую справедливость модели без анализа каждой метрики по отдельности.
+
+### Алгоритм Fairness Scoring
+
+1. **Нормализация метрик** -- приведение каждой метрики к шкале 0-1, где 1 = идеально справедливо
+2. **Взвешивание** -- каждая метрика получает вес в зависимости от контекста
+3. **Агрегация** -- взвешенное среднее нормализованных метрик
+4. **Pass/Fail** -- сравнение с порогом
+
+**Формула нормализации:**
+- Для метрик, где идеальное значение = 0 (DPD, EOD): `normalized = max(0, 1 - value / max_acceptable)`
+- Для метрик, где идеальное значение = 1 (DIR): `normalized = max(0, (value - (1 - max_acceptable)) / max_acceptable)`
+
+> **Сценарий: FinSecure Bank**
+>
+> FinSecure внедряет Fairness Scoring для Credit Scoring Model v3.0. CDO требует: "Одно число, которое покажет, справедлива ли модель. Если ниже 0.70 -- модель не может быть deploy."
+>
+> **Настройка:**
+> | Метрика | Вес | Raw Value | Max Acceptable | Normalized | Status |
+> |---------|-----|-----------|----------------|------------|--------|
+> | Demographic Parity Diff | 0.30 | 0.08 | 0.10 | 0.20 | PASS |
+> | Equalized Odds Diff | 0.30 | 0.12 | 0.10 | 0.00 | FAIL |
+> | Disparate Impact Ratio | 0.20 | 0.85 | 0.80 | 0.25 | PASS |
+> | Predictive Parity Diff | 0.20 | 0.05 | 0.10 | 0.50 | PASS |
+>
+> **Composite Score = 0.30 * 0.20 + 0.30 * 0.00 + 0.20 * 0.25 + 0.20 * 0.50 = 0.21**
+>
+> **Результат: FAIL** (0.21 < 0.70). Модель не может быть deploy. Equalized Odds Diff (0.12 > 0.10) -- единственная метрика, нарушающая порог, но она тянет весь score вниз.
+
+<QualityGauge
+  client:load
+  title="Fairness Score: Credit Scoring Model v3.0"
+  score={0.21}
+  threshold={0.70}
+  label="Composite Fairness Score"
+  status="fail"
+/>
+
+## Debiasing в Production
+
+### Pre-processing: коррекция данных
+
+Pre-processing debiasing корректирует обучающие данные до обучения модели. Главное преимущество -- модель обучается на "честных" данных и сама становится справедливее.
+
+**Техники:**
+
+1. **Resampling** -- балансировка обучающей выборки по protected attributes
+   ```
+   Было:  группа A = 8,000 записей, группа B = 2,000
+   Стало: группа A = 5,000 (undersampling), группа B = 5,000 (oversampling)
+   ```
+
+2. **Reweighting** -- назначение весов записям для компенсации дисбаланса
+   ```
+   weight(группа A) = 0.625  # 5000/8000
+   weight(группа B) = 2.500  # 5000/2000
+   ```
+
+3. **Удаление proxy-переменных** -- features, коррелирующих с protected attributes
+   ```
+   Proxy: семейное положение → коррелирует с полом
+   Proxy: почтовый индекс → коррелирует с этничностью
+   Решение: drop или anonymize
+   ```
+
+### In-processing: модификация обучения
+
+In-processing добавляет fairness constraint в функцию потерь модели:
+
+```
+Loss = Prediction_Loss + λ * Fairness_Penalty
+```
+
+Где `λ` -- коэффициент, балансирующий точность и справедливость. Увеличение `λ` повышает fairness, но снижает accuracy.
+
+**Adversarial Debiasing** -- обучение двух моделей: predictor (основная задача) и adversary (предсказание protected attribute из выходов predictor). Predictor обучается так, чтобы adversary не мог определить группу -- значит, выходы не зависят от protected attribute.
+
+### Post-processing: коррекция выходов
+
+Post-processing корректирует решения модели после inference:
+
+**Threshold Adjustment:**
+```
+Группа A: threshold = 0.50 (стандартный)
+Группа B: threshold = 0.42 (снижен для выравнивания)
+```
+
+**Проблема:** разные стандарты для разных групп. Для кредитного скоринга это означает одобрение менее кредитоспособных заявок в одной группе -- потенциально увеличивает default rate.
+
+<KnowledgeCheck
+  question="FinSecure рассматривает 3 стратегии debiasing для Credit Scoring Model. Pre-processing снизит accuracy с 0.87 до 0.84. In-processing -- до 0.85. Post-processing сохранит 0.87, но создаст разные пороги. Какую стратегию рекомендуете и почему?"
+  answer="Рекомендация: In-processing. (1) Accuracy 0.85 -- минимальная потеря (-0.02 от текущего), остаётся выше порога 0.80. (2) Fairness встроена в модель -- не нужны разные пороги (post-processing) и не теряется информативность features (pre-processing). (3) In-processing (adversarial debiasing или fairness-constrained training) обучает модель принимать решения на основе кредитоспособности, а не proxy-переменных. (4) Post-processing проблематичен для банка: разные пороги = разные стандарты = юридический и этический риск. (5) Pre-processing (accuracy 0.84) допустим как fallback, если in-processing не доступен технически. Оптимальная стратегия: in-processing + мониторинг в production."
+/>
+
+## Fairness Testing в CI/CD
+
+Fairness-проверки интегрируются в CI/CD pipeline наравне с unit-тестами и integration-тестами.
+
+<FlowRow>
+  <FlowNode variant="pipeline" label="1. Model Training" sublabel="Train on debiased data" />
+  <Arrow />
+  <FlowNode variant="policy" label="2. Fairness Tests" sublabel="DPD < 0.10, DIR >= 0.80" />
+  <Arrow />
+  <FlowNode variant="classification" label="3. Gate Decision" sublabel="PASS → deploy, FAIL → block" />
+  <Arrow />
+  <FlowNode variant="stakeholder" label="4. Human Review" sublabel="Model Risk Committee" />
+</FlowRow>
+
+### Fairness Test Suite
+
+```yaml
+fairness_tests:
+  - metric: demographic_parity_diff
+    protected_attributes: [gender, age_group, region]
+    threshold: 0.10
+    action_on_fail: block_deploy
+
+  - metric: equalized_odds_diff
+    protected_attributes: [gender, age_group]
+    threshold: 0.10
+    action_on_fail: block_deploy
+
+  - metric: disparate_impact_ratio
+    protected_attributes: [gender, age_group, region]
+    threshold: 0.80
+    action_on_fail: block_deploy
+
+  - metric: composite_fairness_score
+    threshold: 0.70
+    action_on_fail: block_deploy
+```
+
+**Pipeline behaviour:**
+- **All PASS** → автоматический deploy в staging, ручной approve для production
+- **Any FAIL** → block deploy, notification Model Owner + Compliance
+- **Degradation > 5%** → alert, trigger re-investigation
+
+## Continuous Fairness Monitoring
+
+После deploy модель мониторится непрерывно:
+
+### Drift Detection для Fairness
+
+**Concept Drift** -- меняется связь между features и target. Модель, справедливая при обучении, может стать предвзятой при изменении данных.
+
+**Monitoring metrics:**
+1. **Fairness metrics** (DPD, EOD, DIR) -- пересчёт на каждом batch новых данных
+2. **Subgroup performance** -- AUC-ROC, precision, recall по каждой группе
+3. **Feature distribution shift** -- изменения в распределении features по группам
+4. **Decision rate shift** -- изменения в доле одобрений по группам
+
+### Alert Thresholds
+
+| Metric | Warning | Critical | Action |
+|--------|---------|----------|--------|
+| DPD | > 0.08 | > 0.10 | Warning: review. Critical: block |
+| DIR | < 0.83 | < 0.80 | Warning: review. Critical: block |
+| EOD | > 0.08 | > 0.10 | Warning: review. Critical: block |
+| Composite Score | < 0.75 | < 0.70 | Warning: review. Critical: block |
+
+> **FinSecure Production Monitoring:**
+>
+> Каждый месяц FinSecure пересчитывает fairness-метрики на batch из 50,000 последних решений. Если любая метрика попадает в зону Warning -- CDO получает отчёт. Если Critical -- модель автоматически переключается на fallback (ручной скоринг) и ML-команда получает P1 alert.
+
+<QualityGauge
+  client:load
+  title="Monthly Fairness Monitor: Credit Scoring Model v3.1 (после debiasing)"
+  score={0.82}
+  threshold={0.70}
+  label="Composite Fairness Score"
+  status="pass"
+/>
+
+<KnowledgeCheck
+  question="FinSecure deploy Credit Scoring Model v3.1 (после in-processing debiasing). Через 3 месяца Composite Fairness Score падает с 0.82 до 0.68. Какие шаги предпринять?"
+  answer="Score 0.68 < 0.70 -- Critical alert. Шаги: (1) Немедленный fallback: переключить на ручной скоринг (human review для всех заявок) до resolution. (2) Диагностика: какие метрики деградировали? Если DPD выросло -- проверить изменения в демографическом составе заявок. Если EOD выросло -- проверить, для каких субгрупп precision/recall изменились. (3) Root cause: вероятно Concept Drift -- изменились паттерны заявок за 3 месяца (сезонность, маркетинговые кампании привлекли новую демографию). (4) Mitigation: retrain модель на свежих данных (последние 3 месяца) с сохранением fairness constraint. (5) Validation: Model Validator проверяет v3.2 на hold-out данных. (6) Deploy v3.2 через CI/CD с fairness gate. (7) Post-mortem: документировать причину drift и обновить monitoring thresholds."
+/>
+
+## Итоги
+
+- **Fairness Score** -- композитная метрика, агрегирующая DPD, EOD, DIR с весами
+- **3 стратегии debiasing**: Pre-processing (данные), In-processing (обучение), Post-processing (выходы)
+- **In-processing** оптимален по fairness-accuracy balance для high-risk AI
+- **CI/CD интеграция**: fairness tests = gate для deploy. FAIL → block deploy
+- **Continuous Monitoring**: ежемесячный пересчёт fairness-метрик на production данных
+- **Alert thresholds**: Warning (review) и Critical (block + fallback)
+- **Concept Drift** -- модель может стать предвзятой после deploy. Мониторинг обязателен.
+
+Это завершает модуль AI Governance. Вы изучили: принципы Responsible AI, EU AI Act, bias detection и fairness metrics, model documentation, и реализацию fairness в production. В модульном экзамене вы примените все эти концепции к реальным сценариям.
