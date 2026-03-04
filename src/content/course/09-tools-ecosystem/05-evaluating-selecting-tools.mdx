@@ -1,0 +1,187 @@
+---
+title: "Оценка и выбор governance-инструментов"
+description: "Structured evaluation process: requirements, shortlist, PoC, decision. TCO analysis, scoring matrices, stakeholder alignment, migration planning."
+order: 5
+difficulty: "advanced"
+estimatedTime: 25
+audience: "both"
+topics: ["Tool Evaluation", "Tool Selection", "Vendor Assessment", "TCO Analysis"]
+---
+
+import { DecisionMatrix } from '../../../components/diagrams/governance';
+
+# Оценка и выбор governance-инструментов
+
+## Введение
+
+Знать ландшафт инструментов (уроки 1-3) и уметь их развёртывать (урок 4) -- необходимо, но не достаточно. Выбор конкретного инструмента -- **организационное решение** с долгосрочными последствиями: 12-24 месяца vendor lock-in, team training, integration investment. Этот урок даёт **структурированный процесс оценки** -- от требований до решения.
+
+## Structured Evaluation Process
+
+Оценка инструментов проходит **4 фазы**:
+
+<FlowRow>
+  <FlowNode label="Phase 1: Requirements" tooltip="Определение must-have и nice-to-have. Stakeholder interviews. Constraint mapping." variant="config" />
+  <Arrow />
+  <FlowNode label="Phase 2: Shortlist" tooltip="Longlist -> Shortlist (3-5 candidates). Elimination по must-have. Desk research." variant="process" />
+  <Arrow />
+  <FlowNode label="Phase 3: PoC" tooltip="Proof of Concept (2-4 недели). Hands-on evaluation 2-3 candidates. Real data, real team." variant="pipeline" />
+  <Arrow />
+  <FlowNode label="Phase 4: Decision" tooltip="Scoring matrix + TCO + stakeholder alignment. Final recommendation. Migration plan." variant="output" />
+</FlowRow>
+
+### Phase 1: Requirements gathering
+
+Требования делятся на **must-have** (disqualifying) и **nice-to-have** (scoring):
+
+| Тип | Примеры | Как используются |
+|-----|---------|-----------------|
+| **Must-have** | Коннектор к PostgreSQL, self-hosted, open-source license | Elimination: нет must-have = дисквалификация |
+| **Nice-to-have** | Column-level lineage, built-in classification, Slack integration | Scoring: 1-5 баллов по каждому критерию |
+| **Constraint** | Budget < $50K, team < 10, RAM < 16 GB | Filter: constraint violation = дисквалификация |
+
+**Ошибка #1:** Начинать с product demo, а не с requirements. Без requirements вы оцениваете "нравится ли UI", а не "решает ли проблему".
+
+### Phase 2: Shortlist
+
+**Longlist -> Shortlist алгоритм:**
+1. Составьте longlist (6-10 candidates) из каждой категории
+2. Примените must-have фильтр: нет must-have = дисквалификация
+3. Примените constraint фильтр: нарушение constraint = дисквалификация
+4. Результат: shortlist из 3-5 candidates для PoC
+
+### Phase 3: Proof of Concept (PoC)
+
+PoC -- **hands-on evaluation** с реальными данными и реальной командой:
+
+| Параметр PoC | Рекомендация |
+|-------------|-------------|
+| **Длительность** | 2-4 недели (не больше!) |
+| **Данные** | Реальные (не synthetic) -- production subset |
+| **Команда** | 2-3 человека: engineer + steward + analyst |
+| **Scope** | 3-5 use cases из requirements |
+| **Deliverable** | Scoring card + recommendation memo |
+
+**Ошибка #2:** PoC без exit criteria. Определите upfront: какие результаты считаем "pass" по каждому use case.
+
+### Phase 4: Decision
+
+Scoring matrix формализует решение:
+
+<DecisionMatrix
+  title="Пример: DataTech оценка каталогов данных"
+  criteria={[
+    { name: "PostgreSQL connector", weight: 0.20, description: "Must-have: ingestion из 200+ таблиц PostgreSQL" },
+    { name: "Airflow lineage", weight: 0.20, description: "Must-have: автоматический lineage из 45 DAGs" },
+    { name: "Quality integration", weight: 0.15, description: "Nice-to-have: отображение GE/dbt test results" },
+    { name: "Deployment simplicity", weight: 0.15, description: "Constraint: < 8 GB RAM, Docker Compose" },
+    { name: "Classification", weight: 0.15, description: "Nice-to-have: auto PII detection" },
+    { name: "Cost", weight: 0.15, description: "Constraint: $0 license cost" }
+  ]}
+  options={[
+    { name: "OpenMetadata", scores: { "PostgreSQL connector": 5, "Airflow lineage": 4, "Quality integration": 5, "Deployment simplicity": 5, "Classification": 4, "Cost": 5 } },
+    { name: "DataHub", scores: { "PostgreSQL connector": 5, "Airflow lineage": 5, "Quality integration": 3, "Deployment simplicity": 2, "Classification": 4, "Cost": 5 } },
+    { name: "Amundsen", scores: { "PostgreSQL connector": 3, "Airflow lineage": 2, "Quality integration": 1, "Deployment simplicity": 3, "Classification": 2, "Cost": 5 } }
+  ]}
+/>
+
+## Total Cost of Ownership (TCO) анализ
+
+TCO включает **5 компонентов** за 3-летний горизонт:
+
+| Компонент | Open-source | Commercial SaaS |
+|-----------|------------|----------------|
+| **Лицензия** | $0 | $100K-500K/год |
+| **Инфраструктура** | Cloud VM: $5K-20K/год | Включена (SaaS) |
+| **Операционная поддержка** | 0.5-1 FTE: $50K-100K/год | 0.1 FTE: $10K-20K/год |
+| **Training** | Self-study + community: $5K | Vendor training: $10K-30K |
+| **Migration (если потребуется)** | Community tools: $20K-50K | Vendor lock-in: $50K-200K |
+
+**3-year TCO пример (DataTech):**
+- OpenMetadata: $0 + $15K infra + $150K ops (0.5 FTE * 3 years) + $5K training = **$170K**
+- Collibra: $600K license + $0 infra + $60K ops + $30K training = **$690K**
+
+> OpenMetadata 4x дешевле за 3 года. Но если команда вырастет до 100+ человек и потребуется SOC2 -- Collibra может стать cheaper per-user.
+
+## Stakeholder alignment
+
+Разные stakeholders оценивают инструменты по **разным критериям**:
+
+| Stakeholder | Приоритет #1 | Приоритет #2 | Что игнорирует |
+|------------|-------------|-------------|---------------|
+| **CTO/VP Eng** | TCO | Scalability | UI/UX |
+| **Data Engineer** | API quality | Deployment simplicity | Business features |
+| **Data Steward** | Collaboration UI | Classification | Infrastructure |
+| **DPO** | Compliance (SOC2, GDPR) | Audit trail | Performance |
+| **CFO** | License cost | Vendor stability | Technical features |
+
+**Процесс alignment:**
+1. Каждый stakeholder заполняет scoring matrix со своими весами
+2. Facilitator (CDO или PM) собирает разногласия
+3. Workshop: обсуждение divergent scores (разница > 2 баллов)
+4. Консенсус: единая scoring matrix с agreed весами
+
+## Migration planning
+
+При замене существующего инструмента -- **migration plan**:
+
+| Фаза | Действие | Длительность |
+|------|---------|-------------|
+| **Preparation** | Inventory текущих metadata, integrations, workflows | 2-4 недели |
+| **Parallel run** | Новый инструмент работает параллельно со старым | 4-8 недель |
+| **Migration** | Перенос metadata, users, integrations | 2-4 недели |
+| **Cutover** | Переключение пользователей, decommission старого | 1-2 недели |
+| **Stabilization** | Мониторинг, bug fixes, training | 2-4 недели |
+
+**Total:** 11-22 недели (3-5 месяцев). **Правило:** migration всегда занимает 2x от плана.
+
+## Common selection mistakes
+
+1. **Demo-driven selection** -- выбор на основе красивой демо-презентации без PoC
+2. **Feature-driven selection** -- выбор по количеству features, а не по relevance к вашим requirements
+3. **Ignoring TCO** -- $0 license не означает $0 cost (infrastructure + operations)
+4. **Single-stakeholder decision** -- выбор только инженером или только руководителем
+5. **No exit plan** -- отсутствие migration plan при выборе proprietary solution
+6. **Premature optimization** -- выбор enterprise tool для команды из 5 человек
+
+## Сценарии
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> DataTech проводит full evaluation для первого governance tool stack:
+>
+> **Requirements:** PostgreSQL connector (must-have), Airflow lineage (must-have), < 8 GB RAM (constraint), $0 license (constraint), quality integration (nice-to-have)
+>
+> **Shortlist:** OpenMetadata, DataHub, Amundsen (Collibra eliminated: $100K+ license)
+>
+> **PoC (2 weeks):** 3 use cases: (1) ingest 200 tables, (2) auto-lineage from 10 DAGs, (3) quality checks on 5 datasets
+>
+> **Result:** OpenMetadata -- best fit: all must-haves, < 6 GB RAM, quality integration native, 2-day deployment.
+
+> **Сценарий: FinSecure Bank (ФинСекьюр Банк)**
+>
+> FinSecure оценивает upgrade OpenMetadata 1.2 -> 1.5.x vs migration к DataHub:
+>
+> **Requirements:** Column-level lineage (must-have для GDPR), SSO integration (must-have), < 6 месяцев migration (constraint)
+>
+> **Analysis:**
+> - Upgrade OM 1.2 -> 1.5.x: column lineage (beta), SSO через Collate Cloud. Risk: beta lineage quality.
+> - Migrate to DataHub: column lineage (mature), SSO native. Risk: 14+ containers, 6+ month migration, Kafka dependency.
+>
+> **Decision:** Upgrade OM to 1.5.x (lower risk). If column lineage beta не satisfies GDPR audit within 3 months -- trigger DataHub migration. Exit plan documented.
+
+<KnowledgeCheck
+  question="DataTech завершила PoC для каталогов данных. OpenMetadata набрал 4.2/5.0, DataHub -- 4.0/5.0. CTO предлагает выбрать OpenMetadata. Data Engineer хочет DataHub (лучший lineage). Как разрешить конфликт?"
+  answer="Stakeholder alignment workshop: (1) Определить, какой критерий вызвал расхождение -- lineage. (2) Оценить вес lineage для DataTech: column-level lineage -- nice-to-have или must-have? Для Level 1 без regulatory pressure -- nice-to-have. (3) Оценить TCO: DataHub 14+ контейнеров = +4 GB RAM + Kafka ops = $30K+ дополнительных infra costs. (4) Консенсус: OpenMetadata сейчас (lower TCO, simpler ops), DataHub как future option если lineage станет must-have. Документировать exit plan."
+/>
+
+## Итоги
+
+- **Structured evaluation:** Requirements -> Shortlist -> PoC -> Decision (4 фазы, 6-12 недель)
+- **TCO** -- 5 компонентов: лицензия, инфраструктура, ops, training, migration. 3-летний горизонт.
+- **Stakeholder alignment:** разные роли оценивают по разным критериям; workshop для консенсуса
+- **Migration:** 3-5 месяцев; всегда 2x от плана; parallel run обязателен
+- **6 ошибок выбора:** demo-driven, feature-driven, ignoring TCO, single-stakeholder, no exit plan, premature optimization
+- **Правило:** upgrade before migrate. Migration -- last resort.
+
+Модуль M09 завершён. Вы изучили полный ландшафт governance-инструментов: каталоги, quality, observability, access control, deployment-паттерны, и structured evaluation process.

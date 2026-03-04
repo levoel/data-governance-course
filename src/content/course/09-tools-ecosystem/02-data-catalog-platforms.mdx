@@ -1,0 +1,211 @@
+---
+title: "Платформы каталогов данных"
+description: "Сравнение Data Catalog платформ: OpenMetadata, DataHub, Amundsen, Collibra. Критерии оценки, deployment-модели, интеграция."
+order: 2
+difficulty: "intermediate"
+estimatedTime: 25
+audience: "both"
+topics: ["Data Catalog", "OpenMetadata", "DataHub", "Amundsen", "Collibra"]
+---
+
+import { DecisionMatrix, ToolDeepDive } from '../../../components/diagrams/governance';
+
+# Платформы каталогов данных
+
+## Введение
+
+**Каталог данных (Data Catalog)** -- центральный реестр метаданных организации: какие данные есть, где они находятся, кто ими владеет, как они связаны. В уроке 1 мы определили каталог как первый приоритет для Level 1 организаций. Теперь разберём конкретные платформы.
+
+## Что решает каталог данных
+
+Каталог данных решает **5 ключевых проблем**:
+
+1. **Обнаружение** (Discovery) -- поиск нужных данных без обращения к коллегам
+2. **Документирование** -- описания таблиц, столбцов, бизнес-контекст
+3. **Lineage** -- отслеживание происхождения и трансформаций данных
+4. **Ownership** -- назначение ответственных (Data Owners, Data Stewards)
+5. **Classification** -- маркировка PII, конфиденциальности, уровней доступа
+
+## Критерии оценки каталогов
+
+При выборе каталога оценивайте **7 критериев**:
+
+| Критерий | Что оцениваем | Почему важно |
+|----------|--------------|-------------|
+| **Metadata Ingestion** | Количество и качество коннекторов | Каталог ценен только с данными вашего tech stack |
+| **Lineage** | Автоматический vs ручной lineage | Автоматический lineage из Airflow/dbt экономит сотни часов |
+| **Search** | Полнотекстовый поиск, фильтры, ranking | Каталог без хорошего поиска -- справочник без оглавления |
+| **Collaboration** | Комментарии, задачи, уведомления | Каталог -- живой инструмент, не статичный документ |
+| **API** | REST/GraphQL для автоматизации | Интеграция с CI/CD, quality checks, access control |
+| **Governance features** | Classification, policies, access control | Каталог как платформа governance, не только metadata |
+| **Deployment** | Self-hosted vs SaaS, resource requirements | TCO и operational burden |
+
+<DecisionMatrix
+  title="Сравнение каталогов данных"
+  criteria={[
+    { name: "Metadata Ingestion", weight: 0.20, description: "Количество коннекторов и качество ingestion" },
+    { name: "Lineage", weight: 0.20, description: "Автоматический lineage из pipeline-инструментов" },
+    { name: "Search & Discovery", weight: 0.15, description: "Качество поиска и навигации" },
+    { name: "Collaboration", weight: 0.15, description: "Комментарии, задачи, ownership workflow" },
+    { name: "Deployment Simplicity", weight: 0.15, description: "Количество сервисов, RAM, операционная сложность" },
+    { name: "Open-source License", weight: 0.15, description: "Доступность, vendor lock-in, community" }
+  ]}
+  options={[
+    { name: "OpenMetadata", scores: { "Metadata Ingestion": 4, "Lineage": 4, "Search & Discovery": 4, "Collaboration": 4, "Deployment Simplicity": 4, "Open-source License": 5 } },
+    { name: "DataHub", scores: { "Metadata Ingestion": 5, "Lineage": 5, "Search & Discovery": 4, "Collaboration": 3, "Deployment Simplicity": 2, "Open-source License": 5 } },
+    { name: "Amundsen", scores: { "Metadata Ingestion": 3, "Lineage": 2, "Search & Discovery": 3, "Collaboration": 3, "Deployment Simplicity": 3, "Open-source License": 5 } },
+    { name: "Collibra", scores: { "Metadata Ingestion": 5, "Lineage": 5, "Search & Discovery": 5, "Collaboration": 5, "Deployment Simplicity": 4, "Open-source License": 1 } }
+  ]}
+/>
+
+## Обзор платформ
+
+<ToolDeepDive tool="OpenMetadata" version="1.5.x" lastVerified="2026-03">
+
+### OpenMetadata
+
+**Тип:** Open-source (Apache 2.0)
+**Deployment:** Self-hosted (Docker Compose / Kubernetes) или Collate Cloud (SaaS)
+**Resources:** 4-6 GB RAM (PostgreSQL + Elasticsearch + server)
+
+**Сильные стороны:**
+- 60+ коннекторов (PostgreSQL, Snowflake, dbt, Airflow, Spark, Kafka)
+- Встроенный Data Quality framework (expectations, test suites)
+- Classification и tagging с auto-classification (PII detection)
+- Lightweight deployment: 4-5 контейнеров vs 14+ у DataHub
+- Активное community: 3K+ GitHub stars, еженедельные релизы
+
+**Ограничения:**
+- Younger project: первый стабильный релиз в 2023
+- Lineage менее детальный, чем DataHub (column-level lineage -- beta)
+- Enterprise features (SSO, fine-grained RBAC) -- в Collate Cloud
+
+**Когда выбирать:** Команда 5-30 человек, self-hosted, governance-first подход (quality + classification + lineage в одном UI).
+
+</ToolDeepDive>
+
+<ToolDeepDive tool="DataHub" version="0.13.x" lastVerified="2026-03">
+
+### DataHub
+
+**Тип:** Open-source (Apache 2.0), Acryl Data (commercial)
+**Deployment:** Self-hosted (Docker Compose / Kubernetes) или Acryl Cloud (SaaS)
+**Resources:** 8-16 GB RAM (14+ контейнеров: MySQL, Elasticsearch, Kafka, Schema Registry, GMS, Frontend, MAE/MCE consumers)
+
+**Сильные стороны:**
+- 200+ коннекторов -- крупнейшая экосистема
+- Column-level lineage из dbt, Spark, Airflow (mature)
+- GraphQL API -- мощная автоматизация
+- Fine-grained access control и domains
+- Крупнейшее community: 8K+ GitHub stars, 10K+ Slack members
+
+**Ограничения:**
+- Тяжёлый deployment: 14+ контейнеров, 8 GB RAM минимум
+- Kafka как dependency: операционная сложность для команд без опыта Kafka
+- Collaboration features слабее, чем у OpenMetadata
+- Steep learning curve для администрирования
+
+**Когда выбирать:** Организация 50+ data-пользователей, уже используете Kafka, нужен column-level lineage, есть dedicated platform team.
+
+</ToolDeepDive>
+
+<ToolDeepDive tool="Amundsen" version="4.x" lastVerified="2026-03">
+
+### Amundsen
+
+**Тип:** Open-source (Apache 2.0), создан Lyft
+**Deployment:** Self-hosted (Docker Compose / Kubernetes)
+**Resources:** 4-8 GB RAM (Neo4j + Elasticsearch + microservices)
+
+**Сильные стороны:**
+- Pioneered data discovery (2019, Lyft Engineering)
+- Neo4j graph backend -- natural для lineage queries
+- Простой UI для data discovery и поиска
+- Minimal footprint для basic discovery
+
+**Ограничения:**
+- Развитие замедлилось (community migration к DataHub/OpenMetadata)
+- Lineage ограничен: нет auto-lineage из Airflow/dbt
+- Нет встроенных governance features (classification, quality)
+- Меньше коннекторов, чем у DataHub/OpenMetadata
+
+**Когда выбирать:** Уже используете Neo4j, нужен минимальный data discovery без governance ambitions, или legacy deployment.
+
+</ToolDeepDive>
+
+<ToolDeepDive tool="Collibra" version="2024.x" lastVerified="2026-03">
+
+### Collibra
+
+**Тип:** Commercial (proprietary), Collibra Cloud (SaaS)
+**Deployment:** SaaS или on-premise
+**Pricing:** $100K-500K+/год (enterprise pricing)
+
+**Сильные стороны:**
+- Enterprise-grade: SOC2, HIPAA, GDPR compliance
+- Самый полный governance feature set (catalog, quality, stewardship, policies, lineage, business glossary)
+- Data Marketplace для self-service analytics
+- Workflow engine для stewardship и approval processes
+- 200+ enterprise references (banking, healthcare, pharma)
+
+**Ограничения:**
+- Стоимость: $100K+ минимум, unpredictable pricing
+- Vendor lock-in: проприетарные форматы метаданных
+- Сложная конфигурация: weeks of professional services для setup
+- Overkill для команд < 50 человек
+
+**Когда выбирать:** Enterprise 500+ data-пользователей, регуляторные требования (SOC2, HIPAA), бюджет > $200K/год на governance tooling, dedicated governance team.
+
+</ToolDeepDive>
+
+## Deployment-модели
+
+| Модель | Примеры | Плюсы | Минусы |
+|--------|---------|-------|--------|
+| **Self-hosted (Docker)** | OpenMetadata, DataHub, Amundsen | Полный контроль, нет лицензии | Операционная нагрузка |
+| **Self-hosted (Kubernetes)** | OpenMetadata Helm, DataHub Helm | Масштабируемость, HA | Требует K8s-экспертизу |
+| **SaaS** | Collibra Cloud, Acryl Cloud, Collate Cloud | Zero ops | Vendor lock-in, стоимость |
+
+## Сценарий: DataTech и FinSecure
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> DataTech выбирает первый каталог данных. Требования: 200+ таблиц PostgreSQL + ClickHouse, 45 Airflow DAGs, dbt 120 моделей, бюджет 0 на лицензии, команда из 7 человек.
+>
+> **Решение:** OpenMetadata (self-hosted Docker Compose).
+> - Коннекторы: PostgreSQL, ClickHouse, Airflow, dbt -- все есть
+> - 4-6 GB RAM -- вписывается в существующую инфраструктуру
+> - Встроенный quality framework -- второй приоритет (из урока 1)
+> - 1-2 дня на deployment, 0.5 FTE на поддержку
+
+> **Hands-On Lab: Catalog Lab**
+>
+> Explore OpenMetadata hands-on in the lab environment: deploy the catalog, ingest metadata from a PostgreSQL e-commerce database, and explore lineage:
+>
+> ```bash
+> cd labs/catalog && cp .env.example .env && docker compose up -d
+> ```
+>
+> Open OpenMetadata UI at [http://localhost:8585](http://localhost:8585). See `labs/catalog/README.md` for full setup.
+
+> **Сценарий: FinSecure Bank (ФинСекьюр Банк)**
+>
+> FinSecure уже 6 месяцев использует OpenMetadata 1.2 с 40% каталогизацией. Pain points: column-level lineage для Spark ETL отсутствует, SSO integration требует Collate Cloud. Стоит ли переходить на DataHub?
+>
+> **Анализ:** Миграция рискованна: 6 месяцев инвестиций в OpenMetadata metadata, custom connectors, team training. DataHub решает lineage, но добавляет 14+ контейнеров и Kafka dependency. **Рекомендация:** обновить OpenMetadata до 1.5.x (column-level lineage в beta), оценить Collate Cloud для SSO. Миграция оправдана только если lineage -- blocking requirement для regulatory reporting.
+
+<KnowledgeCheck
+  question="FinSecure использует OpenMetadata 1.2 с 40% каталогизацией. CTO предлагает перейти на DataHub для column-level lineage. DPO поддерживает -- lineage нужен для GDPR. Data Engineer против -- 6 месяцев миграции. Как оценить решение?"
+  answer="TCO-анализ: (1) Стоимость миграции: 6 месяцев metadata + custom connectors + team retraining = 3-6 месяцев работы. (2) DataHub infrastructure: 14+ контейнеров, Kafka, 8+ GB RAM = рост operational burden. (3) Альтернатива: OpenMetadata 1.5.x column-level lineage (beta) + Collate Cloud для SSO. Решение: upgrade OpenMetadata до 1.5.x, evaluate beta lineage. Если beta не satisfies GDPR requirement за 3 месяца -- тогда DataHub migration. Не мигрируйте без исчерпания текущей платформы."
+/>
+
+## Итоги
+
+- **Data Catalog** решает 5 проблем: discovery, документирование, lineage, ownership, classification
+- **OpenMetadata** -- лучший баланс features/simplicity для команд 5-30 человек (4-6 GB, 60+ коннекторов)
+- **DataHub** -- крупнейшая экосистема, но тяжёлый deployment (14+ контейнеров, 8+ GB RAM)
+- **Amundsen** -- pioneer, но development замедлился; для legacy или Neo4j-based setups
+- **Collibra** -- enterprise-grade, $100K+/год; для организаций 500+ с compliance requirements
+- **Migration risk** -- 6+ месяцев инвестиций в каталог делают миграцию дорогой; upgrade before migrate
+
+В следующем уроке -- инструменты **качества данных и observability**: Great Expectations, Soda, Monte Carlo, Datafold.

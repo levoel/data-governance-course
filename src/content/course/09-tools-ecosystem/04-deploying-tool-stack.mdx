@@ -1,0 +1,192 @@
+---
+title: "Развёртывание governance tech stack"
+description: "Построение governance tech stack: Docker Compose, Kubernetes, интеграционные паттерны (catalog + quality + observability), DataOps toolchain, CDC/streaming."
+order: 4
+difficulty: "advanced"
+estimatedTime: 25
+audience: "both"
+topics: ["Governance Tech Stack", "Docker Compose", "DataOps", "Integration Patterns"]
+---
+
+# Развёртывание governance tech stack
+
+## Введение
+
+В уроках 1-3 мы изучили отдельные категории инструментов: каталоги, quality, observability. Теперь вопрос: **как собрать их в единый governance tech stack?** Этот урок покрывает deployment-паттерны, интеграцию между инструментами, и роль CDC/streaming в governance-инфраструктуре.
+
+## Слоёная архитектура governance stack
+
+Governance tech stack строится **послойно** -- каждый слой зависит от предыдущего:
+
+<FlowRow>
+  <FlowNode label="Layer 1: Metadata" tooltip="Data Catalog (OpenMetadata/DataHub): foundation layer. Все остальные инструменты отправляют метаданные сюда." variant="catalog" />
+  <Arrow />
+  <FlowNode label="Layer 2: Quality" tooltip="GE/Soda/dbt tests: validation results -> Catalog. Quality metrics отображаются в каталоге." variant="pipeline" />
+  <Arrow />
+  <FlowNode label="Layer 3: Observability" tooltip="Monte Carlo/Datafold: anomaly detection -> Catalog + Alerting. Обнаруживает проблемы, которые quality не покрыл." variant="process" />
+</FlowRow>
+
+<FlowRow>
+  <FlowNode label="Layer 4: Access Control" tooltip="Ranger/OPA/Vault: policies enforced based on Classification from Catalog. Catalog -> Policy Engine -> Enforcement." variant="policy" />
+  <Arrow />
+  <FlowNode label="Layer 5: Orchestration" tooltip="Airflow/Dagster: coordinates all layers. Quality checks в DAGs, results -> Catalog, alerts -> Slack/PagerDuty." variant="config" />
+</FlowRow>
+
+## Deployment-паттерны
+
+### Docker Compose: dev/test и малые команды
+
+Docker Compose -- стандарт для **dev/test environments** и **команд до 20 человек**:
+
+```yaml
+# Governance stack: simplified architecture
+# Catalog (OpenMetadata) + Quality (GE) + Orchestration (Airflow)
+services:
+  postgresql:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: governance_db
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+
+  elasticsearch:
+    image: elasticsearch:7.17.15
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+
+  openmetadata:
+    image: openmetadata/server:1.5.15
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_started
+    ports:
+      - "8585:8585"
+
+  airflow:
+    image: apache/airflow:2.7.3
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+volumes:
+  pg_data:
+```
+
+**Ключевые правила Docker Compose для governance:**
+
+1. **Healthchecks обязательны** -- depends_on без healthcheck не гарантирует готовность сервиса
+2. **Named volumes** -- данные каталога, quality results, Airflow DAGs должны переживать перезапуск
+3. **Network isolation** -- governance stack в отдельной Docker network от application stack
+4. **Environment variables** -- credentials через `.env` file, не hardcoded в compose
+
+### Kubernetes: production и масштабирование
+
+Для production environments (50+ пользователей, HA requirements):
+
+| Компонент | Kubernetes resource | Notes |
+|-----------|-------------------|-------|
+| OpenMetadata | Helm chart (official) | StatefulSet для server, PersistentVolume для DB |
+| Elasticsearch | ECK operator | Managed ES cluster, auto-scaling |
+| PostgreSQL | CloudNativePG operator | HA PostgreSQL, automated backups |
+| Airflow | Helm chart (official) | KubernetesExecutor для isolation |
+
+## Интеграционные паттерны
+
+### Паттерн 1: Quality Results -> Catalog
+
+```
+GE Checkpoint -> validation_result.json -> OpenMetadata Ingestion API
+                                           -> Quality tab на dataset page
+```
+
+OpenMetadata поддерживает native ingestion quality results из GE, Soda, dbt tests. Результаты отображаются рядом с метаданными таблицы.
+
+### Паттерн 2: Catalog Classification -> Access Control
+
+```
+Catalog (PII tag) -> Policy Engine (OPA) -> DB Proxy (row-level filtering)
+```
+
+Классификация данных в каталоге (PII, Confidential, Public) используется policy engine для enforcement access control. Когда Data Steward помечает столбец как PII в каталоге -- policy engine автоматически применяет masking.
+
+### Паттерн 3: Orchestrator -> Quality -> Catalog -> Alert
+
+```
+Airflow DAG -> dbt run + dbt test -> results -> OpenMetadata API
+                                               -> Slack/PagerDuty alert
+```
+
+Типичный governance pipeline: orchestrator запускает трансформацию, затем quality checks, результаты отправляются в каталог, при failure -- alert.
+
+## DataOps toolchain и CDC/streaming
+
+Governance tech stack работает не в изоляции -- он интегрируется с **DataOps toolchain**: инструментами для CI/CD, version control, deployment данных.
+
+| Компонент DataOps | Governance-интеграция | Пример |
+|-------------------|----------------------|--------|
+| **Git** | Version control для dbt models, policies, expectations | dbt models в Git -> PR review -> quality gate |
+| **CI/CD** | Quality gates в pipeline | GitHub Actions: `dbt test` + `soda scan` before merge |
+| **CDC** | Real-time data propagation | Debezium -> Kafka -> качество в streaming |
+| **IaC** | Infrastructure as Code для governance stack | Terraform/Pulumi для Kubernetes deployment |
+
+> **Cross-course reference: CDC в governance**
+>
+> **Change Data Capture (CDC)** играет критическую роль в governance: real-time propagation изменений данных позволяет quality checks в streaming mode, а не только в batch.
+>
+> Debezium CDC -- open-source CDC platform для PostgreSQL, MySQL, MongoDB. В governance контексте: Debezium captures changes -> Kafka -> GE/Soda validates in near-real-time -> alert на quality violation.
+>
+> Подробнее о CDC-паттернах и интеграции с data pipelines: [CDC и паттерны data pipeline](/debezium/06-module-6/03-data-pipeline-patterns/)
+
+## Сценарий: DataTech deploys first governance stack
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> DataTech развёртывает governance stack в Docker Compose на одном сервере (16 GB RAM):
+>
+> | Сервис | RAM | Порт | Назначение |
+> |--------|-----|------|-----------|
+> | PostgreSQL 15 | 2 GB | 5432 | Metadata store + application DB |
+> | Elasticsearch 7.17 | 2 GB | 9200 | Search index для каталога |
+> | OpenMetadata 1.5.x | 2 GB | 8585 | Data catalog + quality |
+> | Airflow 2.7 | 2 GB | 8080 | Orchestration |
+> | **Total** | **8 GB** | | Оставляет 8 GB для OS + future services |
+>
+> **Порядок deployment:**
+> 1. PostgreSQL + Elasticsearch (infrastructure)
+> 2. OpenMetadata (catalog -- Layer 1)
+> 3. Airflow (orchestration -- Layer 5, но нужен рано для ingestion scheduling)
+> 4. GE (quality -- Layer 2) -- как Python package в Airflow container
+> 5. Ingestion connectors: PostgreSQL -> OpenMetadata, Airflow lineage -> OpenMetadata
+>
+> **Результат за 2 недели:** каталог с 200+ таблицами, автоматический lineage из 45 DAGs, quality checks на 10 critical datasets.
+
+<KnowledgeCheck
+  question="DataTech развёртывает OpenMetadata + Airflow + GE на сервере с 16 GB RAM. После добавления Elasticsearch для поиска и PostgreSQL для metadata -- остаётся 8 GB свободных. CTO хочет добавить Monte Carlo для observability. Реалистично ли это?"
+  answer="Нет. Monte Carlo -- SaaS-продукт ($50K+/год), не self-hosted. Для self-hosted observability потребуется alternative: Elementary (open-source для dbt) или custom Grafana dashboards. Но даже self-hosted observability потребует дополнительные ресурсы. Рекомендация: начать с GE/dbt quality checks (уже в стеке, zero additional RAM), добавить observability через Elementary (dbt package, runs внутри dbt -- zero new containers) или мониторинг через Airflow SLA alerting."
+/>
+
+<KnowledgeCheck
+  question="Почему healthchecks в Docker Compose критичны для governance stack?"
+  answer="Governance-сервисы имеют зависимости: OpenMetadata зависит от PostgreSQL (metadata store) и Elasticsearch (search index). Без healthcheck depends_on гарантирует только запуск контейнера, но не готовность сервиса. PostgreSQL может стартовать за 5 секунд, а OpenMetadata попытается подключиться через 1 секунду -- connection refused, crash, restart loop. Healthcheck (pg_isready, curl ES _cluster/health) гарантирует, что dependent service стартует только когда dependency действительно готова принимать подключения."
+/>
+
+## Итоги
+
+- **Governance stack** строится послойно: Metadata -> Quality -> Observability -> Access Control -> Orchestration
+- **Docker Compose** -- стандарт для dev/test и команд до 20 человек; healthchecks и named volumes обязательны
+- **Kubernetes** -- production: Helm charts, operators, HA
+- **Интеграционные паттерны:** Quality -> Catalog, Classification -> Access Control, Orchestrator -> Quality -> Catalog -> Alert
+- **CDC/streaming** (Debezium) расширяет governance в real-time: quality checks на streaming data
+- **DataOps** интегрирует governance в CI/CD: quality gates, version control для policies
+
+В следующем уроке -- **оценка и выбор инструментов**: structured evaluation, TCO analysis, scoring matrices, stakeholder alignment.

@@ -1,0 +1,231 @@
+---
+title: "Инструменты качества данных и observability"
+description: "Data Quality инструменты (Great Expectations, Soda, dbt-expectations) и Data Observability платформы (Monte Carlo, Datafold, Bigeye). Различие quality vs observability."
+order: 3
+difficulty: "intermediate"
+estimatedTime: 25
+audience: "both"
+topics: ["Data Quality Tools", "Great Expectations", "Soda", "Monte Carlo", "Data Observability"]
+---
+
+import { QualityDashboard, ToolDeepDive } from '../../../components/diagrams/governance';
+
+# Инструменты качества данных и observability
+
+## Введение
+
+В модуле 04 мы изучили **принципы** Data Quality (качество данных): dimensions, правила, метрики. Теперь рассмотрим **инструменты**, которые автоматизируют проверку качества и мониторинг. Ключевое различие: **Quality tools** -- активная проверка (вы пишете правила), **Observability platforms** -- пассивный мониторинг (система обнаруживает аномалии автоматически).
+
+## Quality vs Observability: ключевое различие
+
+| Аспект | Data Quality Tools | Data Observability |
+|--------|-------------------|-------------------|
+| **Подход** | Активный: вы определяете правила | Пассивный: система обнаруживает аномалии |
+| **Analogy** | Unit tests для данных | Monitoring для данных |
+| **Когда срабатывает** | При запуске проверки (scheduled, CI/CD) | Непрерывно (streaming или periodic scan) |
+| **Что обнаруживает** | Нарушения известных правил | Неожиданные изменения (drift, freshness, volume) |
+| **Кто настраивает** | Data Engineer пишет expectations/tests | ML-модель обучается на исторических паттернах |
+| **Blind spots** | Не обнаружит неизвестные проблемы | False positives при изменении бизнес-паттернов |
+
+> **Ключевой принцип:** Quality и observability -- **комплементарны**, не взаимозаменяемы. Quality catches known issues. Observability catches unknown issues. Зрелая организация использует оба.
+
+## Data Quality инструменты
+
+<ToolDeepDive tool="Great Expectations" version="1.x" lastVerified="2026-03">
+
+### Great Expectations (GE)
+
+**Тип:** Open-source (Apache 2.0)
+**Язык:** Python
+**Deployment:** pip install, Docker, Airflow operator
+
+**Концепция:** Expectations -- декларативные правила качества. Expectation Suite -- набор правил для датасета. Checkpoint -- оркестрация запуска.
+
+**Сильные стороны:**
+- 300+ встроенных expectations (completeness, accuracy, consistency, freshness)
+- Data Docs -- автоматическая HTML-отчётность
+- Pluggable backend: Pandas, Spark, SQL
+- Интеграция: Airflow, dbt, Prefect, Dagster
+- Активное community: 9K+ GitHub stars
+
+**Ограничения:**
+- API изменения между 0.x и 1.x (breaking changes)
+- Python-only: нет native SQL-first подхода
+- Нет real-time monitoring (batch-only)
+- Steep learning curve для advanced customization
+
+**Когда выбирать:** Python-команда, batch pipelines, нужен comprehensive validation framework.
+
+</ToolDeepDive>
+
+> **Hands-On Lab: Quality Lab**
+>
+> Practice Great Expectations hands-on: write expectations against a dirty dataset, build validation suites, and run checkpoints:
+>
+> ```bash
+> cd labs/quality && cp .env.example .env && docker compose up -d --build
+> ```
+>
+> Open JupyterLab at [http://localhost:28888](http://localhost:28888). See `labs/quality/README.md` for full setup.
+
+<ToolDeepDive tool="Soda" version="3.x" lastVerified="2026-03">
+
+### Soda
+
+**Тип:** Open-source Core (Apache 2.0) + Soda Cloud (commercial)
+**Язык:** YAML (SodaCL -- Soda Checks Language)
+**Deployment:** pip install, Docker, CI/CD integration
+
+**Концепция:** Checks -- YAML-first правила качества. SodaCL -- декларативный DSL, понятный не-инженерам.
+
+```yaml
+# SodaCL example
+checks for orders:
+  - row_count > 0
+  - missing_count(order_id) = 0
+  - duplicate_count(order_id) = 0
+  - invalid_percent(status) < 5%:
+      valid values: [pending, confirmed, shipped, delivered]
+  - freshness(created_at) < 24h
+```
+
+**Сильные стороны:**
+- YAML-first: Data Stewards и аналитики могут писать checks без Python
+- SodaCL -- самый читаемый DSL для data quality
+- Freshness checks встроены (в отличие от GE batch-only)
+- Soda Cloud: UI для non-engineers, alerting, incidents
+- Лёгкий setup: pip install soda-core-postgres, одна команда
+
+**Ограничения:**
+- Меньше built-in checks, чем GE (150 vs 300+)
+- Сложная кастомизация (custom checks в Python -- менее гибко, чем GE)
+- Soda Cloud -- proprietary; open-source core ограничен
+- Меньше community, чем GE
+
+**Когда выбирать:** Мультифункциональная команда (engineers + analysts), YAML-first подход, нужен freshness monitoring.
+
+</ToolDeepDive>
+
+<ToolDeepDive tool="dbt-expectations" version="0.10.x" lastVerified="2026-03">
+
+### dbt-expectations
+
+**Тип:** Open-source (Apache 2.0), dbt package
+**Язык:** YAML + SQL (dbt schema.yml)
+**Deployment:** `dbt deps` (package install)
+
+**Концепция:** Портирует GE expectations в dbt-native YAML формат. 60+ macros: `expect_column_values_to_be_between`, `expect_table_row_count_to_be_between`, и т.д.
+
+**Сильные стороны:**
+- Native dbt integration -- zero additional infrastructure
+- GE expectations API в dbt YAML -- знакомый синтаксис
+- Запускается как часть `dbt test` -- no separate tooling
+- Отлично для dbt-centric teams
+
+**Ограничения:**
+- Только warehouse data (dbt limitation)
+- Нет Data Docs (dbt CLI output only)
+- Нет profiling, нет anomaly detection
+- Подмножество GE expectations (60 vs 300+)
+
+**Когда выбирать:** Уже используете dbt, нужны GE-style expectations без отдельного Python tooling.
+
+</ToolDeepDive>
+
+## Data Observability платформы
+
+<ToolDeepDive tool="Monte Carlo" version="SaaS" lastVerified="2026-03">
+
+### Monte Carlo
+
+**Тип:** Commercial SaaS
+**Pricing:** $50K-200K+/год
+
+**Концепция:** ML-powered data observability -- автоматически обучается на исторических паттернах и обнаруживает аномалии без ручных правил.
+
+**5 столпов observability (Monte Carlo framework):**
+1. **Freshness** -- данные обновляются по расписанию?
+2. **Volume** -- количество строк в пределах нормы?
+3. **Schema** -- структура таблицы не изменилась?
+4. **Distribution** -- распределение значений стабильно?
+5. **Lineage** -- impact analysis при обнаружении проблемы
+
+**Когда выбирать:** Enterprise с 500+ таблицами, budget > $50K, нужен automated anomaly detection.
+
+</ToolDeepDive>
+
+<ToolDeepDive tool="Datafold" version="SaaS" lastVerified="2026-03">
+
+### Datafold
+
+**Тип:** Commercial SaaS + open-source data-diff
+**Pricing:** $30K-100K+/год (SaaS), data-diff бесплатный
+
+**Концепция:** Data Diff -- сравнение данных между environments (staging vs production). CI/CD integration для dbt.
+
+**Сильные стороны:**
+- data-diff: open-source инструмент для сравнения таблиц
+- Column-level lineage (отдельная функция от observability)
+- dbt CI integration: автоматический diff на Pull Request
+- Визуальный lineage explorer
+
+**Когда выбирать:** dbt-команда с CI/CD, нужен regression testing и column-level lineage.
+
+</ToolDeepDive>
+
+## Quality + Observability: интеграционные паттерны
+
+| Паттерн | Quality Tool | Observability | Пример |
+|---------|-------------|--------------|--------|
+| **Quality-first** | GE/Soda в pipeline | Alerting при failure | DataTech Phase 2 |
+| **Observability-first** | Rules после обнаружения | ML anomaly detection | Enterprise с 500+ таблицами |
+| **Full stack** | GE + dbt tests | Monte Carlo / Datafold | FinSecure target state |
+
+<QualityDashboard
+  title="DataTech: Quality Tool Stack Targets"
+  dimensions={[
+    { name: "Completeness", score: 0.45, target: 0.95, tooltip: "45% таблиц имеют not_null checks. Target: 95% critical таблиц с completeness validation." },
+    { name: "Freshness", score: 0.30, target: 0.90, tooltip: "30% pipelines имеют freshness SLA. Target: 90% critical pipelines monitored." },
+    { name: "Accuracy", score: 0.20, target: 0.80, tooltip: "20% столбцов имеют range/format checks. Target: 80% financial columns validated." },
+    { name: "Consistency", score: 0.10, target: 0.85, tooltip: "10% FK-связей проверяются. Target: 85% referential integrity enforced." }
+  ]}
+/>
+
+## Сценарии
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> DataTech (Level 1): нет quality tooling. 15% дубликатов в CRM, freshness SLA не определены.
+>
+> **План внедрения:**
+> 1. **Неделя 1-2:** dbt tests (built-in: unique, not_null) на 120 моделей -- quick win, zero new tooling
+> 2. **Неделя 3-4:** Great Expectations для raw data (CSV от партнёров, API data) -- pipeline integration через Airflow
+> 3. **Месяц 2-3:** Soda freshness checks на critical pipelines -- freshness SLA enforcement
+> 4. **Месяц 6+:** Оценка observability (Monte Carlo / open-source alternative) при достижении 200+ таблиц
+
+> **Сценарий: FinSecure Bank (ФинСекьюр Банк)**
+>
+> FinSecure (Level 3): Spark batch checks покрывают 60% критических pipelines. Pain points: нет real-time monitoring, Spark checks не обнаруживают distribution drift.
+>
+> **План расширения:**
+> 1. **dbt-expectations** для Snowflake warehouse (300+ моделей)
+> 2. **Great Expectations** для Kafka consumer data (regulatory reports)
+> 3. **Monte Carlo** или **Datafold** для anomaly detection на 800+ таблицах Oracle + Snowflake
+> 4. Интеграция: quality results -> OpenMetadata catalog -> unified dashboard
+
+<KnowledgeCheck
+  question="DataTech внедряет dbt tests (unique, not_null) на 120 моделей и обнаруживает 15% дубликатов. Достаточно ли dbt tests для полного покрытия качества, или нужен Great Expectations?"
+  answer="dbt tests покрывают данные внутри dbt pipeline (warehouse). Но DataTech получает CSV от партнёров и API-данные, которые не проходят через dbt. Для этих данных нужен Great Expectations: валидация raw data до загрузки в warehouse. Комбинация: dbt tests для warehouse + GE для raw data = полное покрытие. dbt tests -- quick win (zero new tooling), GE -- расширение на raw data."
+/>
+
+## Итоги
+
+- **Quality tools** (GE, Soda, dbt-expectations) -- активная проверка: вы пишете правила
+- **Observability platforms** (Monte Carlo, Datafold, Bigeye) -- пассивный мониторинг: ML обнаруживает аномалии
+- **Great Expectations** -- comprehensive Python framework (300+ expectations, Data Docs)
+- **Soda** -- YAML-first DSL, доступный для non-engineers
+- **dbt-expectations** -- GE в dbt native, zero new tooling
+- Quality и observability **комплементарны**: quality catches known, observability catches unknown
+- **Начинайте с quality** (active rules), добавляйте observability при масштабировании
+
+В следующем уроке -- **развёртывание governance tech stack**: Docker Compose, Kubernetes, интеграционные паттерны, DataOps toolchain.

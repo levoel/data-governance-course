@@ -1,0 +1,126 @@
+---
+title: "Ландшафт инструментов Data Governance"
+description: "Категории governance-инструментов: каталоги, качество, observability, access control, policy engines. Build vs buy. Open-source vs commercial."
+order: 1
+difficulty: "intermediate"
+estimatedTime: 20
+audience: "both"
+topics: ["Governance Tools", "Tool Categories", "Governance Tech Stack"]
+---
+
+import { DecisionMatrix } from '../../../components/diagrams/governance';
+
+# Ландшафт инструментов Data Governance
+
+## Введение
+
+В предыдущих модулях мы построили **процессы, политики и организационные структуры** Data Governance (управление данными). Теперь вопрос: какие **инструменты** поддерживают эти процессы? Ландшафт governance-инструментов в 2024-2025 годах огромен -- десятки продуктов в каждой категории. Этот урок даёт карту категорий и критерии навигации.
+
+## Категории governance-инструментов
+
+Governance-инструменты делятся на **пять основных категорий**, каждая из которых решает свой класс задач:
+
+| Категория | Задача | Примеры |
+|-----------|--------|---------|
+| **Каталоги данных** (Data Catalog) | Обнаружение, документирование, lineage | OpenMetadata, DataHub, Amundsen, Collibra |
+| **Качество данных** (Data Quality) | Валидация, profiling, тестирование | Great Expectations, Soda, dbt tests |
+| **Observability данных** (Data Observability) | Мониторинг, аномалии, freshness | Monte Carlo, Datafold, Bigeye |
+| **Контроль доступа** (Access Control) | RBAC, ABAC, audit logging | Apache Ranger, Open Policy Agent, Vault |
+| **Policy engines** | Автоматизация enforcement политик | OPA/Rego, Dataplex, Purview |
+
+<FlowRow>
+  <FlowNode label="Data Catalog" tooltip="Центральный реестр: метаданные, lineage, search, owners. Фундамент governance tech stack." variant="catalog" />
+  <Arrow />
+  <FlowNode label="Data Quality" tooltip="Валидация правил качества: completeness, accuracy, consistency, freshness. Активные проверки." variant="pipeline" />
+  <Arrow />
+  <FlowNode label="Observability" tooltip="Пассивный мониторинг: аномалии, drift, freshness SLA. Обнаружение проблем до бизнес-impact." variant="process" />
+</FlowRow>
+
+<FlowRow>
+  <FlowNode label="Access Control" tooltip="Управление доступом: кто видит какие данные. RBAC, ABAC, row-level security, masking." variant="policy" />
+  <Arrow />
+  <FlowNode label="Policy Engine" tooltip="Автоматический enforcement: политики как код, validation gates, compliance checks." variant="config" />
+</FlowRow>
+
+## Build vs Buy: фреймворк решения
+
+Ключевой вопрос для каждой категории: **строить своё или покупать готовое?** Фреймворк включает 5 факторов:
+
+<DecisionMatrix
+  title="Build vs Buy: оценка по категориям"
+  criteria={[
+    { name: "Специфичность", weight: 0.25, description: "Насколько уникальны ваши требования?" },
+    { name: "Зрелость рынка", weight: 0.25, description: "Есть ли зрелые продукты для этой категории?" },
+    { name: "Стоимость владения", weight: 0.20, description: "TCO: лицензия + инфраструктура + поддержка + обновления" },
+    { name: "Скорость запуска", weight: 0.15, description: "Время до первого результата" },
+    { name: "Команда", weight: 0.15, description: "Есть ли инженеры для поддержки custom-решения?" }
+  ]}
+  options={[
+    { name: "Buy (commercial)", scores: { "Специфичность": 2, "Зрелость рынка": 5, "Стоимость владения": 2, "Скорость запуска": 5, "Команда": 5 } },
+    { name: "Adopt (open-source)", scores: { "Специфичность": 3, "Зрелость рынка": 4, "Стоимость владения": 4, "Скорость запуска": 4, "Команда": 3 } },
+    { name: "Build (custom)", scores: { "Специфичность": 5, "Зрелость рынка": 1, "Стоимость владения": 3, "Скорость запуска": 1, "Команда": 1 } }
+  ]}
+/>
+
+**Правило: в 80% случаев правильный ответ -- Adopt (open-source).** Commercial покупают при масштабе 1000+ пользователей или жёстких compliance-требованиях. Build оправдан только когда требования настолько специфичны, что ни один продукт не покрывает >50% функциональности.
+
+## Open-source vs commercial: трезвая оценка
+
+| Фактор | Open-source | Commercial |
+|--------|------------|-----------|
+| **Стоимость лицензии** | $0 | $50K-500K+/год |
+| **Стоимость инфраструктуры** | Ваши серверы | SaaS или ваши серверы |
+| **Поддержка** | Community + платная опция | Включена (SLA) |
+| **Обновления** | Вы контролируете (и несёте ответственность) | Вендор обновляет |
+| **Vendor lock-in** | Низкий | Высокий (проприетарные форматы) |
+| **Compliance-сертификации** | Редко (SOC2, HIPAA) | Часто включены |
+| **Масштабируемость** | Зависит от вашей инфраструктуры | Встроенная |
+
+## Сигналы зрелости инструмента
+
+Перед выбором оценивайте **зрелость инструмента** по 6 сигналам:
+
+1. **Community size** -- GitHub stars, contributors, release cadence
+2. **Production references** -- кто использует в production (не PoC)
+3. **API completeness** -- REST/GraphQL API для автоматизации
+4. **Integration ecosystem** -- коннекторы к вашему tech stack
+5. **Documentation quality** -- актуальность, примеры, migration guides
+6. **Backward compatibility** -- breaking changes между major versions
+
+> **Ключевой дифференциатор:** Для governance **интеграция между инструментами важнее функциональности одного инструмента.** Каталог, который не интегрируется с quality-проверками, бесполезен для governance -- это просто CMDB.
+
+## Сценарий: DataTech Solutions
+
+> **Сценарий: DataTech Solutions (ДатаТех Солюшенз)**
+>
+> DataTech начинает governance с нуля (Level 1). VP Engineering спрашивает: "С какой категории инструментов начать?" Команда из 7 человек, бюджет ограничен.
+>
+> **Приоритизация категорий для DataTech:**
+>
+> 1. **Data Catalog** -- первый приоритет: решает pain point #5 (no metadata, 3 недели onboarding). OpenMetadata -- open-source, 4-6 GB RAM.
+> 2. **Data Quality** -- второй: решает pain point #1 (15% дубликатов). Great Expectations + dbt tests -- open-source, интегрируется с Airflow.
+> 3. **Access Control** -- третий: решает pain point #3 (shared credentials). PostgreSQL built-in RBAC + application-level policies.
+> 4. **Observability** -- четвёртый: после запуска quality checks, мониторинг freshness SLA.
+> 5. **Policy Engine** -- пятый: при достижении Level 2, когда появятся формализованные политики.
+>
+> **Принцип:** Для Level 1 организации -- **каталог первым** (visibility), **quality вторым** (measurement), остальное по мере созревания процессов.
+
+<KnowledgeCheck
+  question="DataTech выбирает между коммерческим каталогом (Collibra, $200K/год, SaaS, SOC2-certified) и open-source (OpenMetadata, self-hosted, 4-6 GB RAM). Команда -- 7 человек, бюджет ограничен. Какой фактор решающий?"
+  answer="Стоимость владения и размер команды. Collibra стоит $200K/год -- это 6.5% от бюджета DataTech. OpenMetadata бесплатен по лицензии, требует 1-2 дня на deploy и 0.5 FTE на поддержку. Для команды из 7 человек open-source -- единственный реалистичный вариант. Collibra оправдан при 1000+ пользователей, dedicated governance team, и необходимости SOC2/HIPAA compliance."
+/>
+
+<KnowledgeCheck
+  question="Почему интеграция между инструментами важнее функциональности отдельного инструмента для governance?"
+  answer="Governance -- это cross-cutting concern: качество данных нужно видеть в каталоге, lineage связывает источники с дашбордами, access control применяется на основе classification из каталога. Если каталог не знает о результатах quality checks, Data Steward не видит полной картины. Лучший в мире каталог без интеграции с quality и access -- это изолированный CMDB, а не governance-инструмент. Поэтому при выборе приоритезируйте API и коннекторы, а не UI features."
+/>
+
+## Итоги
+
+- **5 категорий** governance-инструментов: каталоги, качество, observability, access control, policy engines
+- **Build vs Buy:** в 80% случаев Adopt (open-source) -- правильный выбор для команд до 50 человек
+- **Зрелость** инструмента оценивается по community, production references, API, integrations, docs, backward compatibility
+- **Интеграция** между инструментами -- ключевой дифференциатор, важнее feature set одного продукта
+- **Приоритизация для Level 1:** каталог -> качество -> access control -> observability -> policy engine
+
+В следующем уроке мы детально разберём первую категорию -- **платформы каталогов данных**: OpenMetadata, DataHub, Amundsen, Collibra.
