@@ -1,0 +1,64 @@
+{
+  "lessonSlug": "10-capstone/04-next-steps-certification",
+  "moduleId": "10-capstone",
+  "_meta": {
+    "idPrefix": "dg-m10-04",
+    "description": "Use IDs: dg-m10-04-q1 through dg-m10-04-q4. No code challenge."
+  },
+  "questions": [
+    {
+      "id": "dg-m10-04-q1",
+      "type": "multiple-choice",
+      "question": "После завершения курса Data Governance специалист хочет закрепить знания. Какие два действия дадут наибольшую практическую пользу?",
+      "options": [
+        { "id": "a", "text": "Пересдать все экзамены модулей и получить CDMP сертификацию" },
+        { "id": "b", "text": "Запустить Community of Practice в организации и провести assessment своей организации по фреймворку из M10. CoP обеспечивает устойчивую среду для применения знаний, assessment -- немедленное практическое применение" },
+        { "id": "c", "text": "Прочитать DMBOK2 целиком и подготовиться к CDMP" },
+        { "id": "d", "text": "Ожидать, пока руководство инициирует governance-программу" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Practice > theory. Community of Practice (CoP): (1) Governance невозможен в одиночку -- нужна поддержка data engineers, analysts, legal. (2) Bi-weekly meetups на конкретных кейсах (не абстрактных теориях). (3) Internal wiki для документирования решений. Assessment framework: (1) Немедленное применение M01 (maturity model) + M10 (assessment methodology). (2) 6 доменов дают полную картину. (3) Gap analysis показывает конкретные следующие шаги. CDMP (A, C) ценна для карьеры, но не заменяет практику. Ожидание (D) = bottom-up возможно без top-down инициативы. Повторите урок 4 (next steps).",
+      "hint": "Теория без практики = знания без навыков. Какие действия создают практический опыт?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m10-04-q2",
+      "type": "multiple-choice",
+      "question": "Три тренда Data Governance ближайших 3-5 лет: AI Governance, Data Mesh Governance, Real-Time Governance. Какой тренд наиболее критичен для организации, переходящей с Level 2 на Level 3?",
+      "options": [
+        { "id": "a", "text": "AI Governance: EU AI Act требует немедленного compliance" },
+        { "id": "b", "text": "Data Mesh Governance: децентрализация решает все проблемы Level 2" },
+        { "id": "c", "text": "Зависит от контекста, но для L2->L3 transition наиболее критичен Real-Time Governance: переход от batch checks (ежедневные) к continuous monitoring (near-real-time). L3 = стандартизованные процессы, что требует automated enforcement, continuous compliance, event-driven quality. CDC + streaming quality + policy-as-code" },
+        { "id": "d", "text": "Ни один -- L2->L3 transition не требует новых трендов" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "L2->L3 = от 'managed' (documented processes) к 'defined' (standardized, proactive). Real-Time Governance наиболее релевантен: (1) Batch checks (L2) -> continuous monitoring (L3): quality SLAs enforced в near-real-time. (2) Annual audit compliance (L2) -> automated enforcement (L3): policy-as-code через OPA/Rego. (3) Reactive quality (L2) -> event-driven quality (L3): CDC captures changes, quality validated at ingestion. AI Governance (A): EU AI Act important, но не blocking для L2->L3 transition (можно решать параллельно). Data Mesh (B): архитектурный pattern для L4+ организаций, premature для L2->L3. Повторите урок 4 (тренды).",
+      "hint": "L2 = documented processes, batch checks, annual audit. L3 = standardized, proactive, automated. Какой тренд закрывает этот gap?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m10-04-q3",
+      "type": "true-false",
+      "question": "CDMP (Certified Data Management Professional) сертификация гарантирует успешное внедрение governance-программы в организации.",
+      "correctAnswer": false,
+      "explanation": "Сертификация подтверждает знания (14 областей DMBOK2), но не гарантирует навыки внедрения. Governance program success depends on: (1) Organizational context (M07): executive sponsorship, budget, culture. CDMP не учит negotiate budget или manage stakeholder resistance. (2) Technical implementation (M09): tool selection, deployment, integration. CDMP covers theory, не hands-on. (3) Change management (M07, M10): CoP, champions, training. Interpersonal skills > certification. (4) Domain expertise: healthcare (BioGenesis) vs fintech (FinSecure) -- industry context matters. CDMP ценна для карьеры (salary +15-20%, credibility) и для structured learning, но НЕ sufficient для success. Combination: CDMP knowledge + practical experience (CoP + assessment) = effective governance professional. Повторите урок 4 (сертификации).",
+      "hint": "Certification = knowledge. Implementation = knowledge + skills + context + people. Что certification не покрывает?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m10-04-q4",
+      "type": "multiple-choice",
+      "question": "Data Engineer хочет специализироваться в Data Governance. Какие модули курса наиболее релевантны для углубления и какой карьерный путь открыт?",
+      "options": [
+        { "id": "a", "text": "M01 + M07: стать CDO (Chief Data Officer)" },
+        { "id": "b", "text": "M03 (Metadata) + M04 (Quality) + M09 (Tools): Data Governance Engineer. Роль на пересечении engineering + governance: автоматизация quality checks, deployment каталогов, policy-as-code, CI/CD для governance. Растущий спрос (governance automation)" },
+        { "id": "c", "text": "M05 + M06: стать DPO (Data Protection Officer)" },
+        { "id": "d", "text": "Все модули одинаково важны для Data Engineer" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Data Governance Engineer -- emerging role на пересечении engineering + governance: (1) M03 (Metadata): deploy и configure data catalogs (OpenMetadata, DataHub), metadata ingestion pipelines, lineage automation. (2) M04 (Quality): implement quality frameworks (GE, dbt tests), monitoring dashboards, alerting. (3) M09 (Tools): tool evaluation, Docker deployment, integration between tools, CDC setup. Technical skills: Python, SQL, Docker, YAML, API integration. Governance skills: quality dimensions, metadata standards, privacy requirements. CDO (A) -- executive role, requires business + leadership skills. DPO (C) -- legal/compliance role, requires legal background. All modules (D) -- breadth без depth. Governance Engineer: depth in M03 + M04 + M09, breadth in M01 + M05 + M06. Повторите урок 4 (рекомендации по развитию).",
+      "hint": "Data Engineer -> governance. Какие домены leveraged engineering skills (tools, automation, code)?",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

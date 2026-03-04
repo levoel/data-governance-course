@@ -1,0 +1,93 @@
+{
+  "lessonSlug": "10-capstone/03-cross-company-analysis",
+  "moduleId": "10-capstone",
+  "_meta": {
+    "idPrefix": "dg-m10-03",
+    "description": "Use IDs: dg-m10-03-q1 through dg-m10-03-q4, dg-m10-03-code-1 (CC-42 Python Governance Maturity Comparison)"
+  },
+  "questions": [
+    {
+      "id": "dg-m10-03-q1",
+      "type": "multiple-choice",
+      "question": "При кросс-компанийном анализе AI Governance -- самый слабый домен у всех трёх компаний (DataTech: 0/5, BioGenesis: 1/5, FinSecure: 2/5). Какой фактор наиболее точно объясняет эту закономерность?",
+      "options": [
+        { "id": "a", "text": "AI Governance не важна для этих отраслей" },
+        { "id": "b", "text": "ML-модели не используются в governance контексте" },
+        { "id": "c", "text": "AI Governance -- самый молодой домен: регулирование запаздывает (EU AI Act -- 2024, Россия -- нет AI-specific regulation), инструменты незрелы (model registries с 2022-2023), экспертиза редка (пересечение ML + governance + ethics). Без regulatory pressure компании не инвестируют" },
+        { "id": "d", "text": "Компании намеренно игнорируют AI Governance для ускорения ML разработки" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "AI Governance (M08) -- youngest domain в Data Governance. Три причины universal weakness: (1) Regulatory lag: EU AI Act принят в 2024 -- первый comprehensive framework. Россия не имеет AI-specific regulation. Без regulatory pressure инвестиции минимальны. (2) Tool immaturity: model registries (MLflow, Weights & Biases), fairness testing (Fairlearn, AIF360) -- 2022-2024 products. Не enterprise-ready. (3) Skill scarcity: ML + governance + ethics = unicorn intersection. DataTech (0) -- вообще нет governance. BioGenesis (1) -- ML researcher, но без governance framework. FinSecure (2) -- Model Risk Committee, но без automation. Прогноз: AI Governance = fastest-growing domain (аналогично privacy после GDPR 2018). Повторите M08 и урок 3.",
+      "hint": "Все три компании используют ML. Все три слабы в AI Governance. Что общего? Регулирование, инструменты, экспертиза.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m10-03-q2",
+      "type": "multiple-choice",
+      "question": "FinSecure (Level 3, 30 человек data team, OpenMetadata deployed) имеет 47 published governance политик. При annual audit обнаруживается, что 30% не enforced. DataTech (Level 1, 7 человек, нет инструментов) не имеет ни одной политики. Какая компания в лучшем положении для governance improvement?",
+      "options": [
+        { "id": "a", "text": "FinSecure: 47 политик -- solid foundation, нужно только добавить enforcement" },
+        { "id": "b", "text": "DataTech: чистый лист -- можно сразу строить правильно без legacy" },
+        { "id": "c", "text": "FinSecure в лучшем положении: инфраструктура существует (OpenMetadata, Vault, stewards). Проблема enforcement решаема: policy-as-code через OPA/Rego (M09) для top 10 critical policies. DataTech нужно строить всё с нуля, включая roles, tools, processes -- 12-18 месяцев до Level 3. FinSecure нужны 3-6 месяцев на automation" },
+        { "id": "d", "text": "Невозможно сравнить -- разные отрасли" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "FinSecure in better position: (1) Infrastructure exists: OpenMetadata (40%), Vault, RBAC, stewards, council. DataTech needs to build all this. (2) Enforcement gap is solvable: top 10 policies -> OPA/Rego (M09, урок 4). 80/20 rule: 10 из 47 политик покрывают 80% compliance risk. (3) People exist: 30 data team members vs 7. Time to improve: FinSecure 3-6 months (automation) vs DataTech 12-18 months (build everything). DataTech advantage (B) -- 'clean slate' -- реальна для architecture decisions, но governance программа требует people + processes + tools, и DataTech начинает с 0 во всех трёх. Повторите урок 3 (Level 3 lessons).",
+      "hint": "FinSecure: infrastructure + people exist, need automation. DataTech: need everything. Что быстрее: автоматизировать существующее или построить с нуля?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m10-03-q3",
+      "type": "true-false",
+      "question": "Размер организации -- главный фактор, определяющий уровень governance maturity. Большие организации всегда более зрелые.",
+      "correctAnswer": false,
+      "explanation": "Размер НЕ определяет maturity. Контрпример из курса: BioGenesis (200 человек, Level 2) более зрела, чем DataTech (500 человек, Level 1). Причина: регуляторное давление. BioGenesis работает с patient data (152-ФЗ, 323-ФЗ, GCP) -- регуляторы заставляют внедрять governance для клинических данных. DataTech работает с e-commerce data -- регуляторное давление ниже (152-ФЗ, но без medical data requirements). Факторы maturity: (1) Regulatory pressure (primary driver). (2) Data sensitivity. (3) Executive sponsorship. (4) Industry maturity. Размер -- secondary factor (больше ресурсов, но и больше complexity). Повторите урок 3 (cross-company analysis).",
+      "hint": "BioGenesis 200 человек, Level 2. DataTech 500 человек, Level 1. Что определяет maturity, если не размер?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m10-03-q4",
+      "type": "multiple-choice",
+      "question": "Все три компании нуждаются в streaming governance по мере роста. DataTech -- streaming order events, BioGenesis -- streaming lab results, FinSecure -- Kafka 200+ topics. Какой подход к streaming governance наиболее универсален?",
+      "options": [
+        { "id": "a", "text": "Увеличить частоту batch checks до каждых 5 минут" },
+        { "id": "b", "text": "CDC (Change Data Capture) через Debezium: captures changes из source DB -> Kafka -> quality validation consumer + lineage tracking. Универсален, потому что: работает с любой source DB (PostgreSQL, Oracle, MySQL), quality checks в near-real-time, lineage для каждого изменения, compliance audit trail в Kafka topic" },
+        { "id": "c", "text": "Streaming governance невозможна -- quality проверяется только в batch" },
+        { "id": "d", "text": "Каждая компания должна использовать разный подход к streaming governance" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "CDC через Debezium -- универсальный подход к streaming governance: (1) DataTech (PostgreSQL) -> Debezium captures order changes -> quality validation. (2) BioGenesis (PostgreSQL) -> Debezium captures lab results -> quality + consent validation. (3) FinSecure (Oracle + PostgreSQL) -> Debezium captures transactions -> compliance audit trail. Debezium supports all three source DBs. Benefits: real-time lineage (каждое изменение tracked), quality checks at ingestion (не post-factum), audit trail (compliance). Batch с высокой частотой (A) -- resource-intensive, не true real-time, не provides lineage. Streaming governance (C) -- возможна и практикуется. Повторите урок 3 (streaming governance) и cross-course reference Debezium CDC.",
+      "hint": "CDC = Change Data Capture. Debezium поддерживает PostgreSQL, Oracle, MySQL. Все три компании используют эти DB.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m10-03-code-1",
+      "type": "code-challenge",
+      "question": "Напишите функцию compare_governance_maturity(companies), которая сравнивает governance maturity трёх компаний по 6 доменам. Для каждой компании: вычислите средний балл. Постройте leaderboard (сортировка по maturity level, затем по avg score). Для каждого домена: ранжируйте компании. Для каждой компании: определите strongest/weakest areas и top 3 priorities (lowest scores). Найдите weakest dimension across all companies.",
+      "language": "python",
+      "starterCode": "import json\nimport sys\n\ndef compare_governance_maturity(companies):\n    # TODO: Implement comparison logic\n    # 1. Calculate average score per company\n    # 2. Build overall leaderboard (sort by level, then avg)\n    # 3. Dimension-by-dimension ranking\n    # 4. Per-company analysis (strongest, weakest, priorities)\n    # 5. Industry insight (weakest dimension across all)\n    pass\n\n# Read input\ndata = json.loads(sys.stdin.read())\nresult = compare_governance_maturity(data['companies'])\nprint(result)",
+      "solutionCode": "import json\nimport sys\n\ndef compare_governance_maturity(companies):\n    # Calculate averages\n    company_stats = []\n    for name, info in companies.items():\n        dims = info['dimensions']\n        avg = sum(dims.values()) / len(dims)\n        company_stats.append((name, info['maturity_level'], avg, dims))\n    \n    # Sort by maturity level desc, then avg desc\n    company_stats.sort(key=lambda x: (x[1], x[2]), reverse=True)\n    \n    lines = ['=== GOVERNANCE MATURITY COMPARISON ===']\n    lines.append('')\n    \n    # Overall Leaderboard\n    lines.append('Overall Leaderboard:')\n    for i, (name, level, avg, _) in enumerate(company_stats, 1):\n        lines.append(f'  {i}. {name:<22} Level {level} (avg: {avg:.2f})')\n    lines.append('')\n    \n    # Dimension Rankings\n    dim_names = ['quality', 'metadata', 'privacy', 'security', 'organization', 'ai_governance']\n    dim_labels = {\n        'quality': 'Quality', 'metadata': 'Metadata', 'privacy': 'Privacy',\n        'security': 'Security', 'organization': 'Organization', 'ai_governance': 'AI Governance'\n    }\n    \n    lines.append('Dimension Rankings:')\n    dim_averages = {}\n    for dim in dim_names:\n        scores = [(name, dims[dim]) for name, _, _, dims in company_stats]\n        scores.sort(key=lambda x: x[1], reverse=True)\n        dim_averages[dim] = sum(s for _, s in scores) / len(scores)\n        \n        # Build ranking string with ties\n        parts = []\n        for j, (name, score) in enumerate(scores):\n            short = name.split()[0]\n            if j > 0 and score == scores[j-1][1]:\n                parts.append(f'= {short} ({score})')\n            elif j > 0:\n                parts.append(f'> {short} ({score})')\n            else:\n                parts.append(f'{short} ({score})')\n        label = dim_labels[dim]\n        lines.append(f'  {label + \":\":<16}{\" \".join(parts)}')\n    lines.append('')\n    \n    # Per-Company Analysis\n    lines.append('Per-Company Analysis:')\n    for name, level, avg, dims in company_stats:\n        lines.append(f'  {name} (Level {level}):')\n        \n        max_score = max(dims.values())\n        min_score = min(dims.values())\n        strongest = [d for d, s in dims.items() if s == max_score]\n        weakest = [d for d, s in dims.items() if s == min_score]\n        \n        lines.append(f'    Strongest: {\", \".join(strongest)} (score: {max_score})')\n        lines.append(f'    Weakest: {\", \".join(weakest)} (score: {min_score})')\n        \n        # Priorities: bottom 3 dimensions\n        sorted_dims = sorted(dims.items(), key=lambda x: x[1])\n        priorities = [d for d, _ in sorted_dims[:3]]\n        lines.append(f'    Priority: {\", \".join(priorities)}')\n        lines.append('')\n    \n    # Industry insight\n    weakest_dim = min(dim_averages, key=dim_averages.get)\n    weakest_avg = dim_averages[weakest_dim]\n    lines.append(f'Industry Insight: {dim_labels[weakest_dim]} is the weakest dimension across all companies (avg: {weakest_avg:.2f})')\n    lines.append('')\n    lines.append('=== END COMPARISON ===')\n    \n    return '\\n'.join(lines)\n\ndata = json.loads(sys.stdin.read())\nresult = compare_governance_maturity(data['companies'])\nprint(result)",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Compare three companies: DataTech (L1), BioGenesis (L2), FinSecure (L3)",
+          "expectedOutput": "=== GOVERNANCE MATURITY COMPARISON ===\n\nOverall Leaderboard:\n  1. FinSecure Bank       Level 3 (avg: 3.33)\n  2. BioGenesis Lab       Level 2 (avg: 2.17)\n  3. DataTech Solutions    Level 1 (avg: 1.17)\n\nDimension Rankings:\n  Quality:        FinSecure (4) > BioGenesis (3) > DataTech (2)\n  Metadata:       FinSecure (3) > BioGenesis (2) > DataTech (1)\n  Privacy:        FinSecure (4) > BioGenesis (3) > DataTech (1)\n  Security:       FinSecure (4) > DataTech (2) = BioGenesis (2)\n  Organization:   FinSecure (3) > BioGenesis (2) > DataTech (1)\n  AI Governance:  FinSecure (2) > BioGenesis (1) > DataTech (0)\n\nPer-Company Analysis:\n  DataTech Solutions (Level 1):\n    Strongest: quality, security (score: 2)\n    Weakest: ai_governance (score: 0)\n    Priority: ai_governance, metadata, privacy\n\n  BioGenesis Lab (Level 2):\n    Strongest: quality, privacy (score: 3)\n    Weakest: ai_governance (score: 1)\n    Priority: ai_governance, metadata, security\n\n  FinSecure Bank (Level 3):\n    Strongest: quality, privacy, security (score: 4)\n    Weakest: ai_governance (score: 2)\n    Priority: ai_governance, metadata, organization\n\nIndustry Insight: AI Governance is the weakest dimension across all companies (avg: 1.00)\n\n=== END COMPARISON ==="
+        },
+        {
+          "id": "tc2",
+          "description": "Compare two equal-level companies to verify tie-handling in rankings",
+          "expectedOutput": "Correct handling of equal scores with = operator and proper sorting"
+        },
+        {
+          "id": "tc3",
+          "description": "Compare companies with different weakest dimensions",
+          "expectedOutput": "Correct identification of per-company and cross-company weakest dimensions",
+          "hidden": true
+        }
+      ],
+      "explanation": "Governance Maturity Comparison -- кросс-компанийный анализ по 6 доменам. Leaderboard сортируется по maturity level, затем по среднему баллу. Dimension rankings показывают, кто лидирует в каждом домене (с учётом ties). Per-company analysis определяет strongest/weakest areas и priorities (lowest scores). Industry insight -- weakest dimension across all companies (в нашем случае AI Governance). Повторите урок 3 (кросс-компанийный анализ).",
+      "hint": "6 доменов: quality, metadata, privacy, security, organization, ai_governance. Для каждого -- ранжировать компании. Для каждой компании -- найти max/min scores. Average = sum/6. Sort leaderboard by (level, avg) descending.",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "lessonSlug": "10-capstone/02-organizational-assessment",
+  "moduleId": "10-capstone",
+  "_meta": {
+    "idPrefix": "dg-m10-02",
+    "description": "Use IDs: dg-m10-02-q1 through dg-m10-02-q4, dg-m10-02-code-1 (CC-41 JSON Governance Assessment Output)"
+  },
+  "questions": [
+    {
+      "id": "dg-m10-02-q1",
+      "type": "multiple-choice",
+      "question": "BioGenesis Lab (Level 2, healthcare/biotech) проводит governance assessment. IRB/этический комитет утверждает: 'Мы уже рассматриваем все протоколы исследований -- governance функция работает.' Head of Research сомневается. Что не покрывает IRB?",
+      "options": [
+        { "id": "a", "text": "IRB полностью покрывает governance для research организации" },
+        { "id": "b", "text": "IRB рассматривает дизайн исследования (pre-approval), но не аудирует runtime: фактический доступ к данным (M06), соблюдение де-идентификации (M05), training data lineage ML-моделей (M08). Protocol says 'use de-identified data', но IRB не проверяет, видит ли исследователь PII в JupyterHub" },
+        { "id": "c", "text": "IRB не покрывает только ML-модели, остальное в порядке" },
+        { "id": "d", "text": "IRB нужно просто расширить scope -- отдельный governance council не нужен" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "IRB = pre-approval governance (design time), не runtime governance. Три critical gaps: (1) Access audit (M06): 25 исследователей в JupyterHub видят все datasets без project-based segregation. IRB одобрил протокол, но не проверяет, что исследователь Project A не обращается к данным Project B. (2) De-identification enforcement (M05): протокол требует де-идентификации, но pipeline не построен -- исследователи видят прямые идентификаторы. (3) ML training lineage (M08): ML researcher обучил модель на patient data, но невозможно проследить, какие данные использованы. Governance Council (D) нужен отдельно, потому что IRB -- это research ethics, не data governance. Повторите урок 2 (assessment framework).",
+      "hint": "IRB одобряет протокол (design). Кто проверяет, что протокол соблюдается в runtime (фактический доступ, де-идентификация)?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m10-02-q2",
+      "type": "multiple-choice",
+      "question": "В gap analysis BioGenesis приоритет P1 получили три домена: Приватность (consent + de-identification), Безопасность (JupyterHub access), Организация (council + DPO). AI Governance получила P3. Почему AI Governance -- не P1, если ML-модели тоже используют patient data?",
+      "options": [
+        { "id": "a", "text": "AI Governance менее важна для healthcare" },
+        { "id": "b", "text": "AI Governance имеет средний impact (нет AI-specific regulation для biotech L2) и среднюю сложность (требует каталог + lineage). P1 items имеют высокий impact (текущая exposure patient data через JupyterHub) и низкую сложность (access control = 1-2 недели настройки). Приоритизация = impact / complexity, не абсолютная важность" },
+        { "id": "c", "text": "AI Governance зависит от инструментов, которых у BioGenesis нет" },
+        { "id": "d", "text": "ML-модели BioGenesis не используют patient data" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Приоритизация по двум осям (M10, урок 2): (1) Impact: JupyterHub exposure = текущий risk (25 researchers see all patient data RIGHT NOW). AI Governance = future risk (регуляторы не требуют model cards от biotech L2 сегодня). (2) Complexity: JupyterHub access = low (project-based groups, 1-2 недели). AI Governance = medium-high (requires data catalog for lineage, model registry, fairness testing framework -- 3-6 месяцев). P1 = high impact + low complexity. P3 = medium impact + medium complexity + dependencies (каталог должен быть сначала). ML-модели (D) используют patient data, но risk реализуется при regulatory audit, а не при ежедневной работе. Повторите урок 2 (матрица приоритизации).",
+      "hint": "P1: что горит сейчас и быстро чинится. P3: что важно, но сложно и зависит от других инициатив.",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m10-02-q3",
+      "type": "true-false",
+      "question": "При assessment BioGenesis dimension 'Приватность' получила 2/5, потому что бумажные формы согласия пациентов собираются. Этого достаточно для 152-ФЗ compliance.",
+      "correctAnswer": false,
+      "explanation": "Бумажные формы согласия -- необходимый, но недостаточный шаг. Gaps для 152-ФЗ (M05): (1) Бумажные формы не привязаны к digital records -- невозможно автоматически определить, какие данные пациента обрабатываются по какому согласию. (2) Нет digital consent management -- невозможно автоматически enforce withdrawal of consent. (3) Нет де-идентификации -- исследователи видят прямые идентификаторы (имена, даты рождения). (4) Неясно, покрывает ли согласие secondary research use -- genomic data collected для диагностики, но используется в ML training. 152-ФЗ требует: цели обработки определены, согласие получено на конкретные цели, возможность отзыва реализована. Бумажная форма без digital enforcement = partial compliance. Повторите M05 и урок 2.",
+      "hint": "Бумажная форма собрана. Но: привязана ли к digital record? Можно ли автоматически enforce withdrawal? Покрывает ли secondary research?",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m10-02-q4",
+      "type": "multiple-choice",
+      "question": "BioGenesis планирует change management для внедрения governance. 25 исследователей привыкли к полному доступу ко всем данным. Project-based segregation замедлит их работу. Какая стратегия снизит сопротивление?",
+      "options": [
+        { "id": "a", "text": "Не внедрять segregation -- исследователям нужен полный доступ для работы" },
+        { "id": "b", "text": "Внедрить принудительно без объяснений -- compliance обязателен" },
+        { "id": "c", "text": "Self-service request workflow: исследователь запрашивает доступ к проекту, Data Steward approve за 1 рабочий день. Параллельно: объяснить compliance-риски (152-ФЗ штрафы, IRB отзыв протоколов). Привлечь биоинформатиков как first adopters и champions" },
+        { "id": "d", "text": "Сначала внедрить каталог, потом access control -- порядок не важен" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Change management для governance (M07, урок 2 -- стейкхолдеры): (1) Self-service workflow минимизирует friction: исследователь не ждёт неделю на IT ticket, а получает доступ за 1 день через self-service. (2) Compliance framing: 152-ФЗ штрафы до 18M RUB, IRB может отозвать approval. Это не 'IT ограничивает науку', а 'защищаем пациентов и лицензию'. (3) Champions: биоинформатики понимают проблему tribal knowledge, привлекаем их как first adopters. (4) Принудительное внедрение (B) = максимальное сопротивление, workarounds (shadow copies). (5) Не внедрять (A) = regulatory risk. Повторите урок 2 (change management).",
+      "hint": "Friction + compliance. Снижаем friction (self-service). Объясняем compliance (152-ФЗ, IRB). Привлекаем allies (биоинформатики).",
+      "bloomLevel": "analytical"
+    },
+    {
+      "id": "dg-m10-02-code-1",
+      "type": "code-challenge",
+      "question": "Создайте JSON governance assessment report для DataTech Solutions после прохождения курса (post-M10). Отчёт должен содержать: assessment metadata, maturity snapshot (current/target levels с 6 dimensions и evidence), gap analysis (dimensions с gap > 0, blocking issues), recommendations (минимум 5, с priority/type/action/effort/impact), и improvement plan (4 квартала).",
+      "language": "json",
+      "starterCode": "{\n  \"assessment\": {\n    \"organization\": \"\",\n    \"assessment_date\": \"\",\n    \"assessor\": \"\",\n\n    \"maturity\": {\n      \"current_level\": 0,\n      \"current_label\": \"\",\n      \"target_level\": 0,\n      \"target_label\": \"\",\n      \"dimensions\": [\n        // TODO: 6 dimensions with name, score (0-5), evidence\n      ]\n    },\n\n    \"gap_analysis\": [\n      // TODO: dimensions where gap > 0\n      // Each: dimension, gap, blocking_issues[]\n    ],\n\n    \"recommendations\": [\n      // TODO: at least 5 recommendations\n      // Each: id, priority, type (quick_win/strategic), action, effort, impact\n    ],\n\n    \"improvement_plan\": {\n      // TODO: 4 quarters (q1, q2, q3, q4)\n      // Each: array of actions\n    }\n  }\n}",
+      "solutionCode": "{\n  \"assessment\": {\n    \"organization\": \"DataTech Solutions\",\n    \"assessment_date\": \"2025-12-15\",\n    \"assessor\": \"Governance Program Team\",\n\n    \"maturity\": {\n      \"current_level\": 2,\n      \"current_label\": \"Managed\",\n      \"target_level\": 3,\n      \"target_label\": \"Defined\",\n      \"dimensions\": [\n        {\"name\": \"Data Quality\", \"score\": 3, \"evidence\": \"Automated quality checks on 80% of critical datasets\"},\n        {\"name\": \"Metadata Management\", \"score\": 2, \"evidence\": \"Data catalog launched, 60% of datasets cataloged\"},\n        {\"name\": \"Privacy & Compliance\", \"score\": 2, \"evidence\": \"PII inventory complete, consent management partially automated\"},\n        {\"name\": \"Security & Access\", \"score\": 3, \"evidence\": \"RBAC implemented, audit logging active\"},\n        {\"name\": \"Governance Organization\", \"score\": 2, \"evidence\": \"Steward roles assigned, governance council meets monthly\"},\n        {\"name\": \"AI Governance\", \"score\": 1, \"evidence\": \"No formal AI governance framework yet\"}\n      ]\n    },\n\n    \"gap_analysis\": [\n      {\"dimension\": \"Metadata Management\", \"gap\": 1, \"blocking_issues\": [\"40% of datasets uncataloged\", \"No automated metadata ingestion\"]},\n      {\"dimension\": \"Privacy & Compliance\", \"gap\": 1, \"blocking_issues\": [\"Consent management still partially manual\", \"No automated DPIA process\"]},\n      {\"dimension\": \"Governance Organization\", \"gap\": 1, \"blocking_issues\": [\"No formal training program\", \"KPIs not tracked automatically\"]},\n      {\"dimension\": \"AI Governance\", \"gap\": 2, \"blocking_issues\": [\"No model registry\", \"No fairness testing\", \"No model cards\"]}\n    ],\n\n    \"recommendations\": [\n      {\"id\": 1, \"priority\": \"high\", \"type\": \"quick_win\", \"action\": \"Complete data catalog to 90% coverage\", \"effort\": \"2 months\", \"impact\": \"high\"},\n      {\"id\": 2, \"priority\": \"high\", \"type\": \"quick_win\", \"action\": \"Automate consent management workflows\", \"effort\": \"1 month\", \"impact\": \"high\"},\n      {\"id\": 3, \"priority\": \"high\", \"type\": \"strategic\", \"action\": \"Implement AI governance framework with model registry\", \"effort\": \"6 months\", \"impact\": \"high\"},\n      {\"id\": 4, \"priority\": \"medium\", \"type\": \"quick_win\", \"action\": \"Deploy governance KPI dashboard\", \"effort\": \"1 month\", \"impact\": \"medium\"},\n      {\"id\": 5, \"priority\": \"medium\", \"type\": \"strategic\", \"action\": \"Establish data steward training and certification program\", \"effort\": \"3 months\", \"impact\": \"medium\"}\n    ],\n\n    \"improvement_plan\": {\n      \"q1\": [\"Complete catalog coverage\", \"Automate consent management\", \"Deploy KPI dashboard\"],\n      \"q2\": [\"Launch AI model registry\", \"Start steward training program\", \"Implement automated DPIA\"],\n      \"q3\": [\"Fairness testing for all production models\", \"Model cards for all ML models\"],\n      \"q4\": [\"Maturity reassessment\", \"Level 3 certification preparation\"]\n    }\n  }\n}",
+      "testCases": [
+        {
+          "id": "tc1",
+          "description": "Validate JSON structure has required sections: organization, maturity (6 dimensions), gap_analysis, 5+ recommendations, 4 quarters",
+          "expectedOutput": "Valid JSON: assessment.organization present, maturity.dimensions length = 6, gap_analysis non-empty, recommendations.length >= 5, improvement_plan has q1-q4"
+        },
+        {
+          "id": "tc2",
+          "description": "Validate maturity levels and gap consistency: current < target, gaps match dimension scores",
+          "expectedOutput": "current_level < target_level, all gap_analysis dimensions have gap > 0, scores are 0-5"
+        },
+        {
+          "id": "tc3",
+          "description": "Validate recommendations have required fields and improvement plan covers 12 months",
+          "expectedOutput": "Each recommendation has id, priority, type, action, effort, impact. Each quarter has at least 1 action.",
+          "hidden": true
+        }
+      ],
+      "explanation": "Governance Assessment Output -- структурированный JSON-отчёт для DataTech после прохождения курса. Maturity snapshot: 6 доменов с evidence (M01). Gap analysis: distance to target (M10, урок 2). Recommendations: quick wins + strategic (M07). Improvement plan: 12-month quarterly roadmap (M07, урок 4). Этот формат стандартизирует assessment и позволяет отслеживать прогресс.",
+      "hint": "6 доменов из M01: Quality, Metadata, Privacy, Security, Organization, AI. DataTech после курса: Level 2 (Managed), цель Level 3. Gap analysis: dimensions, где score < target. 5+ recommendations: quick_win (1-2 месяца) и strategic (3-6 месяцев).",
+      "bloomLevel": "analytical"
+    }
+  ]
+}

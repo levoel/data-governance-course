@@ -3,34 +3,296 @@
   "moduleId": "10-capstone",
   "_meta": {
     "idPrefix": "dg-exam-m10",
-    "description": "Use IDs: dg-exam-m10-q1, dg-exam-m10-q2, ... (8-12 analytical questions)"
+    "description": "CAPSTONE EXAM: 18 cross-module synthesis questions. Each question references 2+ modules. All M01-M09 represented. Max 10% conceptual, min 60% analytical, remainder evaluative."
   },
   "questions": [
     {
-      "id": "dg-exam-10-capstone-placeholder",
+      "id": "dg-exam-m10-q1",
       "type": "multiple-choice",
-      "question": "Placeholder -- будет заменён в следующих фазах",
+      "question": "DataTech (Level 1) проводит первичный assessment по DMBOK-матрице зрелости (M01) и обнаруживает, что качество данных (M04) оценивается на 1/5: 'ad-hoc проверки, бизнес-пользователи сообщают о проблемах'. VP Engineering предлагает немедленно внедрить Great Expectations. Data Engineer возражает: 'Сначала нужен каталог -- GE alerts без контекста (owner, classification, downstream) бесполезны.' Кто прав?",
       "options": [
-        {
-          "id": "a",
-          "text": "Вариант A"
-        },
-        {
-          "id": "b",
-          "text": "Вариант B"
-        },
-        {
-          "id": "c",
-          "text": "Вариант C"
-        },
-        {
-          "id": "d",
-          "text": "Вариант D"
-        }
+        { "id": "a", "text": "VP Engineering: quality -- самая болезненная проблема (15% дубликатов), нужно решать немедленно" },
+        { "id": "b", "text": "Data Engineer: каталог (M03) -- фундамент. Quality alerts без metadata context = noise. Правильный порядок: каталог -> quality -> observability" },
+        { "id": "c", "text": "Оба правы: можно параллельно внедрять каталог и quality checks. GE на критические таблицы даёт immediate value (M04), каталог обогащает alerts контекстом (M03). Но: GE first для quick win, каталог параллельно для infrastructure. Через 2-3 месяца -- интеграция" },
+        { "id": "d", "text": "Ни один: сначала нужно назначить governance-роли (M07)" }
       ],
-      "correctAnswer": "a",
-      "explanation": "Placeholder question -- будет заменён полноценным содержанием.",
-      "bloomLevel": "conceptual"
+      "correctAnswer": "c",
+      "explanation": "Синтез M01 + M03 + M04: Assessment (M01) определяет приоритеты. Quality (M04) решает P1 pain point (15% дубликатов). Metadata (M03) обеспечивает context. Правильный подход -- параллельный: GE на top 20 critical таблицы даёт quick win за 2 недели (VP Engineering прав в urgency). Каталог развёртывается параллельно (Data Engineer прав в архитектуре). Через 2-3 месяца: GE results -> OpenMetadata API -> enriched alerts. Ни sequentially GE first (A: alerts без контекста), ни sequentially catalog first (B: 3 месяца без quality checks), ни governance roles first (D: ещё 6 месяцев без action). Повторите M01 (матрица зрелости), M03 (каталог), M04 (quality checks).",
+      "hint": "15% дубликатов -- боль сейчас. Каталог -- инфраструктура на будущее. Как сочетать immediate action и правильную архитектуру?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M01 (assessment), M03 (metadata context), M04 (quality tools)"
+    },
+    {
+      "id": "dg-exam-m10-q2",
+      "type": "multiple-choice",
+      "question": "BioGenesis (Level 2, healthcare) имеет governance-зрелость 2/5 по приватности (M05) и 1/5 по организации (M07). Этический комитет (IRB) рассматривает протоколы исследований, но не аудирует фактический доступ к данным. Какой governance-домен из M01 (Foundations) объясняет, почему IRB не заменяет Governance Council?",
+      "options": [
+        { "id": "a", "text": "Домен 'Data Quality' -- IRB не проверяет качество данных" },
+        { "id": "b", "text": "Домен 'Data Governance' из DMBOK: governance = planning, oversight, enforcement ACROSS ALL domains. IRB покрывает research ethics (subset of privacy), но не security (M06), quality (M04), metadata (M03), AI governance (M08). Governance Council координирует все домены одновременно" },
+        { "id": "c", "text": "Домен 'Data Security' -- IRB не занимается access control" },
+        { "id": "d", "text": "IRB и Governance Council -- одно и то же, просто разные названия" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Синтез M01 + M05 + M07: DMBOK (M01) определяет Data Governance как cross-cutting discipline: planning, oversight, enforcement across ALL 6 domains. IRB BioGenesis покрывает только research ethics (subset of M05 privacy). Missing: (1) M06 Security: IRB не аудирует JupyterHub access control. (2) M04 Quality: IRB не проверяет quality monitoring genomic data. (3) M03 Metadata: IRB не требует data catalog. (4) M08 AI: IRB не оценивает model fairness. Governance Council (M07) координирует ВСЕ домены: quality steward + security officer + DPO + tool lead + ML governance. IRB -> Governance Council: IRB member становится privacy representative в Council. Повторите M01 (DMBOK governance domain), M05 (privacy), M07 (council structure).",
+      "hint": "DMBOK: governance = cross-cutting across ALL domains. IRB = research ethics (one domain). Что IRB не покрывает?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M01 (DMBOK domains), M05 (privacy scope), M07 (Governance Council)"
+    },
+    {
+      "id": "dg-exam-m10-q3",
+      "type": "multiple-choice",
+      "question": "FinSecure (Level 3) имеет Oracle 19c с 800+ undocumented таблицами (M02 Architecture) и OpenMetadata с 40% coverage (M03 Metadata). Data Architect предлагает reverse-engineer Oracle schema и загрузить в OpenMetadata. DPO возражает: 'Сначала нужна data classification (M05) -- нельзя каталогизировать PII без classification labels.' Как интегрировать оба требования?",
+      "options": [
+        { "id": "a", "text": "Каталогизация first, classification потом -- нужна visibility" },
+        { "id": "b", "text": "Classification first, каталогизация потом -- нужна privacy" },
+        { "id": "c", "text": "Параллельный pipeline: reverse-engineer Oracle schema -> OpenMetadata (M02/M03). Одновременно PII scanner classifies columns -> classification tags в OpenMetadata (M05). RBAC rules (M06) привязываются к classification tags. Результат: каталогизированные + классифицированные + access-controlled datasets" },
+        { "id": "d", "text": "Не каталогизировать Oracle -- legacy система, скоро будет заменена" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Синтез M02 + M03 + M05 + M06: Параллельный pipeline решает оба требования: (1) M02/M03: reverse-engineer Oracle schema -> OpenMetadata. 800+ таблиц получают technical metadata (columns, types, relationships). (2) M05: PII scanner (regex + ML) classifies columns -> 'PII', 'Confidential', 'Public' tags в OpenMetadata. (3) M06: RBAC rules reference classification tags -> access automatically restricted for PII columns. Sequential approach (A or B) = 6+ months delay. Oracle replacement (D) = multi-year project, governance needed NOW (regulatory reporting depends on Oracle). Parallel pipeline: 3 months for 80% coverage with classification + access control. Повторите M02 (data architecture), M03 (cataloging), M05 (classification), M06 (RBAC).",
+      "hint": "800+ таблиц. Visibility (каталог) + Privacy (classification) + Security (RBAC) нужны одновременно. Как параллельно?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M02 (Oracle architecture), M03 (OpenMetadata), M05 (classification), M06 (RBAC)"
+    },
+    {
+      "id": "dg-exam-m10-q4",
+      "type": "multiple-choice",
+      "question": "DataTech развернула OpenMetadata (M03) и Great Expectations (M04). Quality check обнаружил 15% дубликатов в таблице customers. Alert пришёл в Slack: 'dbt test failed: duplicate_count > threshold.' Маркетинг-директор спрашивает: 'Это критично? Какие дашборды затронуты? Кто должен исправить?' Что не хватает в governance infrastructure?",
+      "options": [
+        { "id": "a", "text": "Не хватает better alerting -- Slack alerts должны быть подробнее" },
+        { "id": "b", "text": "Не хватает интеграции M03 (metadata) + M04 (quality): GE results должны отправляться в OpenMetadata через API. Тогда alert содержит: owner (кто исправляет), classification (PII -- приоритет), downstream lineage (3 дашборда затронуты), business description (таблица клиентов -- critical). Без интеграции: каталог и quality -- изолированные silos" },
+        { "id": "c", "text": "Не хватает governance committee для рассмотрения alerts" },
+        { "id": "d", "text": "Не хватает больше quality checks" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Синтез M03 + M04 + M07: Интеграция metadata + quality -- ключевой governance pattern. Без интеграции: alert = 'test failed on customers'. С интеграцией: alert = 'test failed on customers (owner: Мария, PII: yes, downstream: revenue_dashboard, churn_report, marketing_segments)'. Маркетинг-директор получает ответы на все 3 вопроса: (1) Критично? PII classification = yes, 15% duplicates = revenue impact. (2) Дашборды? lineage shows 3 downstream. (3) Кто? owner = Мария (Data Steward, M07). Better alerting (A) -- symptom, не root cause. Committee (C) -- для policy decisions, не для operational alerts. More checks (D) -- quantity, не quality of response. Повторите M03 (metadata), M04 (quality), M07 (steward roles).",
+      "hint": "Alert без контекста: 'test failed on customers'. Alert с контекстом: 'test failed on customers (owner: Мария, PII, 3 dashboards)'. Откуда берётся контекст?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M03 (catalog metadata), M04 (quality monitoring), M07 (owners/stewards)"
+    },
+    {
+      "id": "dg-exam-m10-q5",
+      "type": "multiple-choice",
+      "question": "BioGenesis решила развернуть data catalog (M03). ML researcher настаивает на каталогизации training data lineage (M08): 'Мне нужно знать, какие patient data использовались для обучения biomarker model, чтобы выполнить data deletion request.' Это требование относится к privacy (M05) или AI governance (M08)?",
+      "options": [
+        { "id": "a", "text": "Только M05 (privacy) -- data deletion это privacy requirement" },
+        { "id": "b", "text": "Только M08 (AI governance) -- model lineage это AI concern" },
+        { "id": "c", "text": "Пересечение M03 + M05 + M08: training data lineage в каталоге (M03) обеспечивает: privacy compliance (M05) -- возможность выполнить deletion request из training data, AI governance (M08) -- документация data provenance в model card. Без lineage: deletion request невыполним, model card неполон. Каталог -- единая infrastructure для обоих доменов" },
+        { "id": "d", "text": "Ни одно -- это чисто техническое требование data engineering" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Синтез M03 + M05 + M08: Training data lineage -- intersection трёх доменов: (1) M03 (Metadata): lineage graph в каталоге показывает path: patient_records -> de_identified_features -> training_dataset -> biomarker_model. (2) M05 (Privacy): 152-ФЗ right to erasure. Пациент отзывает согласие -> нужно найти и удалить данные из training set. Без lineage -- невозможно. (3) M08 (AI Governance): Model Card требует 'Training Data' section с provenance. Без lineage -- model card incomplete. Каталог (OpenMetadata) -- единая infrastructure: lineage graph обслуживает и privacy (deletion), и AI governance (documentation). Изолированный подход (A, B) не учитывает cross-domain nature. Повторите M03 (lineage), M05 (deletion rights), M08 (model cards).",
+      "hint": "Patient data -> training -> model. Пациент отзывает согласие. Какие три домена пересекаются?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M03 (lineage), M05 (data deletion), M08 (model cards)"
+    },
+    {
+      "id": "dg-exam-m10-q6",
+      "type": "multiple-choice",
+      "question": "DataTech внедрила Great Expectations (M04) с 5 quality dimensions (completeness, accuracy, consistency, freshness, uniqueness). Через 3 месяца Data Steward (M07) обнаруживает, что 40% quality checks не имеют meaningful thresholds -- пороги установлены 'на глаз'. Какой governance-процесс из M07 должен был предотвратить это?",
+      "options": [
+        { "id": "a", "text": "Governance Charter -- должен был определить quality thresholds" },
+        { "id": "b", "text": "RACI-матрица -- должна была назначить ответственных за thresholds" },
+        { "id": "c", "text": "KPI framework (M07, урок 5): governance KPIs должны включать 'threshold coverage rate' -- процент quality checks с validated thresholds. Data Steward review process (M07, урок 2) должен включать quarterly threshold validation: сравнение thresholds с actual data distributions" },
+        { "id": "d", "text": "Это техническая проблема, governance не может её предотвратить" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Синтез M04 + M07: Quality checks без meaningful thresholds = false sense of governance. KPI framework (M07, урок 5) должен измерять не только 'number of quality checks' но и 'threshold validation rate' -- % checks с thresholds, подтверждёнными data analysis. Data Steward review (M07, урок 2): quarterly процесс, где steward: (1) сравнивает thresholds с actual data distributions (M04), (2) обновляет устаревшие thresholds, (3) документирует rationale. Без этого процесса: thresholds деградируют (data changes, thresholds don't). Charter (A) -- слишком high-level для operational thresholds. RACI (B) -- определяет WHO, но не WHAT и WHEN. Повторите M04 (quality thresholds) и M07 (KPIs, steward review).",
+      "hint": "40% thresholds 'на глаз'. Нужен governance-процесс для periodic threshold validation. Какой?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M04 (quality dimensions, thresholds), M07 (KPI framework, steward review)"
+    },
+    {
+      "id": "dg-exam-m10-q7",
+      "type": "multiple-choice",
+      "question": "FinSecure обнаруживает, что quality checks (M04) на Spark batch pipelines работают, но 15 microservices (M02 Architecture) не имеют quality monitoring. CTO предлагает: 'Добавим dbt tests на microservice databases.' Data Architect возражает: 'Microservices не используют dbt -- они на PostgreSQL с ORM.' Как обеспечить quality governance для microservices?",
+      "options": [
+        { "id": "a", "text": "Заставить microservice teams использовать dbt" },
+        { "id": "b", "text": "Отказаться от quality monitoring для microservices -- они слишком granular" },
+        { "id": "c", "text": "Event-driven quality: microservices emit domain events -> Kafka -> quality validation consumer. Интеграция: quality results -> OpenMetadata API (M03) -> enriched with microservice metadata. Governance policy (M07): каждый microservice обязан emit quality events. Tool ecosystem (M09): custom consumer + GE для batch validation aggregated events" },
+        { "id": "d", "text": "Перейти на monolithic architecture для упрощения quality monitoring" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Синтез M02 + M04 + M07 + M09: Microservice architecture (M02) требует другой подход к quality (M04) чем monolith/batch. Event-driven quality: (1) M02: microservices communicate via events (Kafka). Quality checks embed в event pipeline. (2) M04: quality validation consumer reads events, applies rules (completeness, consistency across services). (3) M07: governance policy 'every microservice MUST emit quality events' -- enforcement through API gateway. (4) M09: tool integration -- custom Kafka consumer + GE для aggregated batch analysis. dbt (A) -- wrong tool for microservices (no dbt in ORM-based services). No monitoring (B) -- governance gap for 15 services with customer data. Monolith (D) -- architectural regression. Повторите M02 (microservices), M04 (quality patterns), M07 (policies), M09 (tools).",
+      "hint": "Microservices на Kafka. dbt не подходит. Какой quality pattern работает с event-driven architecture?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M02 (microservice architecture), M04 (quality monitoring), M07 (enforcement), M09 (tools)"
+    },
+    {
+      "id": "dg-exam-m10-q8",
+      "type": "multiple-choice",
+      "question": "DataTech планирует EU expansion через 12 месяцев. DPO (M05) должен подготовить GDPR compliance program. Одновременно Data Engineer внедряет data classification (M05) в OpenMetadata (M03). Какой critical integration нужен между classification и RBAC (M06) для GDPR readiness?",
+      "options": [
+        { "id": "a", "text": "Classification tags в каталоге достаточно -- GDPR compliance обеспечивается документацией" },
+        { "id": "b", "text": "Classification -> RBAC enforcement: classification tag 'EU_PII' в OpenMetadata автоматически triggers RBAC policy (M06) -- column-level masking для non-authorized users, audit logging для всех обращений, retention policy enforcement. Без этой связки: classification = documentation, не enforcement" },
+        { "id": "c", "text": "RBAC достаточно без classification -- ограничить доступ ко всем таблицам" },
+        { "id": "d", "text": "GDPR не требует технического enforcement -- только policy documents" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Синтез M03 + M05 + M06: GDPR requires both documentation AND enforcement: (1) M03 (Classification tags): OpenMetadata tags columns as 'EU_PII', 'Sensitive', 'Public'. This is documentation layer. (2) M06 (RBAC enforcement): classification tag -> automatic access policy. 'EU_PII' columns: masking for non-DPO users, full audit logging, 30-day retention review. (3) M05 (GDPR): Article 25 'Data Protection by Design' requires technical measures, not just policies. Article 30 requires records of processing (audit logs). Without classification->RBAC integration: (A) classification is just labels, anyone can access EU_PII. (C) RBAC without classification = overly restrictive or miss PII columns. (D) GDPR Article 25 explicitly requires technical enforcement. Повторите M03 (classification), M05 (GDPR technical requirements), M06 (RBAC enforcement).",
+      "hint": "Classification tag 'EU_PII' в каталоге. RBAC policy в PostgreSQL. Как связать? Что требует GDPR Article 25?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M03 (classification tags), M05 (GDPR Art. 25), M06 (RBAC policies)"
+    },
+    {
+      "id": "dg-exam-m10-q9",
+      "type": "multiple-choice",
+      "question": "BioGenesis обнаруживает, что ML researcher обучил drug discovery модель (M08) на combined clinical + genomic patient data без де-идентификации (M05). Пациент отзывает согласие на обработку. Какие governance-процессы должны активироваться?",
+      "options": [
+        { "id": "a", "text": "Удалить данные пациента из PostgreSQL -- этого достаточно" },
+        { "id": "b", "text": "Три процесса: (1) Privacy (M05): удалить PII из operational DB + de-identified features. (2) AI Governance (M08): определить через training data lineage (M03), содержит ли модель данные пациента. Если да -- retrain model без этих данных или document inability. (3) Security (M06): audit log всех обращений к данным пациента для compliance report" },
+        { "id": "c", "text": "Уведомить IRB и дождаться решения" },
+        { "id": "d", "text": "Невозможно удалить данные из обученной модели -- отклонить запрос" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Синтез M05 + M06 + M08 + M03: Withdrawal of consent -- cross-domain governance event. (1) M05 (Privacy): 152-ФЗ обязывает прекратить обработку и удалить ПД при отзыве согласия. Удаление из operational DB + de-identified features + backup. (2) M08 (AI Governance): trained ML model may contain patient data embeddings. Training data lineage (M03) determines exposure. Options: retrain without patient data, or document inability to fully remove (EU DPA guidance: 'reasonable efforts'). (3) M06 (Security): audit trail of all access to patient data -- evidence for compliance report to regulator. (4) M03 (Metadata): lineage graph traces data from consent -> clinical records -> features -> model. Without lineage (A): deletion from DB is insufficient (model still contains data). IRB (C): not their jurisdiction for operational data deletion. Rejection (D): 152-ФЗ requires action, not rejection. Повторите M05 (consent withdrawal), M06 (audit), M08 (model governance), M03 (lineage).",
+      "hint": "Пациент отзывает согласие. Данные в: PostgreSQL, features, ML model. Три домена: privacy, AI governance, security.",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M05 (consent withdrawal), M06 (audit trail), M08 (model retraining), M03 (lineage)"
+    },
+    {
+      "id": "dg-exam-m10-q10",
+      "type": "multiple-choice",
+      "question": "FinSecure обнаруживает 12 shadow copies customer data (M06 Security) на shared drives бизнес-пользователей. Governance Council (M07) решает: 'Запретить и удалить все shadow copies.' DPO (M05) добавляет: 'Каждая shadow copy -- uncontrolled PII exposure.' Какой governance-подход решает root cause, а не symptom?",
+      "options": [
+        { "id": "a", "text": "Удалить все shadow copies и заблокировать shared drives" },
+        { "id": "b", "text": "Root cause: бизнес-пользователи создают shadow copies потому что governed data access слишком медленный или неудобный. Решение: (1) M09 Tools: self-service analytics platform с governed data access (pre-approved datasets). (2) M06 Security: DLP (Data Loss Prevention) для обнаружения новых shadow copies. (3) M07: governance policy 'approved data sources only' + quarterly audit. (4) M05: data classification labels на approved datasets" },
+        { "id": "c", "text": "Провести тренинг для бизнес-пользователей о рисках" },
+        { "id": "d", "text": "Разрешить shadow copies, но с classification labels" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Синтез M05 + M06 + M07 + M09: Shadow copies -- symptom, не root cause. Root cause: governed data access is too slow/inconvenient. Business users need data for analysis, extract to Excel because: (1) No self-service access to governed data. (2) Data request process takes days/weeks. Comprehensive solution: (1) M09 (Tools): self-service analytics platform (Tableau/Metabase with governed datasets). Pre-approved, pre-classified, auto-refreshed. (2) M06 (Security): DLP tools scan shared drives, detect PII outside governed systems. Alert + auto-quarantine. (3) M07 (Policy): 'No unauthorized data extraction. Approved data sources only.' Quarterly audit of shared drives. (4) M05 (Privacy): classification labels on approved datasets ensure PII is handled correctly. Delete-only (A) = recurring problem (users will create new copies). Training-only (C) = awareness without enforcement. Allow with labels (D) = legitimizes uncontrolled copies. Повторите M05, M06, M07, M09.",
+      "hint": "12 shadow copies = symptom. Why do users extract data to shared drives? What's missing in governed access?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M05 (PII exposure), M06 (DLP), M07 (policy enforcement), M09 (self-service tools)"
+    },
+    {
+      "id": "dg-exam-m10-q11",
+      "type": "multiple-choice",
+      "question": "DataTech внедрила RBAC (M06) для PostgreSQL. Через месяц Data Engineer обнаруживает, что audit logging (M06) записывает 500K events/day, но никто их не анализирует. RACI-матрица (M07) не определяет, кто отвечает за audit log review. Какой governance-gap это демонстрирует?",
+      "options": [
+        { "id": "a", "text": "Технический gap: нужно больше disk space для логов" },
+        { "id": "b", "text": "Organizational gap на пересечении M06 (Security) и M07 (Implementation): security controls (RBAC + audit) внедрены, но governance processes (review, escalation, response) не определены. RACI должна включать: audit log review (weekly -- Security Lead), anomaly investigation (Security Lead), escalation to DPO (при PII access anomaly). Без процессов: logs = write-only storage" },
+        { "id": "c", "text": "Нужно отключить audit logging -- слишком много events" },
+        { "id": "d", "text": "Нужно автоматизировать log analysis через AI" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Синтез M06 + M07: Security controls без governance processes = incomplete governance. RBAC + audit (M06) -- technical controls. Log review + escalation + response (M07) -- organizational processes. Missing in RACI: (1) Weekly audit log review: who? (Security Lead). (2) Anomaly investigation: triggered by what? (unusual PII access patterns). (3) Escalation to DPO: when? (PII access by unauthorized user). (4) Documentation: where? (incident log in governance wiki). 500K events/day without review = compliance theater. Регуляторы (152-ФЗ) проверяют не наличие логов, а наличие процесса review. Disable logging (C) = non-compliance. AI automation (D) = future optimization, но process definition needed first. Повторите M06 (audit logging), M07 (RACI, operational processes).",
+      "hint": "500K audit events/day. Никто не читает. RACI не определяет reviewer. Что не хватает: техники или процесса?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M06 (audit logging, review), M07 (RACI matrix, operational governance)"
+    },
+    {
+      "id": "dg-exam-m10-q12",
+      "type": "multiple-choice",
+      "question": "DataTech создаёт Governance Charter (M07). VP Engineering включает 3 принципа: 'Data as Asset', 'Quality First', 'Security by Design'. Legal Counsel добавляет 4-й: 'Privacy by Default'. ML Engineer предлагает 5-й: 'Responsible AI'. Какой принцип из M01 (Foundations) отсутствует и критичен для governance success?",
+      "options": [
+        { "id": "a", "text": "Все 5 принципов достаточны" },
+        { "id": "b", "text": "Отсутствует 'Accountability' -- governance без accountability = nobody owns decisions. M01 (DMBOK): governance success requires clear ownership. M07 (charter): каждый принцип должен иметь owner. Без accountability: 'Quality First' -- кто отвечает? 'Security by Design' -- кто enforce? Accountability связывает принципы с конкретными ролями и decision rights" },
+        { "id": "c", "text": "Отсутствует 'Data Democratization' -- все должны иметь доступ" },
+        { "id": "d", "text": "Отсутствует 'Tool Standardization' -- нужен стандартный инструментарий" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Синтез M01 + M07: Accountability -- фундаментальный принцип DMBOK (M01, Data Governance domain). Governance charter (M07) без accountability = aspirational document, не operational framework. (1) 'Quality First' без owner = nobody ensures quality. (2) 'Security by Design' без enforcer = security gaps. (3) 'Privacy by Default' без DPO = privacy gaps. Accountability principle: (1) Every data domain has an accountable owner (Data Steward). (2) Every governance decision has decision rights defined. (3) Every escalation has a path. Charter + RACI (M07): accountability maps to specific roles. Data Democratization (C) -- important but secondary to accountability (open access without governance = risk). Tool Standardization (D) -- M09 concern, not charter principle. Повторите M01 (DMBOK governance principles), M07 (charter, RACI, decision rights).",
+      "hint": "5 принципов: asset, quality, security, privacy, AI. Кто ОТВЕЧАЕТ за каждый? Какой принцип это определяет?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M01 (DMBOK governance principles), M07 (charter structure, accountability)"
+    },
+    {
+      "id": "dg-exam-m10-q13",
+      "type": "multiple-choice",
+      "question": "FinSecure (Level 3) проводит quarterly KPI review (M07). Governance KPIs показывают: data quality score = 87% (target 90%), catalog coverage = 40% (target 80%), policy enforcement rate = 70% (target 95%). Governance Council принимает решение сфокусироваться на policy enforcement. CDO возражает: 'Catalog coverage = 40% -- корневая причина всех проблем.' Кто прав?",
+      "options": [
+        { "id": "a", "text": "Council: policy enforcement -- самый большой gap (70% vs 95%)" },
+        { "id": "b", "text": "CDO: catalog coverage 40% (M03) -- root cause. Без каталога (M03): policy enforcement (M07) не может reference dataset owners/classification. Quality score (M04) не имеет metadata context. 40% coverage = 60% datasets ungoverned. Поднять coverage до 80% unlocks improvements в обоих других KPIs" },
+        { "id": "c", "text": "Нужно работать над всеми тремя одновременно" },
+        { "id": "d", "text": "KPIs нерелевантны -- нужно смотреть на compliance, не на метрики" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Синтез M03 + M04 + M07: Catalog coverage = root cause. Dependency chain: (1) M03 -> M07: policy enforcement requires dataset metadata (owner, classification). 60% uncataloged datasets = 60% datasets where policies can't be enforced (no owner to hold accountable). (2) M03 -> M04: quality monitoring requires catalog context. Quality score 87% is artificially high -- measured only on cataloged 40%. Uncataloged 60% may have worse quality. (3) Strategy: catalog coverage 40% -> 80% в Q1. This unlocks: policy enforcement improves (owners assigned), quality score becomes more accurate (broader coverage). Focus on policy enforcement (A) without fixing catalog = enforcing policies on 40% of datasets. All three simultaneously (C) = diluted effort. KPIs irrelevant (D) = flying blind. Повторите M03 (catalog coverage), M04 (quality metrics), M07 (KPI analysis, root cause).",
+      "hint": "40% cataloged = 60% invisible. Policy enforcement на невидимых datasets невозможен. Что нужно починить first?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M03 (catalog coverage), M04 (quality scope), M07 (KPI dependencies)"
+    },
+    {
+      "id": "dg-exam-m10-q14",
+      "type": "multiple-choice",
+      "question": "DataTech обнаруживает, что ML recommendation model (M08) обучена на full customer dataset включая PII (M05): имена, email, история покупок. Model Card (M08) не существует. VP Engineering спрашивает: 'Нужно ли нам AI governance, если мы e-commerce, а не банк?' Какой аргумент наиболее убедителен?",
+      "options": [
+        { "id": "a", "text": "AI governance нужна только для regulated industries (banking, healthcare)" },
+        { "id": "b", "text": "Три причины: (1) M05 Privacy: ML model trained on PII без DPIA -- нарушение 152-ФЗ (цели обработки). Recommendation != consent purpose 'order fulfillment'. (2) M08 AI: model fairness -- recommendations могут discriminate (gender bias in product suggestions). (3) M06 Security: training data contains PII -- who has access to model artifacts? Data scientists see raw PII through model training pipeline" },
+        { "id": "c", "text": "AI governance нужна, но можно отложить до EU AI Act enforcement" },
+        { "id": "d", "text": "Достаточно написать Model Card -- техническая документация решает проблему" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Синтез M05 + M06 + M08: AI governance needed for DataTech regardless of industry: (1) M05 (Privacy): customer consent for 'order fulfillment' does NOT cover 'ML recommendation training'. 152-ФЗ requires specific purpose. Training on PII without proper consent basis = violation. DPIA required for automated profiling. (2) M08 (Fairness): recommendation model may have gender/age bias in product suggestions. E-commerce discrimination = reputational risk + potential legal claims. (3) M06 (Security): training pipeline accesses raw PII. Who has access to model artifacts (weights, embeddings)? Data scientists may inadvertently memorize PII patterns. EU AI Act (C) -- not yet enforced, but 152-ФЗ applies NOW. Model Card only (D) -- documentation without fixing underlying issues (PII in training, no DPIA, no access control). Повторите M05 (consent, DPIA), M06 (access to ML artifacts), M08 (fairness, model cards).",
+      "hint": "ML model обучена на PII. Consent covers 'order fulfillment', not 'ML training'. Какой закон это нарушает?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M05 (consent scope, DPIA), M06 (access to training data), M08 (fairness, model cards)"
+    },
+    {
+      "id": "dg-exam-m10-q15",
+      "type": "multiple-choice",
+      "question": "FinSecure Model Risk Committee (M08) проводит quarterly review credit scoring model. Committee обнаруживает: Demographic Parity Difference = 0.17 (threshold 0.10), Disparate Impact Ratio = 0.77 (threshold 0.80). Data Scientist предлагает: 'Переобучим модель с fairness constraints.' DPO (M05) добавляет: 'Нужно уведомить регулятора.' Governance Council (M07) спрашивает: 'Какие governance-процессы нужно активировать?'",
+      "options": [
+        { "id": "a", "text": "Только переобучить модель -- техническое решение достаточно" },
+        { "id": "b", "text": "Только уведомить регулятора -- compliance решение" },
+        { "id": "c", "text": "Четыре процесса: (1) M08: document fairness violation в model card, flag model as 'under review'. (2) M05: DPIA update -- impact of biased automated decisions на субъектов данных. (3) M06: audit trail of all credit decisions made by biased model (для remediation). (4) M07: escalation через governance council: remediation plan, timeline, re-evaluation criteria. Параллельно: retrain model (technical) + notify regulator (compliance) + remediate affected decisions (operational)" },
+        { "id": "d", "text": "Отключить модель и вернуться к ручному скорингу" }
+      ],
+      "correctAnswer": "c",
+      "explanation": "Синтез M05 + M06 + M07 + M08: Fairness violation в production model -- cross-domain governance event. (1) M08 (AI Governance): update model card with fairness metrics violation. Flag model status 'under review'. Document: which populations affected, DPD 0.17, DIR 0.77. (2) M05 (Privacy/DPIA): automated decision-making on credit = high impact. DPIA update required: impact assessment of biased decisions on data subjects. Regulator notification if required by jurisdiction. (3) M06 (Security/Audit): audit trail of all credit decisions during violation period. Needed for: remediation (re-evaluate affected applicants), regulatory evidence. (4) M07 (Governance): Council escalation: approve remediation plan, set timeline for model retraining, define re-evaluation criteria (DPD < 0.10). Retrain-only (A) fixes future but not past. Notify-only (B) without remediation. Disable model (D) disrupts business. Повторите M05, M06, M07, M08.",
+      "hint": "Fairness violation in credit scoring. Affected: model, decisions, regulation, governance. 4 domains respond.",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M05 (DPIA), M06 (audit trail), M07 (council escalation), M08 (fairness metrics, model cards)"
+    },
+    {
+      "id": "dg-exam-m10-q16",
+      "type": "multiple-choice",
+      "question": "DataTech выбирает governance tool stack (M09). Budget: $0 на лицензии, 16 GB сервер, 7 человек. CTO предлагает: OpenMetadata (catalog) + Great Expectations (quality) + Elementary (observability) + pgaudit (audit) + OPA (policy). Senior DE возражает: '5 инструментов слишком много для 7 человек.' Как применить послойный подход из M09 с учётом governance KPIs (M07)?",
+      "options": [
+        { "id": "a", "text": "Внедрить все 5 одновременно -- governance требует полного stack" },
+        { "id": "b", "text": "Послойный подход: Phase 1 (мес. 1-3): OpenMetadata + GE + pgaudit. KPI: catalog coverage > 60%, quality checks on top 20 таблиц, audit logging active. Phase 2 (мес. 4-6): Elementary. KPI: freshness SLA < 4h. Phase 3 (мес. 7-12): OPA. KPI: policy enforcement rate > 80%. Каждая фаза имеет KPI gate -- переход к следующей только при достижении KPI" },
+        { "id": "c", "text": "Только OpenMetadata -- одного инструмента достаточно" },
+        { "id": "d", "text": "Не использовать инструменты -- governance можно построить на процессах" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Синтез M07 + M09: Послойный подход (M09) + KPI gates (M07). 7 человек не могут поддерживать 5 инструментов одновременно. Phase 1 (Layer 1-3): OpenMetadata (visibility), GE (measurement), pgaudit (security baseline). 4-6 GB RAM. KPI: catalog 60%, quality on critical, audit on. Phase 2 (Layer 4): Elementary (dbt package, zero additional RAM). KPI: freshness SLA. Phase 3 (Layer 5): OPA (policy engine). Requires formalized policies from Phase 1-2. KPI: enforcement rate. KPI gates ensure maturity before adding complexity. All 5 simultaneously (A) = operational overload for 7 people. Single tool (C) = insufficient governance. No tools (D) = manual governance doesn't scale. Повторите M07 (KPI framework), M09 (послойный подход, tool selection).",
+      "hint": "7 человек, 16 GB, $0. 5 инструментов sequential, не parallel. KPI gates определяют timing.",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M07 (KPI framework, phased approach), M09 (послойный tool stack, resource constraints)"
+    },
+    {
+      "id": "dg-exam-m10-q17",
+      "type": "multiple-choice",
+      "question": "Компания X (500 сотрудников, healthcare, Level 1) начинает governance-программу. У неё есть: patient data (PII), ML-модели для диагностики, PostgreSQL + MinIO, 5 data engineers. Из опыта DataTech, BioGenesis и FinSecure -- какой порядок приоритизации governance-доменов оптимален?",
+      "options": [
+        { "id": "a", "text": "Quality first (M04) -> Metadata (M03) -> Privacy (M05) -> Security (M06) -> Implementation (M07) -> AI (M08) -> Tools (M09)" },
+        { "id": "b", "text": "Privacy + Security first (M05 + M06) -> Organization (M07) -> Metadata (M03) -> Quality (M04) -> AI (M08) -> Tools (M09). Healthcare + patient data + Level 1: регуляторное давление (152-ФЗ, 323-ФЗ) делает privacy/security P1. Organization (DPO, steward) enables enforcement. Metadata/quality -- infrastructure. AI governance -- after baseline established" },
+        { "id": "c", "text": "Tools first (M09) -> всё остальное" },
+        { "id": "d", "text": "Все домены одновременно с равным приоритетом" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Синтез ALL modules: Healthcare + patient data + Level 1 = BioGenesis-like scenario. Lesson from case studies: (1) M05 + M06 first: patient data PII exposure = immediate regulatory risk. 152-ФЗ + 323-ФЗ. De-identification pipeline, RBAC, audit logging. Quick wins: JupyterHub access control (BioGenesis lesson), consent management. (2) M07: DPO hire, governance council, steward for clinical domain. Enables ongoing governance. (3) M03: data catalog for patient data lineage. Required for: consent tracking (M05), model training lineage (M08). (4) M04: quality monitoring for clinical + research data. (5) M08: ML diagnostic model governance. After catalog provides lineage. (6) M09: tools selected to support priorities. Quality first (A) = DataTech pattern, but DataTech doesn't have patient data. Healthcare requires privacy/security first. Tools first (C) = premature without governance priorities. All simultaneously (D) = diluted effort for 5 people. Повторите M01-M10 case studies.",
+      "hint": "Healthcare + patient data = BioGenesis-like. Регуляторное давление определяет приоритеты. Что первым?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите all module case studies, particularly BioGenesis (M05, M06 priority)"
+    },
+    {
+      "id": "dg-exam-m10-q18",
+      "type": "multiple-choice",
+      "question": "Governance-программа DataTech через 12 месяцев: каталог 80% (M03), quality 87% (M04), RBAC внедрён (M06), DPO нанят (M05), governance council работает (M07). KPI review (M07) показывает Level 2.5. CDO спрашивает: 'Что нужно для Level 3?' Какой единственный самый impactful next step?",
+      "options": [
+        { "id": "a", "text": "Больше quality checks -- довести покрытие до 95%" },
+        { "id": "b", "text": "Automated policy enforcement через OPA/Rego (M09): конвертировать top 10 policies в код. L2 = documented processes, L3 = standardized + automated. Gap = enforcement. Policy-as-code: classification policy auto-applied при создании таблицы, quality SLA auto-enforced при deployment, access policy auto-enforced при query. Это единственный step, который переводит governance из 'documented' в 'automated'" },
+        { "id": "c", "text": "Нанять CDO -- executive role необходима для Level 3" },
+        { "id": "d", "text": "Внедрить AI governance (M08) -- это самый слабый домен" }
+      ],
+      "correctAnswer": "b",
+      "explanation": "Синтез M01 + M07 + M09: L2 -> L3 transition (M01 maturity model): L2 = 'Managed' (documented processes, people assigned). L3 = 'Defined' (standardized processes, automated enforcement, proactive). DataTech at L2.5 has: people (DPO, stewards, council -- M07), tools (catalog, GE -- M09), processes (documented -- M07). Missing: automated enforcement. Policy-as-code (M09, OPA/Rego) is the multiplier: (1) Classification policy: auto-tag new tables. (2) Quality SLA: block deployment if quality < threshold. (3) Access policy: auto-deny unauthorized queries. This converts governance from 'people manually enforce' (L2) to 'system automatically enforces' (L3). More quality checks (A) = incremental, not transformational. CDO hire (C) = organizational, VP Engineering as acting CDO suffices for L3. AI governance (D) = important but doesn't drive L2->L3 transition. Повторите M01 (maturity levels), M07 (KPIs), M09 (policy-as-code).",
+      "hint": "L2 = documented. L3 = automated. DataTech has documentation, people, tools. What converts manual to automated?",
+      "bloomLevel": "analytical",
+      "studyHint": "Повторите M01 (maturity model L2 vs L3), M07 (enforcement KPIs), M09 (policy-as-code, OPA)"
     }
   ]
 }
